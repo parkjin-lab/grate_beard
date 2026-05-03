@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c61737af07393f244b28a0469dca3e48, type: 3}
+  m_Name: SO_SequentialMapConfig
+  m_EditorClassIdentifier: Assembly-CSharp::LostBreadcrumbs.Runtime.Map.SequentialMapConfig
+  useFixedSeed: 1
+  fixedSeed: 1452
+  cellSize: 2.25
+  baseMainPathLength: 14
+  mainPathIncreasePerStage: 3
+  turnChance: 0.25
+  roomChance: 0.28
+  forkChance: 0.28
+  maxForkCount: 6
+  minBranchLength: 3
+  maxBranchLength: 6
+  branchHideoutChance: 0.35
+  minStartToExitDistance: 12
+  exitDistanceIncreasePerStage: 1
+  maxExitExtensionCells: 12
+  riskChanceEarly: 0.08
+  riskChanceLate: 0.35
+  lateStageStart: 5
+  enableSpatialExpansion: 1
+  roomExpansionChance: 0.96
+  hideoutExpansionChance: 0.92
+  forkExpansionChance: 0.6
+  corridorExpansionChance: 0.35
+  expansionMinRadius: 2
+  expansionMaxRadius: 3
+  maxExpansionCellsPerAnchor: 12
+  maxTotalExpansionCells: 180
+  stageExpansionBonusInterval: 3
+  maxGenerationRadius: 42

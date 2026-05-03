@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4581b236be71b2949833b9db527d5690, type: 3}
+  m_Name: EP_Flanker
+  m_EditorClassIdentifier: Assembly-CSharp::LostBreadcrumbs.Runtime.AI.EnemyProfile
+  profileId: flanker
+  aggression: 0.55
+  curiosity: 0.7
+  persistence: 0.68
+  predictionBias: 0.9
+  searchBreadth: 0.8
+  audioSensitivity: 1
+  lightSensitivity: 1.1
+  safeHavenDetectionFactor: 0.35
+  decoyNoiseResponse: 1.05
+  itemNoiseResponse: 1.04
+  smokeVisionPenetration: 0.35
+  suspicionGainPerNoise: 0.18
+  suspicionDecayPerSecond: 0.08
+  suspicionToInvestigate: 0.35
+  suspicionToChase: 0.85
+  suspicionHoldTime: 1.2
+  chaseForgetSeconds: 2.4
+  searchDurationSeconds: 8.8
+  resumeDelaySeconds: 1
+  patrolSpeed: 1.6
+  investigateSpeed: 2.1
+  chaseSpeed: 2.9
+  returnSpeed: 2.2
+  memoryDecayPerSecond: 0.03
+  memoryCellSize: 1
+  maxRecentSamples: 10

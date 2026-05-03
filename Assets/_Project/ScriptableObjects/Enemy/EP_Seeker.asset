@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4581b236be71b2949833b9db527d5690, type: 3}
+  m_Name: EP_Seeker
+  m_EditorClassIdentifier: Assembly-CSharp::LostBreadcrumbs.Runtime.AI.EnemyProfile
+  profileId: seeker
+  aggression: 0.6
+  curiosity: 0.92
+  persistence: 0.82
+  predictionBias: 0.72
+  searchBreadth: 0.9
+  audioSensitivity: 1.25
+  lightSensitivity: 1.15
+  safeHavenDetectionFactor: 0.72
+  decoyNoiseResponse: 0.28
+  itemNoiseResponse: 1.18
+  smokeVisionPenetration: 0.72
+  suspicionGainPerNoise: 0.22
+  suspicionDecayPerSecond: 0.08
+  suspicionToInvestigate: 0.35
+  suspicionToChase: 0.85
+  suspicionHoldTime: 1.2
+  chaseForgetSeconds: 2.4
+  searchDurationSeconds: 11.5
+  resumeDelaySeconds: 1
+  patrolSpeed: 1.6
+  investigateSpeed: 2.1
+  chaseSpeed: 3
+  returnSpeed: 2.2
+  memoryDecayPerSecond: 0.03
+  memoryCellSize: 1
+  maxRecentSamples: 10

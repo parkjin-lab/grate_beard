@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88fb2467ff1d441b93be853a47ba8f4c, type: 3}
+  m_Name: SO_RunLoadoutCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::LostBreadcrumbs.Runtime.Managers.RunLoadoutCatalog
+  loadouts:
+  - id: 0
+    displayName: Balanced
+    summary: Balanced baseline
+    unlockedByDefault: 1
+    moveSpeedMultiplier: 1
+    staminaCapacityMultiplier: 1
+    staminaRecoveryMultiplier: 1
+    footstepNoiseMultiplier: 1
+    sprintNoiseMultiplier: 1
+    flashlightRangeMultiplier: 1
+    flashlightAngleMultiplier: 1
+    pulseCooldownMultiplier: 1
+    pulseRadiusMultiplier: 1
+    pulseNoiseMultiplier: 1
+    decoyCooldownMultiplier: 1
+    decoyNoiseMultiplier: 1
+    decoyLifetimeMultiplier: 1
+    smokeCooldownMultiplier: 1
+    smokeRadiusMultiplier: 1
+    smokeLifetimeMultiplier: 1
+    smokeNoiseMultiplier: 1
+  - id: 1
+    displayName: Pathfinder
+    summary: +Move/+Vision, slight noise
+    unlockedByDefault: 1
+    moveSpeedMultiplier: 1.12
+    staminaCapacityMultiplier: 1.15
+    staminaRecoveryMultiplier: 1.05
+    footstepNoiseMultiplier: 1.08
+    sprintNoiseMultiplier: 1.06
+    flashlightRangeMultiplier: 1.25
+    flashlightAngleMultiplier: 1.1
+    pulseCooldownMultiplier: 1.02
+    pulseRadiusMultiplier: 0.95
+    pulseNoiseMultiplier: 1.05
+    decoyCooldownMultiplier: 1
+    decoyNoiseMultiplier: 1
+    decoyLifetimeMultiplier: 1
+    smokeCooldownMultiplier: 1
+    smokeRadiusMultiplier: 0.95
+    smokeLifetimeMultiplier: 0.95
+    smokeNoiseMultiplier: 1
+  - id: 2
+    displayName: Echo Specialist
+    summary: Fast pulse / loud risk
+    unlockedByDefault: 1
+    moveSpeedMultiplier: 0.97
+    staminaCapacityMultiplier: 1
+    staminaRecoveryMultiplier: 1
+    footstepNoiseMultiplier: 1
+    sprintNoiseMultiplier: 1
+    flashlightRangeMultiplier: 1
+    flashlightAngleMultiplier: 1
+    pulseCooldownMultiplier: 0.72
+    pulseRadiusMultiplier: 1.2
+    pulseNoiseMultiplier: 1.24
+    decoyCooldownMultiplier: 0.95
+    decoyNoiseMultiplier: 1.05
+    decoyLifetimeMultiplier: 1
+    smokeCooldownMultiplier: 1.05
+    smokeRadiusMultiplier: 1
+    smokeLifetimeMultiplier: 1
+    smokeNoiseMultiplier: 1.05
+  - id: 3
+    displayName: Shadow Runner
+    summary: Quiet mobility / weaker vision
+    unlockedByDefault: 1
+    moveSpeedMultiplier: 1.05
+    staminaCapacityMultiplier: 1.1
+    staminaRecoveryMultiplier: 1.2
+    footstepNoiseMultiplier: 0.68
+    sprintNoiseMultiplier: 0.72
+    flashlightRangeMultiplier: 0.9
+    flashlightAngleMultiplier: 0.95
+    pulseCooldownMultiplier: 1.1
+    pulseRadiusMultiplier: 1
+    pulseNoiseMultiplier: 0.9
+    decoyCooldownMultiplier: 0.85
+    decoyNoiseMultiplier: 0.88
+    decoyLifetimeMultiplier: 1.18
+    smokeCooldownMultiplier: 0.82
+    smokeRadiusMultiplier: 1.22
+    smokeLifetimeMultiplier: 1.25
+    smokeNoiseMultiplier: 0.84

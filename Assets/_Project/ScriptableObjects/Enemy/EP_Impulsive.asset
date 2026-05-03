@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4581b236be71b2949833b9db527d5690, type: 3}
+  m_Name: EP_Impulsive
+  m_EditorClassIdentifier: Assembly-CSharp::LostBreadcrumbs.Runtime.AI.EnemyProfile
+  profileId: impulsive
+  aggression: 0.95
+  curiosity: 0.35
+  persistence: 0.35
+  predictionBias: 0.2
+  searchBreadth: 0.45
+  audioSensitivity: 1.35
+  lightSensitivity: 0.85
+  safeHavenDetectionFactor: 0
+  decoyNoiseResponse: 1.3
+  itemNoiseResponse: 1.32
+  smokeVisionPenetration: 0.08
+  suspicionGainPerNoise: 0.18
+  suspicionDecayPerSecond: 0.08
+  suspicionToInvestigate: 0.35
+  suspicionToChase: 0.85
+  suspicionHoldTime: 1.2
+  chaseForgetSeconds: 1.4
+  searchDurationSeconds: 4.5
+  resumeDelaySeconds: 1
+  patrolSpeed: 1.6
+  investigateSpeed: 2.1
+  chaseSpeed: 3.4
+  returnSpeed: 2.2
+  memoryDecayPerSecond: 0.03
+  memoryCellSize: 1
+  maxRecentSamples: 10
