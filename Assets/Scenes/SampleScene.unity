@@ -1897,6 +1897,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LostBreadcrumbs.Runtime.Managers.ThreatReadabilityDirector
   player: {fileID: 959326961}
+  visibilitySource: {fileID: 959326962}
   targetCamera: {fileID: 1354310197}
   cameraFollow: {fileID: 1354310198}
   fogOfWar: {fileID: 1760620897}
@@ -1905,6 +1906,7 @@ MonoBehaviour:
   mapSystem: {fileID: 603924095}
   applyOnStart: 1
   updateInterval: 0.16
+  referenceResolveRetryInterval: 0.75
   responseSmoothing: 5.6
   logPressureChanges: 0
   threatRange: 13
@@ -1934,27 +1936,69 @@ MonoBehaviour:
   enableRuntimeArtGrade: 1
   cameraBackgroundLerpSpeed: 5.4
   calmCameraBackgroundColor: {r: 0.03, g: 0.04, b: 0.06, a: 1}
-  dangerCameraBackgroundColor: {r: 0.11, g: 0.035, b: 0.05, a: 1}
+  dangerCameraBackgroundColor: {r: 0.075, g: 0.014, b: 0.024, a: 1}
   calmFogTint: {r: 0.031, g: 0.039, b: 0.055, a: 1}
-  dangerFogTint: {r: 0.075, g: 0.025, b: 0.03, a: 1}
+  dangerFogTint: {r: 0.045, g: 0.012, b: 0.018, a: 1}
   calmFogHiddenAlphaMultiplier: 1
-  dangerFogHiddenAlphaMultiplier: 1.1
+  dangerFogHiddenAlphaMultiplier: 1.2
   calmFogVisibleAlphaMultiplier: 1
-  dangerFogVisibleAlphaMultiplier: 0.78
+  dangerFogVisibleAlphaMultiplier: 0.64
   enableThreatPulseImpulse: 1
   pulsePressureThreshold: 0.78
   pulsePressureDeltaThreshold: 0.12
   pulseCooldownSeconds: 1.25
   pulseImpulseAmplitude: 0.14
   pulseImpulseDuration: 0.18
+  enableDreadBeat: 1
+  dreadBeatPressureThreshold: 0.34
+  maxDreadBeatInterval: 3.6
+  minDreadBeatInterval: 1.65
+  minDreadBeatImpulse: 0.025
+  maxDreadBeatImpulse: 0.085
+  dreadBeatImpulseDuration: 0.28
+  dreadBeatIntervalJitter: 0.28
+  enableDreadBreathTint: 1
+  dreadBreathTint: {r: 0.13, g: 0.01, b: 0.024, a: 1}
+  dreadBreathSpeed: 0.72
+  dreadBreathTintStrength: 0.18
+  enablePhantomCues: 1
+  phantomCuePressureThreshold: 0.42
+  maxPhantomCueInterval: 7.5
+  minPhantomCueInterval: 3.1
+  phantomCueIntervalJitter: 0.65
+  phantomCueMinDistance: 4.6
+  phantomCueMaxDistance: 9.4
+  phantomCueHiddenFogThreshold: 0.55
+  phantomCueColor: {r: 0.2, g: 0.58, b: 1, a: 0.34}
+  phantomCueRadius: 3.35
+  phantomCueDuration: 2.35
+  phantomCueRingCount: 2
+  phantomCueRingInterval: 0.42
+  phantomCueSortingOrder: 32
+  phantomCueEmitsNoise: 1
+  phantomCueNoiseLoudness: 0.72
+  phantomCueNoiseRadius: 4.8
+  enablePhantomCueAudio: 1
+  phantomCueAudioVolume: 0.18
+  phantomCueAudioDuration: 1.45
+  phantomCueAudioFrequency: 54
+  phantomCueAudioSpatialBlend: 0.55
+  enableFlashlightDread: 1
+  flashlightDreadPressureThreshold: 0.36
+  minDreadFlashlightRangeMultiplier: 0.78
+  minDreadFlashlightAngleMultiplier: 0.86
+  flashlightFlickerStrength: 0.11
+  flashlightFlickerSpeed: 7.2
+  flashlightBreathStrength: 0.06
+  flashlightBreathSpeed: 0.54
   minFogRevealRadiusMultiplier: 0.95
   maxFogRevealRadiusMultiplier: 1.22
   minFogSoftnessMultiplier: 0.88
   maxFogSoftnessMultiplier: 1.2
   minFogFlashlightRangeMultiplier: 0.92
   maxFogFlashlightRangeMultiplier: 1.26
-  minFogRefogMultiplier: 0.75
-  maxFogRefogMultiplier: 1.08
+  minFogRefogMultiplier: 0.92
+  maxFogRefogMultiplier: 1.38
   minEnemyVisionMultiplier: 0.95
   maxEnemyVisionMultiplier: 1.24
   minEnemyHearingMultiplier: 0.94
@@ -11737,8 +11781,70 @@ Transform:
   - {fileID: 1875963035}
   - {fileID: 1354920073}
   - {fileID: 233381274}
+  - {fileID: 410880002}
   m_Father: {fileID: 1207666321}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &410880001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 410880002}
+  - component: {fileID: 410880003}
+  m_Layer: 0
+  m_Name: DreadScreenOverlay
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &410880002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 410880001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 911545274}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &410880003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 410880001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0955a4d244ba44718ae3622346400b64, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::LostBreadcrumbs.Runtime.UI.DreadScreenOverlayRuntime
+  threatReadabilityDirector: {fileID: 132755578}
+  targetCanvas: {fileID: 0}
+  buildOnAwake: 1
+  overlaySortingOrder: 108
+  textureSize: 256
+  hideDuringRegressionChecklist: 1
+  pressureFadeStart: 0.34
+  pressureFadeFull: 0.9
+  flashlightDreadWeight: 0.22
+  maxEdgeAlpha: 0.32
+  breathAlpha: 0.025
+  breathSpeed: 0.58
+  fadeInSpeed: 2.2
+  fadeOutSpeed: 3.6
+  missingReferenceResolveInterval: 0.75
+  lowPressureEdgeColor: {r: 0.015, g: 0.012, b: 0.018, a: 1}
+  highPressureEdgeColor: {r: 0.18, g: 0.012, b: 0.026, a: 1}
 --- !u!1 &918979666
 GameObject:
   m_ObjectHideFlags: 0
@@ -12441,7 +12547,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a9d3cabc976ddb44b8cdc381d4007dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LostBreadcrumbs.Runtime.Player.PlayerDummyController
-  moveSpeed: 3.2
+  moveSpeed: 2.65
   moveLeftKey: 97
   moveRightKey: 100
   moveDownKey: 115
@@ -12449,18 +12555,28 @@ MonoBehaviour:
   enableSprint: 1
   sprintKey: 304
   sprintAltKey: 303
-  sprintMoveMultiplier: 1.65
+  sprintMoveMultiplier: 1.42
   maxStamina: 4
   staminaDrainPerSecond: 1.4
   staminaRecoverPerSecond: 0.95
   staminaRecoverDelay: 0.45
   exhaustedLockSeconds: 0.65
-  footstepInterval: 0.35
+  footstepInterval: 0.46
   footstepLoudness: 0.45
-  echoLoudness: 2.4
-  echoRadius: 7
+  echoLoudness: 2.1
+  echoRadius: 7.8
   sprintFootstepIntervalScale: 0.7
   sprintNoiseMultiplier: 1.55
+  spawnEchoVisual: 1
+  echoVisualColor: {r: 0.32, g: 0.72, b: 1, a: 0.68}
+  echoVisualDuration: 2.2
+  echoVisualRingCount: 3
+  echoVisualRingInterval: 0.38
+  echoVisualRadiusMultiplier: 1
+  echoVisualSortingOrder: 34
+  revealFogWithEcho: 1
+  echoFogRevealRadiusMultiplier: 0.72
+  echoFogRevealSoftnessBoost: 0.8
   echoKey: 32
   flashlightKey: 102
   freezeInputDuringRegressionChecklist: 1
@@ -12539,15 +12655,24 @@ MonoBehaviour:
   noiseLoudness: 2.2
   noiseRadius: 8
   spawnPulseVisual: 1
-  pulseVisualColor: {r: 0.35, g: 0.92, b: 1, a: 0.92}
-  pulseVisualDuration: 0.72
-  pulseVisualRingCount: 2
-  pulseVisualRingInterval: 0.12
-  pulseVisualRadiusMultiplier: 1.08
+  pulseVisualColor: {r: 0.36, g: 0.78, b: 1, a: 0.78}
+  pulseVisualDuration: 1.85
+  pulseVisualRingCount: 3
+  pulseVisualRingInterval: 0.34
+  pulseVisualRadiusMultiplier: 1.18
   pulseVisualSortingOrder: 36
   revealFogWithPulse: 1
   fogRevealRadiusMultiplier: 1.05
-  fogRevealSoftnessBoost: 0.6
+  fogRevealSoftnessBoost: 1.05
+  revealNearbyTargetsWithPulse: 1
+  scoutRadiusMultiplier: 1.9
+  scoutRevealDuration: 1.45
+  maxScoutRevealTargets: 18
+  scoutHiddenFogThreshold: 0.42
+  scoutBreadcrumbColor: {r: 1, g: 0.86, b: 0.22, a: 1}
+  scoutExitColor: {r: 0.35, g: 1, b: 0.55, a: 1}
+  scoutHazardColor: {r: 1, g: 0.34, b: 0.22, a: 1}
+  scoutEnemyColor: {r: 0.42, g: 0.92, b: 1, a: 1}
   logPulseResult: 0
 --- !u!114 &959326967
 MonoBehaviour:
@@ -25112,6 +25237,34 @@ MonoBehaviour:
   breadcrumbRoomWeight: 1.35
   breadcrumbForkWeight: 1.25
   breadcrumbHideoutWeight: 0.55
+  showBreadcrumbChainEcho: 1
+  breadcrumbChainEchoDuration: 0.72
+  breadcrumbChainEchoWidth: 0.08
+  breadcrumbChainEchoMaxDistance: 18
+  breadcrumbChainEchoColor: {r: 1, g: 0.86, b: 0.22, a: 0.86}
+  breadcrumbExitChainEchoColor: {r: 0.35, g: 1, b: 0.55, a: 0.92}
+  breadcrumbChainEchoSortingOrder: 32
+  emitBreadcrumbChainNoise: 1
+  breadcrumbChainNoiseLoudness: 0.28
+  breadcrumbChainNoiseRadius: 2.1
+  enableCorruptedBreadcrumbEcho: 1
+  corruptedBreadcrumbStartStage: 5
+  corruptedBreadcrumbPressureThreshold: 0.18
+  corruptedBreadcrumbBaseChance: 0.08
+  corruptedBreadcrumbPressureChanceBonus: 0.24
+  corruptedBreadcrumbCooldownSeconds: 7.5
+  corruptedBreadcrumbMinDistance: 3.4
+  corruptedBreadcrumbMaxDistance: 8.2
+  corruptedBreadcrumbPickupBias: 0.34
+  corruptedBreadcrumbEchoColor: {r: 0.26, g: 0.56, b: 1, a: 0.52}
+  corruptedBreadcrumbEchoDuration: 1.18
+  corruptedBreadcrumbEchoWidth: 0.055
+  corruptedBreadcrumbWaverAmplitude: 0.32
+  corruptedBreadcrumbFlickerSpeed: 12
+  corruptedBreadcrumbSortingOrder: 31
+  emitCorruptedBreadcrumbNoise: 1
+  corruptedBreadcrumbNoiseLoudness: 0.36
+  corruptedBreadcrumbNoiseRadius: 3.2
   spawnSafeHavens: 1
   baseSafeHavenCount: 1
   safeHavenIncreasePerStage: 1

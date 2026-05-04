@@ -38,6 +38,26 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField, Min(0f)] private float breadcrumbChainNoiseLoudness = 0.28f;
         [SerializeField, Min(0.1f)] private float breadcrumbChainNoiseRadius = 2.1f;
 
+        [Header("Corrupted Breadcrumb Echo")]
+        [SerializeField] private bool enableCorruptedBreadcrumbEcho = true;
+        [SerializeField, Min(1)] private int corruptedBreadcrumbStartStage = 5;
+        [SerializeField, Range(0f, 1f)] private float corruptedBreadcrumbPressureThreshold = 0.18f;
+        [SerializeField, Range(0f, 1f)] private float corruptedBreadcrumbBaseChance = 0.08f;
+        [SerializeField, Range(0f, 1f)] private float corruptedBreadcrumbPressureChanceBonus = 0.24f;
+        [SerializeField, Min(0.2f)] private float corruptedBreadcrumbCooldownSeconds = 7.5f;
+        [SerializeField, Min(0.2f)] private float corruptedBreadcrumbMinDistance = 3.4f;
+        [SerializeField, Min(0.2f)] private float corruptedBreadcrumbMaxDistance = 8.2f;
+        [SerializeField, Range(0f, 1f)] private float corruptedBreadcrumbPickupBias = 0.34f;
+        [SerializeField] private Color corruptedBreadcrumbEchoColor = new(0.26f, 0.56f, 1f, 0.52f);
+        [SerializeField, Min(0.1f)] private float corruptedBreadcrumbEchoDuration = 1.18f;
+        [SerializeField, Min(0.01f)] private float corruptedBreadcrumbEchoWidth = 0.055f;
+        [SerializeField, Min(0f)] private float corruptedBreadcrumbWaverAmplitude = 0.32f;
+        [SerializeField, Min(0.1f)] private float corruptedBreadcrumbFlickerSpeed = 12f;
+        [SerializeField] private int corruptedBreadcrumbSortingOrder = 31;
+        [SerializeField] private bool emitCorruptedBreadcrumbNoise = true;
+        [SerializeField, Min(0f)] private float corruptedBreadcrumbNoiseLoudness = 0.36f;
+        [SerializeField, Min(0.1f)] private float corruptedBreadcrumbNoiseRadius = 3.2f;
+
         [Header("Exit Unlock Pressure")]
         [SerializeField] private bool triggerExitUnlockPressure = true;
         [SerializeField, Min(0f)] private float exitUnlockPressureDelay = 0.8f;
@@ -93,6 +113,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private Sprite debugSprite;
         private Material chainEchoMaterial;
         private Coroutine exitUnlockPressureRoutine;
+        private float nextCorruptedBreadcrumbEchoTime;
 
         public int CurrentStage { get; private set; } = 1;
         public int RequiredBreadcrumbs { get; private set; }
@@ -333,7 +354,7 @@ namespace LostBreadcrumbs.Runtime.Map
 
                 for (int i = 0; i < selectedSafeHavens.Count; i++)
                 {
-                    SpawnSafeHaven(selectedSafeHavens[i], i, effectiveSafeHavenRadius);
+                    SpawnSafeHaven(selectedSafeHavens[i], i, effectiveSafeHavenRadius, latePressure01);
                 }
             }
 
@@ -606,7 +627,7 @@ namespace LostBreadcrumbs.Runtime.Map
             activeStaminaPickups.Add(pickup);
         }
 
-        private void SpawnSafeHaven(GeneratedMapCell cell, int index, float radius)
+        private void SpawnSafeHaven(GeneratedMapCell cell, int index, float radius, float latePressure01)
         {
             if (interactablesRoot == null || mapSystem == null)
             {
@@ -628,7 +649,7 @@ namespace LostBreadcrumbs.Runtime.Map
             trigger.radius = Mathf.Max(0.24f, radius);
 
             SafeHavenZone safeHaven = havenObject.AddComponent<SafeHavenZone>();
-            safeHaven.Configure(trigger.radius);
+            safeHaven.Configure(trigger.radius, CurrentStage, latePressure01);
             activeSafeHavens.Add(safeHaven);
         }
 
@@ -656,6 +677,8 @@ namespace LostBreadcrumbs.Runtime.Map
                 SpawnBreadcrumbChainEcho(origin, target, targetIsExit);
             }
 
+            TrySpawnCorruptedBreadcrumbEcho(origin, preferExit);
+
             if (!emitBreadcrumbChainNoise || NoiseManager.Instance == null)
             {
                 return;
@@ -667,6 +690,122 @@ namespace LostBreadcrumbs.Runtime.Map
                 Mathf.Max(0.1f, breadcrumbChainNoiseRadius),
                 NoiseKind.ItemUse,
                 gameObject);
+        }
+
+        private void TrySpawnCorruptedBreadcrumbEcho(Vector3 origin, bool preferExit)
+        {
+            if (!enableCorruptedBreadcrumbEcho || preferExit || !Application.isPlaying || RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                return;
+            }
+
+            if (activePickups.Count <= 0 || CurrentStage < corruptedBreadcrumbStartStage || Time.time < nextCorruptedBreadcrumbEchoTime)
+            {
+                return;
+            }
+
+            float pressure = EvaluateLateStagePressure01(CurrentStage);
+            if (pressure < corruptedBreadcrumbPressureThreshold)
+            {
+                return;
+            }
+
+            float chance = Mathf.Clamp01(corruptedBreadcrumbBaseChance + pressure * corruptedBreadcrumbPressureChanceBonus);
+            if (UnityEngine.Random.value > chance)
+            {
+                return;
+            }
+
+            if (!TryPickCorruptedBreadcrumbTarget(origin, out Vector3 corruptedTarget))
+            {
+                return;
+            }
+
+            nextCorruptedBreadcrumbEchoTime = Time.time + Mathf.Max(0.2f, corruptedBreadcrumbCooldownSeconds * Mathf.Lerp(1.1f, 0.76f, pressure));
+            SpawnCorruptedBreadcrumbEcho(origin, corruptedTarget, pressure);
+
+            if (emitCorruptedBreadcrumbNoise && NoiseManager.Instance != null)
+            {
+                float intensity = Mathf.Lerp(0.72f, 1.18f, pressure);
+                NoiseManager.Instance.EmitNoise(
+                    corruptedTarget,
+                    corruptedBreadcrumbNoiseLoudness * intensity,
+                    corruptedBreadcrumbNoiseRadius * intensity,
+                    NoiseKind.Decoy,
+                    gameObject);
+            }
+        }
+
+        private bool TryPickCorruptedBreadcrumbTarget(Vector3 origin, out Vector3 corruptedTarget)
+        {
+            corruptedTarget = origin;
+            float minDistance = Mathf.Max(0.2f, corruptedBreadcrumbMinDistance);
+            float maxDistance = Mathf.Max(minDistance + 0.1f, corruptedBreadcrumbMaxDistance);
+
+            Vector2 direction = UnityEngine.Random.insideUnitCircle;
+            if (direction.sqrMagnitude <= 0.001f)
+            {
+                direction = Vector2.right;
+            }
+
+            direction.Normalize();
+            Vector3 randomTarget = origin + (Vector3)(direction * UnityEngine.Random.Range(minDistance, maxDistance));
+            if (!TryFindNearestActiveBreadcrumbPickup(origin, out Vector3 realTarget))
+            {
+                corruptedTarget = randomTarget;
+                return true;
+            }
+
+            Vector2 toReal = realTarget - origin;
+            if (toReal.sqrMagnitude <= 0.001f)
+            {
+                corruptedTarget = randomTarget;
+                return true;
+            }
+
+            Vector2 realDirection = toReal.normalized;
+            Vector2 side = new(-realDirection.y, realDirection.x);
+            if (UnityEngine.Random.value < 0.5f)
+            {
+                side = -side;
+            }
+
+            float sideDistance = UnityEngine.Random.Range(minDistance * 0.45f, maxDistance * 0.62f);
+            Vector3 biasedTarget = realTarget + (Vector3)(side * sideDistance);
+            corruptedTarget = Vector3.Lerp(randomTarget, biasedTarget, Mathf.Clamp01(corruptedBreadcrumbPickupBias));
+            return true;
+        }
+
+        private bool TryFindNearestActiveBreadcrumbPickup(Vector3 origin, out Vector3 target)
+        {
+            target = default;
+            BreadcrumbPickup nearestPickup = null;
+            float nearestDistanceSqr = float.PositiveInfinity;
+            for (int i = 0; i < activePickups.Count; i++)
+            {
+                BreadcrumbPickup pickup = activePickups[i];
+                if (pickup == null)
+                {
+                    continue;
+                }
+
+                float distanceSqr = (pickup.transform.position - origin).sqrMagnitude;
+                if (distanceSqr >= nearestDistanceSqr)
+                {
+                    continue;
+                }
+
+                nearestPickup = pickup;
+                nearestDistanceSqr = distanceSqr;
+            }
+
+            if (nearestPickup == null)
+            {
+                return false;
+            }
+
+            target = nearestPickup.transform.position;
+            return true;
         }
 
         private bool TryFindBreadcrumbChainTarget(Vector3 origin, bool preferExit, out Vector3 target, out bool targetIsExit)
@@ -745,6 +884,36 @@ namespace LostBreadcrumbs.Runtime.Map
             StartCoroutine(BreadcrumbChainEchoRoutine(echoObject, line, targetIsExit));
         }
 
+        private void SpawnCorruptedBreadcrumbEcho(Vector3 origin, Vector3 target, float pressure)
+        {
+            Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX/CorruptedBreadcrumbEchoes");
+            GameObject echoObject = new("CorruptedBreadcrumbEcho");
+            if (vfxRoot != null)
+            {
+                echoObject.transform.SetParent(vfxRoot, false);
+            }
+
+            LineRenderer line = echoObject.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.loop = false;
+            line.positionCount = 4;
+            line.alignment = LineAlignment.View;
+            line.textureMode = LineTextureMode.Stretch;
+            line.numCornerVertices = 2;
+            line.numCapVertices = 2;
+            line.widthMultiplier = Mathf.Max(0.01f, corruptedBreadcrumbEchoWidth);
+            line.sharedMaterial = GetChainEchoMaterial();
+            line.sortingOrder = corruptedBreadcrumbSortingOrder;
+
+            Vector3[] basePoints = BuildCorruptedBreadcrumbPath(origin, target, pressure);
+            for (int i = 0; i < basePoints.Length; i++)
+            {
+                line.SetPosition(i, basePoints[i]);
+            }
+
+            StartCoroutine(CorruptedBreadcrumbEchoRoutine(echoObject, line, basePoints, pressure));
+        }
+
         private IEnumerator BreadcrumbChainEchoRoutine(GameObject echoObject, LineRenderer line, bool targetIsExit)
         {
             float duration = Mathf.Max(0.1f, breadcrumbChainEchoDuration);
@@ -767,6 +936,70 @@ namespace LostBreadcrumbs.Runtime.Map
             {
                 DestroySafe(echoObject);
             }
+        }
+
+        private IEnumerator CorruptedBreadcrumbEchoRoutine(GameObject echoObject, LineRenderer line, Vector3[] basePoints, float pressure)
+        {
+            float duration = Mathf.Max(0.1f, corruptedBreadcrumbEchoDuration);
+            float startedAt = Time.time;
+            Vector3 direction = basePoints[^1] - basePoints[0];
+            Vector3 side = direction.sqrMagnitude > 0.001f
+                ? new Vector3(-direction.y, direction.x, 0f).normalized
+                : Vector3.up;
+            float waver = Mathf.Max(0f, corruptedBreadcrumbWaverAmplitude) * Mathf.Lerp(0.75f, 1.35f, Mathf.Clamp01(pressure));
+
+            while (line != null && Time.time < startedAt + duration)
+            {
+                float elapsed = Time.time - startedAt;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float fade = 1f - t;
+                float flicker = 0.5f + Mathf.Sin((elapsed * corruptedBreadcrumbFlickerSpeed + pressure * 7.1f) * Mathf.PI * 2f) * 0.5f;
+
+                for (int i = 0; i < basePoints.Length; i++)
+                {
+                    Vector3 point = basePoints[i];
+                    if (i > 0 && i < basePoints.Length - 1)
+                    {
+                        float local = Mathf.Sin((elapsed * corruptedBreadcrumbFlickerSpeed * 0.64f + i * 1.37f) * Mathf.PI * 2f);
+                        point += side * local * waver * fade;
+                    }
+
+                    line.SetPosition(i, point);
+                }
+
+                Color color = corruptedBreadcrumbEchoColor;
+                color.a *= fade * Mathf.Lerp(0.48f, 1f, flicker);
+                line.startColor = color;
+                line.endColor = color;
+                line.widthMultiplier = Mathf.Max(0.01f, corruptedBreadcrumbEchoWidth) * Mathf.Lerp(1.35f, 0.18f, t);
+                yield return null;
+            }
+
+            if (echoObject != null)
+            {
+                DestroySafe(echoObject);
+            }
+        }
+
+        private Vector3[] BuildCorruptedBreadcrumbPath(Vector3 origin, Vector3 target, float pressure)
+        {
+            Vector3 direction = target - origin;
+            Vector3 side = direction.sqrMagnitude > 0.001f
+                ? new Vector3(-direction.y, direction.x, 0f).normalized
+                : Vector3.up;
+            if (UnityEngine.Random.value < 0.5f)
+            {
+                side = -side;
+            }
+
+            float offset = Mathf.Max(0f, corruptedBreadcrumbWaverAmplitude) * Mathf.Lerp(1.2f, 2.2f, Mathf.Clamp01(pressure));
+            return new[]
+            {
+                origin,
+                Vector3.Lerp(origin, target, 0.34f) + side * offset,
+                Vector3.Lerp(origin, target, 0.68f) - side * offset * 0.72f,
+                target
+            };
         }
 
         private Material GetChainEchoMaterial()
@@ -909,6 +1142,8 @@ namespace LostBreadcrumbs.Runtime.Map
                 StopCoroutine(exitUnlockPressureRoutine);
                 exitUnlockPressureRoutine = null;
             }
+
+            nextCorruptedBreadcrumbEchoTime = 0f;
 
             for (int i = 0; i < activePickups.Count; i++)
             {

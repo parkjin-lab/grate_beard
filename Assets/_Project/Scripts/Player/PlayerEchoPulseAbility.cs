@@ -25,22 +25,22 @@ namespace LostBreadcrumbs.Runtime.Player
 
         [Header("Visual")]
         [SerializeField] private bool spawnPulseVisual = true;
-        [SerializeField] private Color pulseVisualColor = new(0.35f, 0.92f, 1f, 0.92f);
-        [SerializeField, Min(0.1f)] private float pulseVisualDuration = 0.72f;
-        [SerializeField, Range(1, 4)] private int pulseVisualRingCount = 2;
-        [SerializeField, Min(0f)] private float pulseVisualRingInterval = 0.12f;
-        [SerializeField, Min(0.5f)] private float pulseVisualRadiusMultiplier = 1.08f;
+        [SerializeField] private Color pulseVisualColor = new(0.36f, 0.78f, 1f, 0.78f);
+        [SerializeField, Min(0.1f)] private float pulseVisualDuration = 1.85f;
+        [SerializeField, Range(1, 4)] private int pulseVisualRingCount = 3;
+        [SerializeField, Min(0f)] private float pulseVisualRingInterval = 0.34f;
+        [SerializeField, Min(0.5f)] private float pulseVisualRadiusMultiplier = 1.18f;
         [SerializeField] private int pulseVisualSortingOrder = 36;
 
         [Header("Fog Reveal")]
         [SerializeField] private bool revealFogWithPulse = true;
         [SerializeField, Min(0.1f)] private float fogRevealRadiusMultiplier = 1.05f;
-        [SerializeField, Min(0f)] private float fogRevealSoftnessBoost = 0.6f;
+        [SerializeField, Min(0f)] private float fogRevealSoftnessBoost = 1.05f;
 
         [Header("Scout Ping")]
         [SerializeField] private bool revealNearbyTargetsWithPulse = true;
         [SerializeField, Min(0.1f)] private float scoutRadiusMultiplier = 1.9f;
-        [SerializeField, Min(0.1f)] private float scoutRevealDuration = 0.85f;
+        [SerializeField, Min(0.1f)] private float scoutRevealDuration = 1.45f;
         [SerializeField, Range(1, 32)] private int maxScoutRevealTargets = 18;
         [SerializeField, Range(0f, 1f)] private float scoutHiddenFogThreshold = 0.42f;
         [SerializeField] private Color scoutBreadcrumbColor = new(1f, 0.86f, 0.22f, 1f);

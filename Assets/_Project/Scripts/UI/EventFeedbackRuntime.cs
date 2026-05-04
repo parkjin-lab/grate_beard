@@ -453,6 +453,7 @@ namespace LostBreadcrumbs.Runtime.UI
                 RuntimeEventSemantic.ChaseStarted => new PriorityCuePayload("CHASE STARTED", new Color(0.62f, 0.1f, 0.1f, 0.92f), new Color(1f, 0.88f, 0.88f, 1f), stage),
                 RuntimeEventSemantic.ChaseDisengaged => new PriorityCuePayload("CHASE DISENGAGED", new Color(0.2f, 0.28f, 0.52f, 0.9f), new Color(0.9f, 0.94f, 1f, 1f), stage),
                 RuntimeEventSemantic.SetPieceShift => new PriorityCuePayload("SET-PIECE SHIFT", new Color(0.38f, 0.22f, 0.08f, 0.9f), new Color(1f, 0.93f, 0.84f, 1f), stage),
+                RuntimeEventSemantic.HauntedRoom => new PriorityCuePayload("ROOM STIRS", new Color(0.22f, 0.08f, 0.1f, 0.82f), new Color(1f, 0.86f, 0.82f, 1f), stage),
                 _ => default
             };
             if (!string.IsNullOrWhiteSpace(payload.Text))
@@ -480,6 +481,9 @@ namespace LostBreadcrumbs.Runtime.UI
                     return true;
                 case RuntimeEventType.Stage when ContainsKeyword(message, "setpiece"):
                     payload = new PriorityCuePayload("SET-PIECE SHIFT", new Color(0.38f, 0.22f, 0.08f, 0.9f), new Color(1f, 0.93f, 0.84f, 1f), stage);
+                    return true;
+                case RuntimeEventType.System when ContainsKeyword(message, "haunted room"):
+                    payload = new PriorityCuePayload("ROOM STIRS", new Color(0.22f, 0.08f, 0.1f, 0.82f), new Color(1f, 0.86f, 0.82f, 1f), stage);
                     return true;
                 default:
                     return false;

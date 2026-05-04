@@ -22,7 +22,8 @@ namespace LostBreadcrumbs.Runtime.Events
         LockOnWarning,
         ChaseStarted,
         ChaseDisengaged,
-        SetPieceShift
+        SetPieceShift,
+        HauntedRoom
     }
 
     public readonly struct RuntimeEventRecord

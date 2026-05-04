@@ -57,7 +57,7 @@ MonoBehaviour:
     smokeNoiseMultiplier: 1
   - id: 2
     displayName: Echo Specialist
-    summary: Fast pulse / loud risk
+    summary: Long pulse / loud risk
     unlockedByDefault: 1
     moveSpeedMultiplier: 0.97
     staminaCapacityMultiplier: 1
@@ -66,8 +66,8 @@ MonoBehaviour:
     sprintNoiseMultiplier: 1
     flashlightRangeMultiplier: 1
     flashlightAngleMultiplier: 1
-    pulseCooldownMultiplier: 0.72
-    pulseRadiusMultiplier: 1.2
+    pulseCooldownMultiplier: 0.92
+    pulseRadiusMultiplier: 1.24
     pulseNoiseMultiplier: 1.24
     decoyCooldownMultiplier: 0.95
     decoyNoiseMultiplier: 1.05

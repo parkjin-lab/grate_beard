@@ -142,11 +142,11 @@ namespace LostBreadcrumbs.Runtime.Managers
                 Create(
                     RunLoadoutId.EchoSpecialist,
                     "Echo Specialist",
-                    "Fast pulse / loud risk",
+                    "Long pulse / loud risk",
                     true,
                     0.97f, 1f, 1f, 1f, 1f,
                     1f, 1f,
-                    0.72f, 1.2f, 1.24f,
+                    0.92f, 1.24f, 1.24f,
                     0.95f, 1.05f, 1f,
                     1.05f, 1f, 1f, 1.05f),
                 Create(

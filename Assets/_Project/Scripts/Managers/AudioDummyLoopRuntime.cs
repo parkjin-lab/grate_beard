@@ -7,6 +7,7 @@ namespace LostBreadcrumbs.Runtime.Managers
     {
         [Header("References")]
         [SerializeField] private AudioManager audioManager;
+        [SerializeField] private ThreatReadabilityDirector threatReadabilityDirector;
         [SerializeField] private AudioSource bgmSource;
         [SerializeField] private AudioSource ambienceSource;
 
@@ -29,26 +30,62 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Min(20f)] private float ambienceSecondaryFrequency = 98f;
         [SerializeField, Range(0f, 1f)] private float ambienceAmplitude = 0.27f;
 
+        [Header("Dread Drone Layer")]
+        [SerializeField] private bool enableGeneratedDreadLayer = true;
+        [SerializeField, Min(0.5f)] private float dreadLayerLoopSeconds = 8f;
+        [SerializeField, Range(20f, 90f)] private float dreadLayerBaseFrequency = 41f;
+        [SerializeField, Range(20f, 120f)] private float dreadLayerSecondaryFrequency = 57f;
+        [SerializeField, Range(0f, 1f)] private float dreadLayerWhisperAmount = 0.16f;
+        [SerializeField, Range(0f, 1f)] private float dreadLayerMaxVolume = 0.075f;
+        [SerializeField, Range(0f, 1f)] private float dreadLayerTensionFloor = 0.18f;
+        [SerializeField, Range(0f, 1f)] private float dreadLayerReadabilityWeight = 0.72f;
+        [SerializeField, Range(0f, 1f)] private float dreadLayerDuckWeight = 0.28f;
+        [SerializeField, Range(0.5f, 1.2f)] private float dreadLayerLowPitch = 0.78f;
+        [SerializeField, Range(0.5f, 1.2f)] private float dreadLayerHighPitch = 0.94f;
+        [SerializeField, Min(0.1f)] private float dreadLayerFadeInSpeed = 1.25f;
+        [SerializeField, Min(0.1f)] private float dreadLayerFadeOutSpeed = 2.2f;
+
+        private const string DreadLayerSourceName = "DreadDrone_Runtime";
+
         private AudioClip generatedBgmClip;
         private AudioClip generatedAmbienceClip;
+        private AudioClip generatedDreadLayerClip;
+        private AudioSource dreadLayerSource;
         private float nextReferenceResolveTime;
+        private float nextDreadLayerResolveTime;
+        private float currentDreadLayerTension;
 
         public bool HasGeneratedBgmClip => generatedBgmClip != null;
         public bool HasGeneratedAmbienceClip => generatedAmbienceClip != null;
+        public bool HasGeneratedDreadLayerClip => generatedDreadLayerClip != null;
         public bool IsBgmPlaying => bgmSource != null && bgmSource.isPlaying;
         public bool IsAmbiencePlaying => ambienceSource != null && ambienceSource.isPlaying;
+        public bool IsDreadLayerPlaying => dreadLayerSource != null && dreadLayerSource.isPlaying;
         public bool BgmUsingGeneratedClip => bgmSource != null && bgmSource.clip == generatedBgmClip;
         public bool AmbienceUsingGeneratedClip => ambienceSource != null && ambienceSource.clip == generatedAmbienceClip;
+        public float CurrentDreadLayerTension => currentDreadLayerTension;
         public bool ForceDisableDummyLoops => forceDisableDummyLoops;
 
         private void Awake()
         {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
             TryResolveRefs(force: true);
+            TryResolveDreadLayerRefs(force: true);
         }
 
         private void Start()
         {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
             TryResolveRefs(force: true);
+            TryResolveDreadLayerRefs(force: true);
 
             if (forceDisableDummyLoops)
             {
@@ -63,10 +100,17 @@ namespace LostBreadcrumbs.Runtime.Managers
                 TryPlayLoop(bgmSource);
                 TryPlayLoop(ambienceSource);
             }
+
+            UpdateDreadLayer();
         }
 
         private void Update()
         {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
             TryResolveRefs();
 
             if (forceDisableDummyLoops)
@@ -99,6 +143,8 @@ namespace LostBreadcrumbs.Runtime.Managers
                     ambienceSource.pitch = Mathf.Lerp(1f, 0.96f, duck);
                 }
             }
+
+            UpdateDreadLayer();
         }
 
         public void SetSourcesForEditor(AudioManager manager, AudioSource bgm, AudioSource ambience)
@@ -123,6 +169,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             ResetPitch();
             DisableGeneratedLoopOnSource(bgmSource, generatedBgmClip);
             DisableGeneratedLoopOnSource(ambienceSource, generatedAmbienceClip);
+            DisableDreadLayer();
         }
 
         private static void DisableGeneratedLoopOnSource(AudioSource source, AudioClip generatedClip)
@@ -151,6 +198,11 @@ namespace LostBreadcrumbs.Runtime.Managers
             {
                 ambienceSource.pitch = 1f;
             }
+
+            if (dreadLayerSource != null)
+            {
+                dreadLayerSource.pitch = 1f;
+            }
         }
 
         private void EnsureDummyClips()
@@ -168,6 +220,149 @@ namespace LostBreadcrumbs.Runtime.Managers
                 ambienceSource.clip = generatedAmbienceClip;
                 ambienceSource.loop = true;
             }
+        }
+
+        private void UpdateDreadLayer()
+        {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            if (!enableGeneratedDreadLayer)
+            {
+                DisableDreadLayer();
+                return;
+            }
+
+            TryResolveDreadLayerRefs();
+            EnsureDreadLayer();
+
+            if (dreadLayerSource == null || dreadLayerSource.clip == null)
+            {
+                return;
+            }
+
+            float targetTension = EvaluateDreadLayerTension();
+            float deltaTime = Mathf.Max(0f, Time.unscaledDeltaTime);
+            float fadeSpeed = targetTension >= currentDreadLayerTension
+                ? dreadLayerFadeInSpeed
+                : dreadLayerFadeOutSpeed;
+
+            currentDreadLayerTension = Mathf.MoveTowards(
+                currentDreadLayerTension,
+                targetTension,
+                Mathf.Max(0.1f, fadeSpeed) * deltaTime);
+
+            float audibility = EvaluateDreadLayerAudibility(currentDreadLayerTension);
+            dreadLayerSource.volume = Mathf.Clamp01(dreadLayerMaxVolume) * audibility;
+            dreadLayerSource.pitch = Mathf.Lerp(
+                Mathf.Min(dreadLayerLowPitch, dreadLayerHighPitch),
+                Mathf.Max(dreadLayerLowPitch, dreadLayerHighPitch),
+                audibility);
+
+            if (autoPlayOnStart && !dreadLayerSource.isPlaying)
+            {
+                dreadLayerSource.Play();
+            }
+        }
+
+        private void EnsureDreadLayer()
+        {
+            if (!Application.isPlaying || forceDisableDummyLoops || !enableGeneratedDreadLayer)
+            {
+                return;
+            }
+
+            if (dreadLayerSource == null)
+            {
+                Transform existingSource = transform.Find(DreadLayerSourceName);
+                if (existingSource != null)
+                {
+                    dreadLayerSource = existingSource.GetComponent<AudioSource>();
+                }
+
+                if (dreadLayerSource == null)
+                {
+                    GameObject sourceObject = new(DreadLayerSourceName);
+                    sourceObject.transform.SetParent(transform, false);
+                    dreadLayerSource = sourceObject.AddComponent<AudioSource>();
+                }
+            }
+
+            generatedDreadLayerClip ??= CreateDreadLayerClip(
+                "GeneratedDreadDrone",
+                dreadLayerLoopSeconds,
+                dreadLayerBaseFrequency,
+                dreadLayerSecondaryFrequency,
+                dreadLayerWhisperAmount);
+
+            dreadLayerSource.enabled = true;
+            dreadLayerSource.playOnAwake = false;
+            dreadLayerSource.loop = true;
+            dreadLayerSource.spatialBlend = 0f;
+            dreadLayerSource.dopplerLevel = 0f;
+            dreadLayerSource.priority = 190;
+
+            if (dreadLayerSource.clip != generatedDreadLayerClip)
+            {
+                dreadLayerSource.clip = generatedDreadLayerClip;
+            }
+        }
+
+        private void DisableDreadLayer()
+        {
+            currentDreadLayerTension = 0f;
+
+            if (dreadLayerSource == null)
+            {
+                return;
+            }
+
+            dreadLayerSource.volume = 0f;
+            dreadLayerSource.pitch = 1f;
+
+            if (dreadLayerSource.isPlaying)
+            {
+                dreadLayerSource.Stop();
+            }
+
+            if (dreadLayerSource.clip == generatedDreadLayerClip)
+            {
+                dreadLayerSource.clip = null;
+            }
+
+            dreadLayerSource.enabled = false;
+        }
+
+        private float EvaluateDreadLayerTension()
+        {
+            float readabilityPressure = threatReadabilityDirector != null
+                ? threatReadabilityDirector.CurrentReadabilityPressure
+                : 0f;
+            float duckPressure = audioManager != null ? audioManager.EffectiveDuck : 0f;
+
+            float readabilityWeight = Mathf.Clamp01(dreadLayerReadabilityWeight);
+            float duckWeight = Mathf.Clamp01(dreadLayerDuckWeight);
+            float totalWeight = readabilityWeight + duckWeight;
+
+            if (totalWeight <= 0.0001f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Clamp01(((readabilityPressure * readabilityWeight) + (duckPressure * duckWeight)) / totalWeight);
+        }
+
+        private float EvaluateDreadLayerAudibility(float tension)
+        {
+            if (dreadLayerTensionFloor >= 0.999f)
+            {
+                return tension >= 1f ? 1f : 0f;
+            }
+
+            float audibility = Mathf.InverseLerp(Mathf.Clamp01(dreadLayerTensionFloor), 1f, tension);
+            return Mathf.SmoothStep(0f, 1f, audibility);
         }
 
         private static void TryPlayLoop(AudioSource source)
@@ -200,6 +395,43 @@ namespace LostBreadcrumbs.Runtime.Managers
 
                 float blend = primary + secondary + tertiary;
                 data[i] = Mathf.Clamp(blend, -0.95f, 0.95f);
+            }
+
+            AudioClip clip = AudioClip.Create(clipName, sampleCount, 1, sampleRate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
+        private static AudioClip CreateDreadLayerClip(string clipName, float durationSeconds, float baseFrequency, float secondaryFrequency, float whisperAmount)
+        {
+            const int sampleRate = 44100;
+            int sampleCount = Mathf.Max(2, Mathf.CeilToInt(durationSeconds * sampleRate));
+            float[] data = new float[sampleCount];
+
+            float primaryFrequency = Mathf.Max(1f, baseFrequency);
+            float secondaryFrequencySafe = Mathf.Max(1f, secondaryFrequency);
+            float whisperAmp = Mathf.Clamp01(whisperAmount) * 0.18f;
+            float edgeFadeSamples = Mathf.Max(1f, sampleRate * 0.08f);
+            float filteredWhisper = 0f;
+            System.Random whisperRandom = new(739391);
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = i / (float)sampleRate;
+                float slowBreath = 0.55f + (0.45f * Mathf.Sin(2f * Mathf.PI * 0.11f * t + 0.4f));
+                float primary = Mathf.Sin(2f * Mathf.PI * primaryFrequency * t) * 0.34f;
+                float secondary = Mathf.Sin(2f * Mathf.PI * secondaryFrequencySafe * t + 1.1f) * 0.18f;
+                float undertone = Mathf.Sin(2f * Mathf.PI * (primaryFrequency * 0.5f) * t + 2.3f) * 0.16f;
+
+                float whisperNoise = ((float)whisperRandom.NextDouble() * 2f) - 1f;
+                filteredWhisper = Mathf.Lerp(filteredWhisper, whisperNoise, 0.018f);
+
+                float edge = Mathf.Min(i, sampleCount - 1 - i) / edgeFadeSamples;
+                float edgeFade = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(edge));
+                float drone = (primary + secondary + undertone) * (0.78f + (slowBreath * 0.22f));
+                float whisper = filteredWhisper * whisperAmp * slowBreath;
+
+                data[i] = Mathf.Clamp((drone + whisper) * edgeFade, -0.95f, 0.95f);
             }
 
             AudioClip clip = AudioClip.Create(clipName, sampleCount, 1, sampleRate, false);
@@ -260,6 +492,26 @@ namespace LostBreadcrumbs.Runtime.Managers
             }
 
             ResolveRefs();
+        }
+
+        private void TryResolveDreadLayerRefs(bool force = false)
+        {
+            if (!Application.isPlaying || threatReadabilityDirector != null)
+            {
+                return;
+            }
+
+            if (!force)
+            {
+                if (Time.unscaledTime < nextDreadLayerResolveTime)
+                {
+                    return;
+                }
+
+                nextDreadLayerResolveTime = Time.unscaledTime + Mathf.Max(0.1f, missingReferenceResolveInterval);
+            }
+
+            threatReadabilityDirector = FindFirstObjectByType<ThreatReadabilityDirector>();
         }
 
         private bool HasAllReferences()

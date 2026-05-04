@@ -6,11 +6,14 @@ namespace LostBreadcrumbs.Runtime.Map
     public sealed class EchoPulseVisualDummy : MonoBehaviour
     {
         [SerializeField, Min(0.1f)] private float radius = 3f;
-        [SerializeField] private Color ringColor = new(0.35f, 0.92f, 1f, 0.92f);
-        [SerializeField, Min(0.1f)] private float ringDuration = 0.72f;
-        [SerializeField, Range(1, 4)] private int ringCount = 2;
-        [SerializeField, Min(0f)] private float ringInterval = 0.12f;
+        [SerializeField] private Color ringColor = new(0.36f, 0.78f, 1f, 0.78f);
+        [SerializeField, Min(0.1f)] private float ringDuration = 1.85f;
+        [SerializeField, Range(1, 4)] private int ringCount = 3;
+        [SerializeField, Min(0f)] private float ringInterval = 0.34f;
         [SerializeField, Min(0f)] private float startRadius = 0.2f;
+        [SerializeField, Range(0.5f, 3f)] private float expansionEase = 1.45f;
+        [SerializeField, Range(0f, 0.6f)] private float lingeringAlpha = 0.12f;
+        [SerializeField, Range(0f, 0.4f)] private float flickerStrength = 0.08f;
         [SerializeField] private int sortingOrder = 36;
 
         private readonly List<SpriteRenderer> rings = new();
@@ -81,12 +84,15 @@ namespace LostBreadcrumbs.Runtime.Map
                 ring.enabled = true;
 
                 float t = Mathf.Clamp01(localTime / Mathf.Max(0.01f, ringDuration));
-                float currentRadius = Mathf.Lerp(startRadius, radius, t);
+                float easedT = Mathf.SmoothStep(0f, 1f, Mathf.Pow(t, Mathf.Max(0.5f, expansionEase)));
+                float currentRadius = Mathf.Lerp(startRadius, radius, easedT);
                 float diameter = currentRadius * 2f;
                 ring.transform.localScale = new Vector3(diameter, diameter, 1f);
 
                 Color color = ringColor;
-                color.a *= Mathf.Lerp(1f, 0f, t);
+                float breath = 1f - flickerStrength + Mathf.Sin((Time.time + i * 0.37f) * 9.2f) * flickerStrength;
+                float tail = Mathf.Lerp(1f, lingeringAlpha, Mathf.SmoothStep(0.08f, 1f, t));
+                color.a *= Mathf.Clamp01(tail * breath);
                 ring.color = color;
             }
 

@@ -10,7 +10,7 @@ namespace LostBreadcrumbs.Runtime.Player
     public sealed class PlayerDummyController : MonoBehaviour
     {
         [Header("Movement")]
-        [SerializeField, Min(0.1f)] private float moveSpeed = 3.2f;
+        [SerializeField, Min(0.1f)] private float moveSpeed = 2.65f;
         [SerializeField] private KeyCode moveLeftKey = KeyCode.A;
         [SerializeField] private KeyCode moveRightKey = KeyCode.D;
         [SerializeField] private KeyCode moveDownKey = KeyCode.S;
@@ -20,7 +20,7 @@ namespace LostBreadcrumbs.Runtime.Player
         [SerializeField] private bool enableSprint = true;
         [SerializeField] private KeyCode sprintKey = KeyCode.LeftShift;
         [SerializeField] private KeyCode sprintAltKey = KeyCode.RightShift;
-        [SerializeField, Min(1f)] private float sprintMoveMultiplier = 1.65f;
+        [SerializeField, Min(1f)] private float sprintMoveMultiplier = 1.42f;
         [SerializeField, Min(0.1f)] private float maxStamina = 4f;
         [SerializeField, Min(0f)] private float staminaDrainPerSecond = 1.4f;
         [SerializeField, Min(0f)] private float staminaRecoverPerSecond = 0.95f;
@@ -28,12 +28,26 @@ namespace LostBreadcrumbs.Runtime.Player
         [SerializeField, Min(0f)] private float exhaustedLockSeconds = 0.65f;
 
         [Header("Noise")]
-        [SerializeField, Min(0.05f)] private float footstepInterval = 0.35f;
+        [SerializeField, Min(0.05f)] private float footstepInterval = 0.46f;
         [SerializeField, Min(0.1f)] private float footstepLoudness = 0.45f;
-        [SerializeField, Min(0.1f)] private float echoLoudness = 2.4f;
-        [SerializeField, Min(0.1f)] private float echoRadius = 7f;
+        [SerializeField, Min(0.1f)] private float echoLoudness = 2.1f;
+        [SerializeField, Min(0.1f)] private float echoRadius = 7.8f;
         [SerializeField, Min(0.05f)] private float sprintFootstepIntervalScale = 0.7f;
         [SerializeField, Min(1f)] private float sprintNoiseMultiplier = 1.55f;
+
+        [Header("Echo Visual")]
+        [SerializeField] private bool spawnEchoVisual = true;
+        [SerializeField] private Color echoVisualColor = new(0.32f, 0.72f, 1f, 0.68f);
+        [SerializeField, Min(0.1f)] private float echoVisualDuration = 2.2f;
+        [SerializeField, Range(1, 4)] private int echoVisualRingCount = 3;
+        [SerializeField, Min(0f)] private float echoVisualRingInterval = 0.38f;
+        [SerializeField, Min(0.5f)] private float echoVisualRadiusMultiplier = 1f;
+        [SerializeField] private int echoVisualSortingOrder = 34;
+
+        [Header("Echo Fog Trace")]
+        [SerializeField] private bool revealFogWithEcho = true;
+        [SerializeField, Min(0.1f)] private float echoFogRevealRadiusMultiplier = 0.72f;
+        [SerializeField, Min(0f)] private float echoFogRevealSoftnessBoost = 0.8f;
 
         [Header("Input")]
         [SerializeField] private KeyCode echoKey = KeyCode.Space;
@@ -63,6 +77,7 @@ namespace LostBreadcrumbs.Runtime.Player
         private PlayerVisibilitySource visibilitySource;
         private PlayerConcealmentState concealmentState;
         private PlayerBehaviorTelemetry behaviorTelemetry;
+        private FogOfWarSystem fogSystem;
         private Rigidbody2D rb;
         private ContactFilter2D movementContactFilter;
         private int cachedMovementLayerMask = int.MinValue;
@@ -85,6 +100,7 @@ namespace LostBreadcrumbs.Runtime.Player
             visibilitySource = GetComponent<PlayerVisibilitySource>();
             concealmentState = GetComponent<PlayerConcealmentState>();
             behaviorTelemetry = GetComponent<PlayerBehaviorTelemetry>();
+            fogSystem = FindFirstObjectByType<FogOfWarSystem>();
 
             EnsurePlayerTag();
 
@@ -125,6 +141,8 @@ namespace LostBreadcrumbs.Runtime.Player
             if (RuntimeInputAdapter.GetKeyDown(echoKey))
             {
                 EmitNoise(echoLoudness, echoRadius, NoiseKind.Echo);
+                SpawnEchoVisual(echoRadius);
+                ApplyEchoFogTrace(echoRadius);
                 behaviorTelemetry?.RegisterEcho();
             }
 
@@ -396,6 +414,83 @@ namespace LostBreadcrumbs.Runtime.Player
                 Mathf.Max(0.1f, scaledRadius),
                 kind,
                 gameObject);
+        }
+
+        private void SpawnEchoVisual(float radius)
+        {
+            if (!spawnEchoVisual)
+            {
+                return;
+            }
+
+            GameObject visualObject = new($"ManualEchoWave_{Time.frameCount}");
+            Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX");
+            if (vfxRoot != null)
+            {
+                visualObject.transform.SetParent(vfxRoot, false);
+            }
+
+            visualObject.transform.position = new Vector3(transform.position.x, transform.position.y, 0f);
+            EchoPulseVisualDummy visual = visualObject.AddComponent<EchoPulseVisualDummy>();
+            visual.Configure(
+                Mathf.Max(0.45f, radius * echoVisualRadiusMultiplier),
+                echoVisualColor,
+                echoVisualDuration,
+                echoVisualRingCount,
+                echoVisualRingInterval,
+                echoVisualSortingOrder);
+        }
+
+        private void ApplyEchoFogTrace(float radius)
+        {
+            if (!revealFogWithEcho)
+            {
+                return;
+            }
+
+            if (fogSystem == null)
+            {
+                fogSystem = FindFirstObjectByType<FogOfWarSystem>();
+            }
+
+            if (fogSystem == null)
+            {
+                return;
+            }
+
+            float revealRadius = Mathf.Max(0.1f, radius * echoFogRevealRadiusMultiplier);
+            fogSystem.ApplyEchoRevealPulse(transform.position, revealRadius, echoFogRevealSoftnessBoost);
+        }
+
+        private static Transform EnsureScenePath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return null;
+            }
+
+            string[] parts = path.Split('/');
+            GameObject root = GameObject.Find(parts[0]);
+            if (root == null)
+            {
+                root = new GameObject(parts[0]);
+            }
+
+            Transform current = root.transform;
+            for (int i = 1; i < parts.Length; i++)
+            {
+                Transform child = current.Find(parts[i]);
+                if (child == null)
+                {
+                    GameObject childObject = new(parts[i]);
+                    childObject.transform.SetParent(current, false);
+                    child = childObject.transform;
+                }
+
+                current = child;
+            }
+
+            return current;
         }
     }
 }

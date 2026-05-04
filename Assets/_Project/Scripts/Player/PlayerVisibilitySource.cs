@@ -11,12 +11,16 @@ namespace LostBreadcrumbs.Runtime.Player
 
         private float runtimeFlashlightRangeMultiplier = 1f;
         private float runtimeFlashlightAngleMultiplier = 1f;
+        private float runtimeDreadFlashlightRangeMultiplier = 1f;
+        private float runtimeDreadFlashlightAngleMultiplier = 1f;
 
         public bool FlashlightEnabled => flashlightEnabled;
-        public float FlashlightRange => flashlightRange * runtimeFlashlightRangeMultiplier;
-        public float FlashlightAngle => Mathf.Clamp(flashlightAngle * runtimeFlashlightAngleMultiplier, 10f, 180f);
+        public float FlashlightRange => flashlightRange * runtimeFlashlightRangeMultiplier * runtimeDreadFlashlightRangeMultiplier;
+        public float FlashlightAngle => Mathf.Clamp(flashlightAngle * runtimeFlashlightAngleMultiplier * runtimeDreadFlashlightAngleMultiplier, 10f, 180f);
         public float RuntimeFlashlightRangeMultiplier => runtimeFlashlightRangeMultiplier;
         public float RuntimeFlashlightAngleMultiplier => runtimeFlashlightAngleMultiplier;
+        public float RuntimeDreadFlashlightRangeMultiplier => runtimeDreadFlashlightRangeMultiplier;
+        public float RuntimeDreadFlashlightAngleMultiplier => runtimeDreadFlashlightAngleMultiplier;
 
         public Vector2 CurrentForward
         {
@@ -44,6 +48,17 @@ namespace LostBreadcrumbs.Runtime.Player
         public void ResetRuntimeModifiers()
         {
             ApplyRuntimeModifiers(1f, 1f);
+        }
+
+        public void ApplyDreadRuntimeModifiersForEditor(float rangeMultiplier, float angleMultiplier)
+        {
+            runtimeDreadFlashlightRangeMultiplier = Mathf.Clamp(rangeMultiplier, 0.35f, 1.25f);
+            runtimeDreadFlashlightAngleMultiplier = Mathf.Clamp(angleMultiplier, 0.5f, 1.25f);
+        }
+
+        public void ResetDreadRuntimeModifiersForEditor()
+        {
+            ApplyDreadRuntimeModifiersForEditor(1f, 1f);
         }
 
         public void ToggleFlashlight()

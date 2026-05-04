@@ -381,6 +381,10 @@ namespace LostBreadcrumbs.EditorTools
                     p.curiosity = 0.75f;
                     p.audioSensitivity = 1.2f;
                     p.lightSensitivity = 1f;
+                    p.patrolSpeed = 1.35f;
+                    p.investigateSpeed = 1.75f;
+                    p.chaseSpeed = 2.45f;
+                    p.returnSpeed = 1.85f;
                     p.searchDurationSeconds = 10f;
                     p.chaseForgetSeconds = 3.2f;
                     p.safeHavenDetectionFactor = 0.12f;
@@ -401,6 +405,10 @@ namespace LostBreadcrumbs.EditorTools
                     p.curiosity = 0.85f;
                     p.audioSensitivity = 0.9f;
                     p.lightSensitivity = 1.15f;
+                    p.patrolSpeed = 1.28f;
+                    p.investigateSpeed = 1.7f;
+                    p.chaseSpeed = 2.35f;
+                    p.returnSpeed = 1.8f;
                     p.suspicionHoldTime = 1.7f;
                     p.chaseForgetSeconds = 2f;
                     p.safeHavenDetectionFactor = 0.05f;
@@ -421,7 +429,10 @@ namespace LostBreadcrumbs.EditorTools
                     p.curiosity = 0.35f;
                     p.audioSensitivity = 1.35f;
                     p.lightSensitivity = 0.85f;
-                    p.chaseSpeed = 3.4f;
+                    p.patrolSpeed = 1.42f;
+                    p.investigateSpeed = 1.85f;
+                    p.chaseSpeed = 2.85f;
+                    p.returnSpeed = 1.9f;
                     p.chaseForgetSeconds = 1.4f;
                     p.searchDurationSeconds = 4.5f;
                     p.safeHavenDetectionFactor = 0f;
@@ -442,6 +453,10 @@ namespace LostBreadcrumbs.EditorTools
                     p.curiosity = 0.7f;
                     p.audioSensitivity = 1f;
                     p.lightSensitivity = 1.1f;
+                    p.patrolSpeed = 1.34f;
+                    p.investigateSpeed = 1.78f;
+                    p.chaseSpeed = 2.42f;
+                    p.returnSpeed = 1.86f;
                     p.searchDurationSeconds = 8.8f;
                     p.safeHavenDetectionFactor = 0.35f;
                     p.decoyNoiseResponse = 1.05f;
@@ -461,7 +476,10 @@ namespace LostBreadcrumbs.EditorTools
                     p.curiosity = 0.92f;
                     p.audioSensitivity = 1.25f;
                     p.lightSensitivity = 1.15f;
-                    p.chaseSpeed = 3f;
+                    p.patrolSpeed = 1.32f;
+                    p.investigateSpeed = 1.82f;
+                    p.chaseSpeed = 2.55f;
+                    p.returnSpeed = 1.88f;
                     p.searchDurationSeconds = 11.5f;
                     p.suspicionGainPerNoise = 0.22f;
                     p.safeHavenDetectionFactor = 0.72f;
@@ -690,7 +708,7 @@ namespace LostBreadcrumbs.EditorTools
             FogOfWarSystem fogSystem = AddOrGet<FogOfWarSystem>(fogMask);
             fogSystem.SetTargetForEditor(playerDummy.transform, playerVisibility);
             mapSystem.SetFogSystemForEditor(fogSystem);
-            threatReadabilityDirector.SetReferencesForEditor(playerDummy.transform, cameraComponent, cameraFollow, fogSystem, stagePressureDirector, mapTuningDebug, mapSystem);
+            threatReadabilityDirector.SetReferencesForEditor(playerDummy.transform, playerVisibility, cameraComponent, cameraFollow, fogSystem, stagePressureDirector, mapTuningDebug, mapSystem);
 
             GameObject lightingRoot = EnsureChild(sceneRoot, "LightingRoot");
             EnsureChild(lightingRoot, "GlobalLight2D");
@@ -702,6 +720,8 @@ namespace LostBreadcrumbs.EditorTools
             GameObject uiRoot = EnsureChild(sceneRoot, "UIRoot");
             GameplayHudRuntime gameplayHud = AddOrGet<GameplayHudRuntime>(EnsureChild(uiRoot, "HUD"));
             AddOrGet<GameplayFlowGuideRuntime>(EnsureChild(uiRoot, "FlowGuide"));
+            DreadScreenOverlayRuntime dreadOverlay = AddOrGet<DreadScreenOverlayRuntime>(EnsureChild(uiRoot, "DreadScreenOverlay"));
+            dreadOverlay.SetThreatSourceForEditor(threatReadabilityDirector);
             GameObject alertsObject = EnsureChild(uiRoot, "Alerts");
             EventFeedbackRuntime eventFeedback = AddOrGet<EventFeedbackRuntime>(alertsObject);
             eventFeedback.SetCameraForEditor(cameraFollow);

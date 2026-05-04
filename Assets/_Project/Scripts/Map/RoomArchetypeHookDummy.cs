@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using LostBreadcrumbs.Runtime.Events;
 using LostBreadcrumbs.Runtime.Managers;
 using LostBreadcrumbs.Runtime.Player;
 using UnityEngine;
@@ -58,6 +59,26 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField, Range(0.6f, 1.4f)] private float lowStageWarningAlphaMultiplier = 0.88f;
         [SerializeField, Range(0.6f, 1.6f)] private float highStageWarningAlphaMultiplier = 1.12f;
 
+        [Header("Haunted Reaction")]
+        [SerializeField] private bool enableHauntedReaction = true;
+        [SerializeField, Range(0f, 1f)] private float hauntedReactionBaseChance = 0.14f;
+        [SerializeField, Range(0f, 1f)] private float hauntedReactionPressureChanceBonus = 0.24f;
+        [SerializeField, Range(0f, 0.5f)] private float hauntedRiskRoomChanceBonus = 0.14f;
+        [SerializeField, Min(0.2f)] private float hauntedLocalCooldownSeconds = 12f;
+        [SerializeField, Min(0.2f)] private float hauntedGlobalEventCooldownSeconds = 8f;
+        [SerializeField, Range(0f, 1f)] private float hauntedRuntimeEventPressureThreshold = 0.34f;
+        [SerializeField] private Color hauntedPulseColor = new(0.18f, 0.55f, 1f, 0.3f);
+        [SerializeField, Min(0.1f)] private float hauntedPulseRadius = 2.9f;
+        [SerializeField, Min(0.1f)] private float hauntedPulseDuration = 2.05f;
+        [SerializeField, Range(1, 4)] private int hauntedPulseRingCount = 2;
+        [SerializeField, Min(0f)] private float hauntedPulseRingInterval = 0.36f;
+        [SerializeField] private int hauntedPulseSortingOrder = 33;
+        [SerializeField] private bool emitHauntedFalseNoise = true;
+        [SerializeField, Min(0f)] private float hauntedFalseNoiseDistance = 3.7f;
+        [SerializeField, Min(0f)] private float hauntedFalseNoiseLoudness = 0.74f;
+        [SerializeField, Min(0f)] private float hauntedFalseNoiseRadius = 4.6f;
+        [SerializeField, Range(0f, 1f)] private float hauntedFalsePulseAlphaScale = 0.68f;
+
         [Header("Risk Room Bonus")]
         [SerializeField] private bool grantRiskRoomAdrenalineBonus = true;
         [SerializeField, Range(0f, 1f)] private float riskRoomBonusChance = 0.42f;
@@ -92,9 +113,11 @@ namespace LostBreadcrumbs.Runtime.Map
         private float stageReadability01;
         private bool riskRoomBonusAttempted;
         private PlayerDummyController currentPlayer;
+        private float nextHauntedReactionTime;
 
         private static Sprite auraSprite;
         private static Sprite accentSprite;
+        private static float nextGlobalHauntedEventTime;
         private static readonly Dictionary<RoomArchetypeHookVariant, Sprite> variantSpriteCache = new();
 
         public MapCellKind SourceCellKind => sourceCellKind;
@@ -176,6 +199,7 @@ namespace LostBreadcrumbs.Runtime.Map
             playerInside = false;
             currentPlayer = null;
             riskRoomBonusAttempted = false;
+            nextHauntedReactionTime = 0f;
             nextEmitTime = Time.time + Mathf.Min(0.9f, cooldownSeconds * 0.35f);
         }
 
@@ -243,7 +267,104 @@ namespace LostBreadcrumbs.Runtime.Map
             nextEmitTime = Time.time + cooldownSeconds;
             flashUntil = Time.time + flashDuration;
             TryGrantRiskRoomBonus(currentPlayer);
+            TryTriggerHauntedReaction();
             return true;
+        }
+
+        private void TryTriggerHauntedReaction()
+        {
+            if (!enableHauntedReaction || !Application.isPlaying || RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                return;
+            }
+
+            if (Time.time < nextHauntedReactionTime)
+            {
+                return;
+            }
+
+            float pressure = Mathf.Clamp01(stageReadability01);
+            float chance = hauntedReactionBaseChance + pressure * hauntedReactionPressureChanceBonus;
+            if (sourceCellKind == MapCellKind.Risk)
+            {
+                chance += hauntedRiskRoomChanceBonus;
+            }
+
+            if (Random.value > Mathf.Clamp01(chance))
+            {
+                return;
+            }
+
+            float cooldownScale = Mathf.Lerp(1.18f, 0.78f, pressure);
+            nextHauntedReactionTime = Time.time + Mathf.Max(0.2f, hauntedLocalCooldownSeconds * cooldownScale);
+
+            SpawnHauntedPulse(transform.position, pressure, 1f);
+
+            Vector2 falseNoisePosition = EvaluateHauntedFalseNoisePosition(pressure);
+            if (emitHauntedFalseNoise && NoiseManager.Instance != null)
+            {
+                float intensity = Mathf.Lerp(0.72f, 1.18f, pressure);
+                NoiseManager.Instance.EmitNoise(
+                    falseNoisePosition,
+                    hauntedFalseNoiseLoudness * intensity,
+                    hauntedFalseNoiseRadius * intensity,
+                    NoiseKind.Decoy,
+                    gameObject);
+                SpawnHauntedPulse(falseNoisePosition, pressure, hauntedFalsePulseAlphaScale);
+            }
+
+            TryRaiseHauntedRuntimeEvent(pressure);
+        }
+
+        private Vector2 EvaluateHauntedFalseNoisePosition(float pressure)
+        {
+            Vector2 direction = Random.insideUnitCircle;
+            if (direction.sqrMagnitude <= 0.001f)
+            {
+                direction = Vector2.right;
+            }
+
+            direction.Normalize();
+            float distance = hauntedFalseNoiseDistance * Mathf.Lerp(0.72f, 1.24f, Mathf.Clamp01(pressure));
+            return (Vector2)transform.position + direction * Mathf.Max(0f, distance);
+        }
+
+        private void SpawnHauntedPulse(Vector2 position, float pressure, float alphaScale)
+        {
+            Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX/HauntedRoomHooks");
+            GameObject visualObject = new("HauntedRoomPulse");
+            if (vfxRoot != null)
+            {
+                visualObject.transform.SetParent(vfxRoot, false);
+            }
+
+            visualObject.transform.position = new Vector3(position.x, position.y, 0f);
+            EchoPulseVisualDummy visual = visualObject.AddComponent<EchoPulseVisualDummy>();
+            Color color = hauntedPulseColor;
+            color.a *= Mathf.Clamp01(alphaScale) * Mathf.Lerp(0.78f, 1.15f, Mathf.Clamp01(pressure));
+            visual.Configure(
+                Mathf.Max(0.2f, hauntedPulseRadius * Mathf.Lerp(0.85f, 1.22f, Mathf.Clamp01(pressure))),
+                color,
+                Mathf.Max(0.1f, hauntedPulseDuration),
+                Mathf.Clamp(hauntedPulseRingCount, 1, 4),
+                Mathf.Max(0f, hauntedPulseRingInterval),
+                hauntedPulseSortingOrder);
+        }
+
+        private void TryRaiseHauntedRuntimeEvent(float pressure)
+        {
+            if (pressure < hauntedRuntimeEventPressureThreshold || Time.unscaledTime < nextGlobalHauntedEventTime)
+            {
+                return;
+            }
+
+            nextGlobalHauntedEventTime = Time.unscaledTime + Mathf.Max(0.2f, hauntedGlobalEventCooldownSeconds);
+            RuntimeEventBus.Raise(
+                RuntimeEventType.System,
+                $"Haunted room stirred: {variant}",
+                this,
+                configuredStage,
+                semantic: RuntimeEventSemantic.HauntedRoom);
         }
 
         private void TryGrantRiskRoomBonus(PlayerDummyController player)
