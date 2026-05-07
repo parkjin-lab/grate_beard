@@ -32,10 +32,10 @@ MonoBehaviour:
   chaseForgetSeconds: 1.4
   searchDurationSeconds: 4.5
   resumeDelaySeconds: 1
-  patrolSpeed: 1.42
-  investigateSpeed: 1.85
-  chaseSpeed: 2.85
-  returnSpeed: 1.9
+  patrolSpeed: 1.28
+  investigateSpeed: 1.7
+  chaseSpeed: 2.68
+  returnSpeed: 1.75
   memoryDecayPerSecond: 0.03
   memoryCellSize: 1
   maxRecentSamples: 10

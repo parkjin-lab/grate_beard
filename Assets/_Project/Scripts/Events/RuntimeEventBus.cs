@@ -22,6 +22,13 @@ namespace LostBreadcrumbs.Runtime.Events
         LockOnWarning,
         ChaseStarted,
         ChaseDisengaged,
+        EscapeRelief,
+        QuietBreathBroken,
+        EchoReturn,
+        EchoChoiceScan,
+        RiskReward,
+        SafeHavenThin,
+        PressureWave,
         SetPieceShift,
         HauntedRoom
     }

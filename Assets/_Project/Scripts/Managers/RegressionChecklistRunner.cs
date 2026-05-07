@@ -712,6 +712,10 @@ namespace LostBreadcrumbs.Runtime.Managers
                     hooksAcrossRegressionStages > 0,
                     $"hooks={hooksAcrossRegressionStages}");
 
+                yield return RunPlayerPositionRecoveryCheck();
+                yield return RunEnemyPositionRecoveryCheck();
+                yield return RunThreatTunnelVisionCheck();
+                yield return RunObjectiveLoopContractCheck();
                 RunFeedbackFeatureWiringCheck(hooksAcrossRegressionStages);
                 yield return RunPressureScalingCheck();
                 yield return RunPresetStageMatrixCheck();
@@ -969,7 +973,13 @@ namespace LostBreadcrumbs.Runtime.Managers
                 yield break;
             }
 
-            pulseAbility?.SetCooldownRemainingForRuntime(2f);
+            if (pulseAbility != null)
+            {
+                pulseAbility.SetCooldownRemainingForRuntime(0f);
+                pulseAbility.TryCastPulse();
+                pulseAbility.SetCooldownRemainingForRuntime(2f);
+            }
+
             decoyAbility?.SetCooldownRemainingForRuntime(2f);
             smokeAbility?.SetCooldownRemainingForRuntime(2f);
             visibilitySource?.SetFlashlightEnabled(true);
@@ -989,7 +999,12 @@ namespace LostBreadcrumbs.Runtime.Managers
             bool deathCountIncreased = playerVitals.DeathCount == deathBefore + 1;
             bool healthReset = playerVitals.CurrentHealth == playerVitals.MaxHealth;
             bool flashlightReset = visibilitySource == null || !visibilitySource.FlashlightEnabled;
+            bool flashlightDreadReset = visibilitySource == null
+                                      || (Mathf.Abs(visibilitySource.RuntimeDreadFlashlightRangeMultiplier - 1f) <= 0.001f
+                                          && Mathf.Abs(visibilitySource.RuntimeDreadFlashlightAngleMultiplier - 1f) <= 0.001f);
+            bool flashlightToggleAfterRespawn = VerifyFlashlightToggleAfterRespawn();
             bool pulseReset = pulseAbility == null || pulseAbility.CooldownRemaining <= 0.05f;
+            bool pulseTransientReset = pulseAbility == null || !pulseAbility.HasActiveEchoRuntimeEffects;
             bool decoyReset = decoyAbility == null || (decoyAbility.CooldownRemaining <= 0.05f && decoyAbility.ActiveDecoyCount == 0);
             bool smokeReset = smokeAbility == null || (smokeAbility.CooldownRemaining <= 0.05f && smokeAbility.ActiveSmokeCount == 0);
             bool sprintReset = playerController == null || (!playerController.IsSprinting && playerController.CurrentStamina >= playerController.MaxStamina * 0.95f);
@@ -999,7 +1014,10 @@ namespace LostBreadcrumbs.Runtime.Managers
                         && deathCountIncreased
                         && healthReset
                         && flashlightReset
+                        && flashlightDreadReset
+                        && flashlightToggleAfterRespawn
                         && pulseReset
+                        && pulseTransientReset
                         && decoyReset
                         && smokeReset
                         && sprintReset
@@ -1008,7 +1026,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             AddSoakResult(
                 $"ReleaseSoak.I{runIndex}.DeathReset",
                 pass,
-                $"damaged={damaged}, deaths={deathBefore}->{playerVitals.DeathCount}, hp={playerVitals.CurrentHealth}/{playerVitals.MaxHealth}, flash={(visibilitySource != null ? visibilitySource.FlashlightEnabled.ToString() : "n/a")}");
+                $"damaged={damaged}, deaths={deathBefore}->{playerVitals.DeathCount}, hp={playerVitals.CurrentHealth}/{playerVitals.MaxHealth}, flash={(visibilitySource != null ? visibilitySource.FlashlightEnabled.ToString() : "n/a")}, flashToggle={flashlightToggleAfterRespawn}, pulseFx={pulseTransientReset}");
         }
 
         private RuntimeSnapshot CaptureRuntimeSnapshot()
@@ -1119,6 +1137,416 @@ namespace LostBreadcrumbs.Runtime.Managers
             yield return WaitSettle();
         }
 
+        private IEnumerator RunPlayerPositionRecoveryCheck()
+        {
+            if (mapSystem == null || playerController == null)
+            {
+                AddResult("Player.PositionRecovery", false, "missing map or player controller");
+                yield break;
+            }
+
+            mapSystem.GenerateMapForStage(Mathf.Max(1, mapSystem.CurrentStage));
+            yield return WaitSettle();
+            ResolveReferences();
+
+            if (playerController == null)
+            {
+                AddResult("Player.PositionRecovery", false, "player controller missing after map generation");
+                yield break;
+            }
+
+            Vector3 originalPosition = playerController.transform.position;
+            float originalStamina = playerController.StaminaNormalized;
+
+            if (!mapSystem.TryGetSafePlayerStartPosition(playerController.transform, out Vector3 safeStart)
+                || !TryFindUnsafePlayerRecoveryCandidate(safeStart, out Vector3 unsafeCandidate, out Vector3 expectedSafe))
+            {
+                AddResult("Player.PositionRecovery", false, "no recoverable unsafe candidate near start");
+                yield break;
+            }
+
+            playerController.transform.position = unsafeCandidate;
+            playerController.ScheduleUnsafePositionRecoveryProbe();
+            bool recovered = playerController.TryRecoverUnsafePositionNowForRuntime();
+            Vector3 recoveredPosition = playerController.transform.position;
+
+            playerController.transform.position = originalPosition;
+            playerController.ApplySavedStaminaNormalized(originalStamina);
+
+            float recoveryDistance = Vector2.Distance(recoveredPosition, expectedSafe);
+            bool recoveryPass = recovered && recoveryDistance <= Mathf.Max(0.08f, mapSystem.CellSize * 0.08f);
+            AddResult(
+                "Player.PositionRecovery",
+                recoveryPass,
+                $"recovered={(recovered ? "Y" : "N")}, from={unsafeCandidate.x:0.00}/{unsafeCandidate.y:0.00}, to={recoveredPosition.x:0.00}/{recoveredPosition.y:0.00}, expected={expectedSafe.x:0.00}/{expectedSafe.y:0.00}, d={recoveryDistance:0.00}");
+        }
+
+        private bool TryFindUnsafePlayerRecoveryCandidate(Vector3 safeStart, out Vector3 unsafeCandidate, out Vector3 expectedSafe)
+        {
+            unsafeCandidate = safeStart;
+            expectedSafe = safeStart;
+
+            if (mapSystem == null || playerController == null)
+            {
+                return false;
+            }
+
+            float cellSize = Mathf.Max(0.1f, mapSystem.CellSize);
+            float offset = Mathf.Max(0.45f, cellSize * 0.5f - 0.04f);
+            Vector2[] directions =
+            {
+                Vector2.right,
+                Vector2.left,
+                Vector2.up,
+                Vector2.down,
+                new Vector2(1f, 1f).normalized,
+                new Vector2(-1f, 1f).normalized,
+                new Vector2(1f, -1f).normalized,
+                new Vector2(-1f, -1f).normalized
+            };
+
+            for (int i = 0; i < directions.Length; i++)
+            {
+                Vector3 candidate = safeStart + (Vector3)(directions[i] * offset);
+                candidate.z = safeStart.z;
+
+                if (!mapSystem.TryResolveSafePlayerPosition(candidate, playerController.transform, out Vector3 resolved))
+                {
+                    continue;
+                }
+
+                resolved.z = safeStart.z;
+                float distanceSqr = ((Vector2)resolved - (Vector2)candidate).sqrMagnitude;
+                if (distanceSqr <= 0.01f || mapSystem.LastPlayerSpawnUsedBlockedFallback)
+                {
+                    continue;
+                }
+
+                unsafeCandidate = candidate;
+                expectedSafe = resolved;
+                return true;
+            }
+
+            return false;
+        }
+
+        private IEnumerator RunEnemyPositionRecoveryCheck()
+        {
+            if (mapSystem == null)
+            {
+                AddResult("Enemy.PositionRecovery", false, "map system missing");
+                yield break;
+            }
+
+            int testStage = Mathf.Max(3, mapSystem.CurrentStage);
+            mapSystem.GenerateMapForStage(testStage);
+            yield return WaitSettle();
+            ResolveReferences();
+
+            EnemyController.CopyActiveControllers(chaseReadabilityEnemies);
+            if (chaseReadabilityEnemies.Count <= 0)
+            {
+                AddResult("Enemy.PositionRecovery", false, "no active enemy");
+                yield break;
+            }
+
+            EnemyController enemy = chaseReadabilityEnemies[0];
+            if (enemy == null)
+            {
+                AddResult("Enemy.PositionRecovery", false, "enemy reference missing");
+                yield break;
+            }
+
+            Vector3 originalPosition = enemy.transform.position;
+            Vector2 intendedTarget = originalPosition;
+            if (!TryFindUnsafeEnemyRecoveryCandidate(enemy, intendedTarget, out Vector2 unsafeCandidate, out Vector2 expectedSafe))
+            {
+                AddResult("Enemy.PositionRecovery", false, "no recoverable unsafe candidate");
+                yield break;
+            }
+
+            int beforeRecoveryCount = enemy.MovementOverlapRecoveryCount;
+            enemy.transform.position = new Vector3(unsafeCandidate.x, unsafeCandidate.y, originalPosition.z);
+            enemy.PrimeSpawnStabilizationForRuntime(0.2f);
+            bool recovered = enemy.TryRecoverMovementOverlapNowForRuntime(intendedTarget, out Vector2 recoveredPosition);
+            bool unblocked = recovered && !enemy.IsMovementPositionBlockedForRuntime(recoveredPosition);
+            bool countIncreased = enemy.MovementOverlapRecoveryCount > beforeRecoveryCount;
+
+            enemy.transform.position = originalPosition;
+            enemy.PrimeSpawnStabilizationForRuntime(0.2f);
+
+            float recoveryDistance = Vector2.Distance(recoveredPosition, expectedSafe);
+            bool recoveryPass = recovered
+                                && unblocked
+                                && countIncreased
+                                && recoveryDistance <= Mathf.Max(0.15f, mapSystem.CellSize * 0.16f);
+            AddResult(
+                "Enemy.PositionRecovery",
+                recoveryPass,
+                $"recovered={(recovered ? "Y" : "N")}, unblocked={(unblocked ? "Y" : "N")}, count={beforeRecoveryCount}->{enemy.MovementOverlapRecoveryCount}, from={unsafeCandidate.x:0.00}/{unsafeCandidate.y:0.00}, to={recoveredPosition.x:0.00}/{recoveredPosition.y:0.00}, expected={expectedSafe.x:0.00}/{expectedSafe.y:0.00}, d={recoveryDistance:0.00}");
+        }
+
+        private bool TryFindUnsafeEnemyRecoveryCandidate(
+            EnemyController enemy,
+            Vector2 intendedTarget,
+            out Vector2 unsafeCandidate,
+            out Vector2 expectedSafe)
+        {
+            unsafeCandidate = intendedTarget;
+            expectedSafe = intendedTarget;
+            if (enemy == null || mapSystem == null || mapSystem.LastGeneratedCells == null || mapSystem.LastGeneratedCells.Count <= 0)
+            {
+                return false;
+            }
+
+            float cellSize = Mathf.Max(0.1f, mapSystem.CellSize);
+            float half = cellSize * 0.5f;
+            float[] offsets =
+            {
+                Mathf.Max(0.08f, half - 0.02f),
+                Mathf.Max(0.08f, half - 0.08f),
+                Mathf.Max(0.08f, half * 0.72f),
+                Mathf.Max(0.08f, half * 0.48f)
+            };
+            Vector2[] directions =
+            {
+                Vector2.right,
+                Vector2.left,
+                Vector2.up,
+                Vector2.down,
+                new Vector2(1f, 1f).normalized,
+                new Vector2(-1f, 1f).normalized,
+                new Vector2(1f, -1f).normalized,
+                new Vector2(-1f, -1f).normalized
+            };
+
+            var cells = mapSystem.LastGeneratedCells;
+            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++)
+            {
+                Vector2 center = new(cells[cellIndex].position.x * cellSize, cells[cellIndex].position.y * cellSize);
+                for (int offsetIndex = 0; offsetIndex < offsets.Length; offsetIndex++)
+                {
+                    for (int directionIndex = 0; directionIndex < directions.Length; directionIndex++)
+                    {
+                        Vector2 candidate = center + directions[directionIndex] * offsets[offsetIndex];
+                        if (!enemy.IsMovementPositionBlockedForRuntime(candidate))
+                        {
+                            continue;
+                        }
+
+                        if (!enemy.TryResolveMovementOverlapRecoveryForRuntime(candidate, intendedTarget, out Vector2 resolved))
+                        {
+                            continue;
+                        }
+
+                        if (enemy.IsMovementPositionBlockedForRuntime(resolved))
+                        {
+                            continue;
+                        }
+
+                        unsafeCandidate = candidate;
+                        expectedSafe = resolved;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private IEnumerator RunThreatTunnelVisionCheck()
+        {
+            if (mapSystem == null || readabilityDirector == null || playerController == null)
+            {
+                AddResult("Threat.TunnelVisionCamera", false, "missing map, readability, or player controller");
+                yield break;
+            }
+
+            int testStage = Mathf.Max(3, mapSystem.CurrentStage);
+            mapSystem.GenerateMapForStage(testStage);
+            yield return WaitSettle();
+            ResolveReferences();
+
+            EnemyController.CopyActiveControllers(chaseReadabilityEnemies);
+            if (chaseReadabilityEnemies.Count <= 0)
+            {
+                AddResult("Threat.TunnelVisionCamera", false, "no active enemy");
+                yield break;
+            }
+
+            EnemyController enemy = chaseReadabilityEnemies[0];
+            if (enemy == null || playerController == null)
+            {
+                AddResult("Threat.TunnelVisionCamera", false, "missing enemy or player after map generation");
+                yield break;
+            }
+
+            Vector3 originalEnemyPosition = enemy.transform.position;
+            Vector2 playerPosition = playerController.transform.position;
+            float closeOffset = Mathf.Max(0.55f, mapSystem.CellSize * 0.18f);
+            Vector2 closePosition = playerPosition + Vector2.right * closeOffset;
+
+            enemy.transform.position = new Vector3(closePosition.x, closePosition.y, originalEnemyPosition.z);
+            enemy.PrimeSpawnStabilizationForRuntime(0.2f);
+            readabilityDirector.ApplyNowForEditor();
+            yield return WaitSettle();
+            readabilityDirector.ApplyNowForEditor();
+
+            float tunnel = readabilityDirector.CurrentThreatTunnelVision;
+            float nearby = readabilityDirector.CurrentNearbyThreat;
+            float closeDistance = readabilityDirector.CurrentCloseThreatDistance;
+            float cameraTarget = readabilityDirector.CurrentCameraTargetOrthoSize;
+            float baseSize = readabilityDirector.BaseCameraOrthoSize;
+            bool hasBase = readabilityDirector.HasBaseCameraOrthoSize;
+
+            enemy.transform.position = originalEnemyPosition;
+            enemy.PrimeSpawnStabilizationForRuntime(0.2f);
+
+            bool tunnelPass = tunnel >= 0.25f;
+            bool cameraPass = cameraTarget > 0f && (!hasBase || cameraTarget <= baseSize + 0.06f);
+            bool distancePass = closeDistance <= closeOffset + 0.15f;
+            AddResult(
+                "Threat.TunnelVisionCamera",
+                tunnelPass && cameraPass && distancePass,
+                $"tunnel={tunnel:0.00}, nearby={nearby:0.00}, close={closeDistance:0.00}m, cam={cameraTarget:0.00}, base={(hasBase ? baseSize.ToString("0.00") : "n/a")}");
+        }
+
+        private IEnumerator RunObjectiveLoopContractCheck()
+        {
+            ResolveReferences();
+            StageLoopDirector loop = stageLoopDirector != null ? stageLoopDirector : StageLoopDirector.Instance;
+            if (mapSystem == null || loop == null)
+            {
+                AddResult("Objective.LoopContract.Ready", false, "missing map or stage loop");
+                yield break;
+            }
+
+            int testStage = Mathf.Max(3, mapSystem.CurrentStage);
+            mapSystem.GenerateMapForStage(testStage);
+            yield return WaitSettle();
+            ResolveReferences();
+
+            loop = stageLoopDirector != null ? stageLoopDirector : StageLoopDirector.Instance;
+            if (loop == null)
+            {
+                AddResult("Objective.LoopContract.Ready", false, "stage loop unresolved after map generation");
+                yield break;
+            }
+
+            Vector3 origin = playerController != null ? playerController.transform.position : Vector3.zero;
+            int required = loop.RequiredBreadcrumbs;
+            int initialActive = loop.ActiveBreadcrumbCount;
+            bool nextTargetOk = loop.TryGetNextObjectiveTarget(origin, out Vector3 nextTarget, out bool nextTargetIsExit);
+            bool nearestOk = loop.TryGetNearestBreadcrumbTarget(origin, out Vector3 nearestTarget, out float nearestDistance);
+            float targetDrift = nextTargetOk && nearestOk ? Vector3.Distance(nextTarget, nearestTarget) : float.PositiveInfinity;
+            bool nextBreadcrumbPass = required > 0
+                                      && initialActive > 0
+                                      && nextTargetOk
+                                      && nearestOk
+                                      && !nextTargetIsExit
+                                      && targetDrift <= 0.2f;
+
+            AddResult(
+                "Objective.NextBreadcrumbTarget",
+                nextBreadcrumbPass,
+                $"required={required}, active={initialActive}, target={(nextTargetOk ? (nextTargetIsExit ? "exit" : "breadcrumb") : "none")}, nearest={nearestDistance:0.00}m, drift={(float.IsInfinity(targetDrift) ? "n/a" : targetDrift.ToString("0.00"))}");
+
+            bool echoScanStartPass = false;
+            string echoScanStartDetail = "player missing";
+            if (playerController != null)
+            {
+                echoScanStartPass = playerController.TryResolveEchoObjectiveScanTargetsForRuntime(
+                                        out int scanCount,
+                                        out int choiceScanCount,
+                                        out bool primaryIsExit)
+                                    && scanCount > 0
+                                    && !primaryIsExit;
+                echoScanStartDetail = $"scans={scanCount}, choices={choiceScanCount}, primary={(primaryIsExit ? "exit" : "breadcrumb")}";
+            }
+
+            AddResult("Objective.EchoScanPrimary", echoScanStartPass, echoScanStartDetail);
+
+            bool riskCacheReady = loop.TryEnsureRiskCacheForRuntime(origin, out Vector3 riskCacheTarget, out float riskCacheDistance);
+            bool echoChoiceRiskPass = false;
+            string echoChoiceRiskDetail = riskCacheReady
+                ? $"risk={riskCacheDistance:0.00}m"
+                : "risk cache unavailable";
+            if (riskCacheReady && playerController != null)
+            {
+                echoChoiceRiskPass = playerController.TryResolveEchoObjectiveScanTargetsForRuntime(
+                                         out int scanCount,
+                                         out int choiceScanCount,
+                                         out bool primaryIsExit)
+                                     && scanCount > 1
+                                     && choiceScanCount > 0
+                                     && !primaryIsExit;
+                echoChoiceRiskDetail =
+                    $"risk={riskCacheDistance:0.00}m, scans={scanCount}, choices={choiceScanCount}, primary={(primaryIsExit ? "exit" : "breadcrumb")}, target={riskCacheTarget.x:0.0}/{riskCacheTarget.y:0.0}";
+            }
+
+            AddResult("Objective.EchoChoiceRiskCache", echoChoiceRiskPass, echoChoiceRiskDetail);
+
+            int collected = 0;
+            int guard = Mathf.Max(1, required + initialActive + 2);
+            Vector3 collectOrigin = origin;
+            bool collectionBlocked = false;
+            while (!loop.ExitUnlocked && loop.ActiveBreadcrumbCount > 0 && collected < guard)
+            {
+                if (!loop.TryCollectNearestBreadcrumbForRuntime(collectOrigin, out Vector3 collectedPosition))
+                {
+                    collectionBlocked = true;
+                    break;
+                }
+
+                collected++;
+                collectOrigin = collectedPosition;
+                yield return WaitSettle();
+            }
+
+            int finalActive = loop.ActiveBreadcrumbCount;
+            bool progressPass = !collectionBlocked
+                                && collected > 0
+                                && loop.CollectedBreadcrumbs == collected
+                                && finalActive <= Mathf.Max(0, initialActive - collected);
+            AddResult(
+                "Objective.BreadcrumbCollectionProgress",
+                progressPass,
+                $"collected={collected}/{required}, active={initialActive}->{finalActive}, blocked={(collectionBlocked ? "Y" : "N")}");
+
+            bool momentumPass = required <= 1 || collected < 2 || loop.BreadcrumbMomentumLevel >= 2;
+            AddResult(
+                "Objective.BreadcrumbMomentum",
+                momentumPass,
+                $"level={loop.BreadcrumbMomentumLevel}/{loop.BreadcrumbMomentumMaxLevel}, remaining={loop.BreadcrumbMomentumRemaining:0.00}s, collected={collected}");
+
+            bool handoffOk = loop.TryGetNextObjectiveTarget(collectOrigin, out Vector3 handoffTarget, out bool handoffIsExit);
+            float handoffDistance = handoffOk ? Vector3.Distance(collectOrigin, handoffTarget) : 0f;
+            bool exitHandoffPass = required > 0
+                                   && collected >= required
+                                   && loop.ExitUnlocked
+                                   && handoffOk
+                                   && handoffIsExit;
+            AddResult(
+                "Objective.ExitHandoff",
+                exitHandoffPass,
+                $"exit={(loop.ExitUnlocked ? "open" : "locked")}, target={(handoffOk ? (handoffIsExit ? "exit" : "breadcrumb") : "none")}, distance={handoffDistance:0.00}m");
+
+            bool echoScanExitPass = false;
+            string echoScanExitDetail = "player missing";
+            if (playerController != null)
+            {
+                echoScanExitPass = playerController.TryResolveEchoObjectiveScanTargetsForRuntime(
+                                       out int scanCount,
+                                       out int choiceScanCount,
+                                       out bool primaryIsExit)
+                                   && scanCount > 0
+                                   && primaryIsExit;
+                echoScanExitDetail = $"scans={scanCount}, choices={choiceScanCount}, primary={(primaryIsExit ? "exit" : "breadcrumb")}";
+            }
+
+            AddResult("Objective.EchoScanExitHandoff", echoScanExitPass, echoScanExitDetail);
+        }
+
         private IEnumerator RunMapGenerationCheck(int stage, bool requireHooks, int hookAccumulator, System.Action<int> setHookAccumulator)
         {
             if (mapSystem == null)
@@ -1143,6 +1571,21 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             string detail = $"cells={cellCount}, walls={wallCount}, occluders={occluderCount}, hooks={hookCount}";
             AddResult($"Map.Stage{stage}", stagePass, detail);
+            AddResult(
+                $"Map.Stage{stage}.PlayerSpawnSafety",
+                !mapSystem.LastPlayerSpawnUsedBlockedFallback,
+                $"adjusted={(mapSystem.LastPlayerSpawnAdjusted ? "Y" : "N")}, blockedFallback={(mapSystem.LastPlayerSpawnUsedBlockedFallback ? "Y" : "N")}, pos={mapSystem.LastPlayerSpawnPosition.x:0.00}/{mapSystem.LastPlayerSpawnPosition.y:0.00}");
+
+            if (enemySpawnDirector != null)
+            {
+                bool stageMatched = enemySpawnDirector.LastSpawnStage == stage;
+                bool hasSpawn = enemySpawnDirector.LastSpawnTargetEnemyCount > 0;
+                bool narrowFallbackOnly = enemySpawnDirector.LastNarrowSpawnsWereFallbackOnly;
+                AddResult(
+                    $"Map.Stage{stage}.SpawnSafety",
+                    stageMatched && hasSpawn && narrowFallbackOnly,
+                    $"stage={enemySpawnDirector.LastSpawnStage}, enemies={enemySpawnDirector.LastSpawnTargetEnemyCount}, open={enemySpawnDirector.LastOpenSpawnCandidateCount}, narrowCandidates={enemySpawnDirector.LastNarrowSpawnCandidateCount}, narrowSpawned={enemySpawnDirector.LastSelectedNarrowSpawnCount}");
+            }
 
             bool hookTuningWired = mapSystem.LastHookChanceMultiplier > 0.05f
                                    && mapSystem.LastHookLoudnessMultiplier > 0.05f
@@ -1888,7 +2331,13 @@ namespace LostBreadcrumbs.Runtime.Managers
                 yield break;
             }
 
-            pulseAbility?.SetCooldownRemainingForRuntime(2f);
+            if (pulseAbility != null)
+            {
+                pulseAbility.SetCooldownRemainingForRuntime(0f);
+                pulseAbility.TryCastPulse();
+                pulseAbility.SetCooldownRemainingForRuntime(2f);
+            }
+
             decoyAbility?.SetCooldownRemainingForRuntime(2f);
             smokeAbility?.SetCooldownRemainingForRuntime(2f);
             visibilitySource?.SetFlashlightEnabled(true);
@@ -1909,7 +2358,12 @@ namespace LostBreadcrumbs.Runtime.Managers
             bool deathCountIncreased = playerVitals.DeathCount == deathBefore + 1;
             bool healthReset = playerVitals.CurrentHealth == playerVitals.MaxHealth;
             bool flashlightReset = visibilitySource == null || !visibilitySource.FlashlightEnabled;
+            bool flashlightDreadReset = visibilitySource == null
+                                      || (Mathf.Abs(visibilitySource.RuntimeDreadFlashlightRangeMultiplier - 1f) <= 0.001f
+                                          && Mathf.Abs(visibilitySource.RuntimeDreadFlashlightAngleMultiplier - 1f) <= 0.001f);
+            bool flashlightToggleAfterRespawn = VerifyFlashlightToggleAfterRespawn();
             bool pulseReset = pulseAbility == null || pulseAbility.CooldownRemaining <= 0.05f;
+            bool pulseTransientReset = pulseAbility == null || !pulseAbility.HasActiveEchoRuntimeEffects;
             bool decoyReset = decoyAbility == null || (decoyAbility.CooldownRemaining <= 0.05f && decoyAbility.ActiveDecoyCount == 0);
             bool smokeReset = smokeAbility == null || (smokeAbility.CooldownRemaining <= 0.05f && smokeAbility.ActiveSmokeCount == 0);
             bool sprintReset = playerController == null || (!playerController.IsSprinting && playerController.CurrentStamina >= playerController.MaxStamina * 0.95f);
@@ -1918,11 +2372,38 @@ namespace LostBreadcrumbs.Runtime.Managers
             AddResult("Death.Trigger", damaged && deathCountIncreased, $"damaged={damaged}, deaths={deathBefore}->{playerVitals.DeathCount}");
             AddResult("Death.HealthReset", healthReset, $"hp={playerVitals.CurrentHealth}/{playerVitals.MaxHealth}");
             AddResult("Death.FlashlightReset", flashlightReset, visibilitySource != null ? $"flashlight={visibilitySource.FlashlightEnabled}" : "no visibility component");
+            AddResult(
+                "Death.FlashlightDreadReset",
+                flashlightDreadReset,
+                visibilitySource != null
+                    ? $"dread={visibilitySource.RuntimeDreadFlashlightRangeMultiplier:0.00}/{visibilitySource.RuntimeDreadFlashlightAngleMultiplier:0.00}"
+                    : "no visibility component");
+            AddResult("Death.FlashlightToggleAfterRespawn", flashlightToggleAfterRespawn, visibilitySource != null ? $"flashlight={visibilitySource.FlashlightEnabled}" : "no visibility component");
             AddResult("Death.PulseReset", pulseReset, pulseAbility != null ? $"cooldown={pulseAbility.CooldownRemaining:0.00}" : "no pulse ability");
+            AddResult("Death.EchoTransientReset", pulseTransientReset, pulseAbility != null ? $"echoFx={pulseAbility.ActiveEchoVisualCount}, resonance={pulseAbility.EchoResonanceRemaining:0.00}, return={pulseAbility.EchoReturnWarningRemaining:0.00}" : "no pulse ability");
             AddResult("Death.DecoyReset", decoyReset, decoyAbility != null ? $"cooldown={decoyAbility.CooldownRemaining:0.00}, active={decoyAbility.ActiveDecoyCount}" : "no decoy ability");
             AddResult("Death.SmokeReset", smokeReset, smokeAbility != null ? $"cooldown={smokeAbility.CooldownRemaining:0.00}, active={smokeAbility.ActiveSmokeCount}" : "no smoke ability");
             AddResult("Death.SprintReset", sprintReset, playerController != null ? $"stamina={playerController.CurrentStamina:0.00}/{playerController.MaxStamina:0.00}, sprint={playerController.IsSprinting}" : "no controller");
             AddResult("Death.ConcealmentReset", concealmentReset, concealmentState != null ? $"concealed={concealmentState.IsConcealedFromEnemies}" : "no concealment");
+        }
+
+        private bool VerifyFlashlightToggleAfterRespawn()
+        {
+            if (visibilitySource == null)
+            {
+                return true;
+            }
+
+            if (visibilitySource.FlashlightEnabled)
+            {
+                return false;
+            }
+
+            visibilitySource.ToggleFlashlight();
+            bool toggledOn = visibilitySource.FlashlightEnabled;
+            visibilitySource.ToggleFlashlight();
+            bool toggledOff = !visibilitySource.FlashlightEnabled;
+            return toggledOn && toggledOff;
         }
 
         private void FinalizeSoakRun()

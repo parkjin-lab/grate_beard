@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using LostBreadcrumbs.Runtime.Systems;
 using LostBreadcrumbs.Runtime.Managers;
 using LostBreadcrumbs.Runtime.Events;
+using LostBreadcrumbs.Runtime.Player;
 using UnityEngine;
 
 namespace LostBreadcrumbs.Runtime.Map
@@ -38,6 +39,21 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField, Min(0f)] private float breadcrumbChainNoiseLoudness = 0.28f;
         [SerializeField, Min(0.1f)] private float breadcrumbChainNoiseRadius = 2.1f;
 
+        [Header("Breadcrumb Momentum")]
+        [SerializeField] private bool enableBreadcrumbMomentum = true;
+        [SerializeField, Min(0.5f)] private float breadcrumbMomentumWindowSeconds = 5.6f;
+        [SerializeField, Range(2, 6)] private int breadcrumbMomentumMaxLevel = 4;
+        [SerializeField, Min(0f)] private float breadcrumbMomentumStaminaReward = 0.12f;
+        [SerializeField, Min(0f)] private float breadcrumbMomentumStaminaRewardPerLevel = 0.08f;
+        [SerializeField, Min(0f)] private float breadcrumbMomentumEchoDurationBonus = 0.24f;
+        [SerializeField, Min(0f)] private float breadcrumbMomentumEchoWidthBonus = 0.12f;
+        [SerializeField, Min(0f)] private float breadcrumbMomentumNoiseLoudnessBonus = 0.16f;
+        [SerializeField, Min(0f)] private float breadcrumbMomentumNoiseRadiusBonus = 0.22f;
+        [SerializeField] private Color breadcrumbMomentumPulseColor = new(1f, 0.76f, 0.18f, 0.46f);
+        [SerializeField, Min(0.1f)] private float breadcrumbMomentumPulseRadius = 1.25f;
+        [SerializeField, Min(0.1f)] private float breadcrumbMomentumPulseDuration = 1.05f;
+        [SerializeField] private int breadcrumbMomentumPulseSortingOrder = 35;
+
         [Header("Corrupted Breadcrumb Echo")]
         [SerializeField] private bool enableCorruptedBreadcrumbEcho = true;
         [SerializeField, Min(1)] private int corruptedBreadcrumbStartStage = 5;
@@ -69,6 +85,21 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField] private Color exitUnlockBeaconColor = new(0.35f, 1f, 0.55f, 0.9f);
         [SerializeField] private int exitUnlockBeaconSortingOrder = 34;
 
+        [Header("Exit Choice Cache")]
+        [SerializeField] private bool spawnExitChoiceCache = true;
+        [SerializeField, Min(1)] private int exitChoiceCacheStartStage = 1;
+        [SerializeField, Range(0f, 1f)] private float exitChoiceCacheSpawnChance = 0.82f;
+        [SerializeField, Min(0.1f)] private float exitChoiceCacheRecoverAmount = 1.05f;
+        [SerializeField, Min(0.1f)] private float exitChoiceCacheMinDistanceFromExit = 5.4f;
+        [SerializeField, Min(0f)] private float exitChoiceCacheMinDistanceFromPlayer = 3.2f;
+        [SerializeField] private Color exitChoiceCacheColor = new(1f, 0.74f, 0.2f, 0.95f);
+        [SerializeField, Min(0.1f)] private float exitChoiceCacheScale = 0.82f;
+        [SerializeField, Min(0f)] private float exitChoiceCacheNoiseLoudness = 0.95f;
+        [SerializeField, Min(0.1f)] private float exitChoiceCacheNoiseRadius = 6.2f;
+        [SerializeField, Min(0.1f)] private float exitChoiceCacheBeaconRadius = 1.9f;
+        [SerializeField, Min(0.1f)] private float exitChoiceCacheBeaconDuration = 1.45f;
+        [SerializeField] private int exitChoiceCacheSortingOrder = 36;
+
         [Header("Safe Haven")]
         [SerializeField] private bool spawnSafeHavens = true;
         [SerializeField, Min(0)] private int baseSafeHavenCount = 1;
@@ -95,6 +126,21 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField, Min(0.05f)] private float staminaForkWeight = 0.85f;
         [SerializeField, Min(0.05f)] private float staminaHideoutWeight = 0.55f;
 
+        [Header("Risk Cache")]
+        [SerializeField] private bool spawnRiskCaches = true;
+        [SerializeField, Min(1)] private int riskCacheStartStage = 2;
+        [SerializeField, Range(0f, 1f)] private float riskCacheSpawnChance = 0.72f;
+        [SerializeField, Range(1, 3)] private int riskCacheMaxPerStage = 1;
+        [SerializeField, Min(0.1f)] private float riskCacheStaminaRecoverAmount = 0.78f;
+        [SerializeField, Min(0f)] private float riskCachePulseCooldownRefundSeconds = 1.65f;
+        [SerializeField, Min(0f)] private float riskCacheNoiseLoudness = 1.18f;
+        [SerializeField, Min(0.1f)] private float riskCacheNoiseRadius = 6.8f;
+        [SerializeField, Min(0f)] private float riskCacheAftershockNoiseDelay = 0.55f;
+        [SerializeField, Range(0f, 1f)] private float riskCacheAftershockNoiseScale = 0.52f;
+        [SerializeField] private Color riskCacheColor = new(1f, 0.38f, 0.22f, 0.96f);
+        [SerializeField, Min(0.1f)] private float riskCacheScale = 0.72f;
+        [SerializeField] private int riskCacheSortingOrder = 36;
+
         [Header("Late Stage Pressure")]
         [SerializeField, Min(1)] private int latePressureStartStage = 5;
         [SerializeField, Min(2)] private int latePressurePeakStage = 11;
@@ -107,6 +153,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private readonly List<BreadcrumbPickup> activePickups = new();
         private readonly List<StaminaPickup> activeStaminaPickups = new();
         private readonly List<SafeHavenZone> activeSafeHavens = new();
+        private readonly List<RiskCachePickup> activeRiskCaches = new();
 
         private ExitPortalDummy exitPortal;
         private bool lastExitUnlockedState;
@@ -114,6 +161,12 @@ namespace LostBreadcrumbs.Runtime.Map
         private Material chainEchoMaterial;
         private Coroutine exitUnlockPressureRoutine;
         private float nextCorruptedBreadcrumbEchoTime;
+        private PlayerDummyController momentumPlayer;
+        private int breadcrumbMomentumLevel;
+        private float lastBreadcrumbCollectRealtime = -999f;
+        private StaminaPickup exitChoiceCachePickup;
+        private Vector3 exitChoiceCachePosition;
+        private Coroutine riskCacheAftershockRoutine;
 
         public int CurrentStage { get; private set; } = 1;
         public int RequiredBreadcrumbs { get; private set; }
@@ -121,6 +174,114 @@ namespace LostBreadcrumbs.Runtime.Map
         public bool ExitUnlocked => exitPortal != null && exitPortal.IsUnlocked;
         public int ActiveSafeHavenCount => activeSafeHavens.Count;
         public int ActiveStaminaPickupCount => activeStaminaPickups.Count;
+        public bool HasBreadcrumbMomentum => BreadcrumbMomentumLevel > 1 && BreadcrumbMomentumRemaining > 0.05f;
+        public int BreadcrumbMomentumLevel => BreadcrumbMomentumRemaining > 0.05f ? Mathf.Max(0, breadcrumbMomentumLevel) : 0;
+        public int BreadcrumbMomentumMaxLevel => Mathf.Max(2, breadcrumbMomentumMaxLevel);
+        public float BreadcrumbMomentumRemaining => enableBreadcrumbMomentum && breadcrumbMomentumLevel > 0
+            ? Mathf.Max(0f, lastBreadcrumbCollectRealtime + Mathf.Max(0.5f, breadcrumbMomentumWindowSeconds) - Time.realtimeSinceStartup)
+            : 0f;
+        public int ActiveBreadcrumbCount => CountActiveBreadcrumbs();
+        public bool ExitChoiceCacheActive => exitChoiceCachePickup != null;
+        public Vector3 ExitChoiceCacheWorldPosition => exitChoiceCachePickup != null ? exitChoiceCachePickup.transform.position : exitChoiceCachePosition;
+        public int ActiveRiskCacheCount => CountActiveRiskCaches();
+
+        public bool TryGetNextObjectiveTarget(Vector3 origin, out Vector3 target, out bool targetIsExit)
+        {
+            return TryFindBreadcrumbChainTarget(origin, ExitUnlocked, out target, out targetIsExit);
+        }
+
+        public bool TryGetNearestBreadcrumbTarget(Vector3 origin, out Vector3 target, out float distance)
+        {
+            target = default;
+            distance = 0f;
+            if (!TryFindNearestActiveBreadcrumbPickupComponent(origin, out BreadcrumbPickup pickup, out float distanceSqr))
+            {
+                return false;
+            }
+
+            target = pickup.transform.position;
+            distance = Mathf.Sqrt(Mathf.Max(0f, distanceSqr));
+            return true;
+        }
+
+        public bool TryCollectNearestBreadcrumbForRuntime(Vector3 origin, out Vector3 collectedPosition)
+        {
+            collectedPosition = default;
+            if (!TryFindNearestActiveBreadcrumbPickupComponent(origin, out BreadcrumbPickup pickup, out _))
+            {
+                return false;
+            }
+
+            collectedPosition = pickup.transform.position;
+            HandlePickupCollected(pickup, allowFeedback: !RegressionChecklistRunner.IsRegressionRunActive);
+            if (pickup != null)
+            {
+                DestroySafe(pickup.gameObject);
+            }
+
+            return true;
+        }
+
+        public bool TryGetNearestRiskCacheTarget(Vector3 origin, out Vector3 target, out float distance)
+        {
+            target = default;
+            distance = 0f;
+            RiskCachePickup nearest = null;
+            float nearestDistanceSqr = float.PositiveInfinity;
+
+            for (int i = activeRiskCaches.Count - 1; i >= 0; i--)
+            {
+                RiskCachePickup cache = activeRiskCaches[i];
+                if (cache == null)
+                {
+                    activeRiskCaches.RemoveAt(i);
+                    continue;
+                }
+
+                float distanceSqr = (cache.transform.position - origin).sqrMagnitude;
+                if (distanceSqr >= nearestDistanceSqr)
+                {
+                    continue;
+                }
+
+                nearest = cache;
+                nearestDistanceSqr = distanceSqr;
+            }
+
+            if (nearest == null)
+            {
+                return false;
+            }
+
+            target = nearest.transform.position;
+            distance = Mathf.Sqrt(nearestDistanceSqr);
+            return true;
+        }
+
+        public bool TryEnsureRiskCacheForRuntime(Vector3 origin, out Vector3 target, out float distance)
+        {
+            if (TryGetNearestRiskCacheTarget(origin, out target, out distance))
+            {
+                return true;
+            }
+
+            target = default;
+            distance = 0f;
+            if (!spawnRiskCaches || pickupsRoot == null || mapSystem == null || CurrentStage < Mathf.Max(1, riskCacheStartStage))
+            {
+                return false;
+            }
+
+            if (!TryPickRiskCacheCellForRuntime(origin, out GeneratedMapCell cell))
+            {
+                return false;
+            }
+
+            SpawnRiskCache(cell, activeRiskCaches.Count);
+            target = ToWorld(cell.position, mapSystem);
+            distance = Vector3.Distance(origin, target);
+            return true;
+        }
 
         private void Awake()
         {
@@ -191,6 +352,11 @@ namespace LostBreadcrumbs.Runtime.Map
             {
                 interactablesRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/Interactables");
             }
+
+            if (momentumPlayer == null)
+            {
+                momentumPlayer = FindFirstObjectByType<PlayerDummyController>();
+            }
         }
 
         private void SubscribeMapEvents()
@@ -231,6 +397,7 @@ namespace LostBreadcrumbs.Runtime.Map
 
             List<GeneratedMapCell> candidates = new();
             List<GeneratedMapCell> safeHavenCandidates = new();
+            List<GeneratedMapCell> riskCacheCandidates = new();
             bool hasExit = false;
             Vector3 exitPosition = Vector3.zero;
 
@@ -248,6 +415,11 @@ namespace LostBreadcrumbs.Runtime.Map
                 if (cell.kind is MapCellKind.Hideout or MapCellKind.Room or MapCellKind.Fork)
                 {
                     safeHavenCandidates.Add(cell);
+                }
+
+                if (cell.kind == MapCellKind.Risk)
+                {
+                    riskCacheCandidates.Add(cell);
                 }
 
                 if (cell.kind is MapCellKind.Corridor or MapCellKind.Room or MapCellKind.Fork or MapCellKind.Hideout)
@@ -316,6 +488,8 @@ namespace LostBreadcrumbs.Runtime.Map
                     effectiveStaminaSpawnChance,
                     effectiveStaminaRecoverAmount);
             }
+
+            SpawnRiskCaches(riskCacheCandidates, CurrentStage * 509 + cells.Count * 71, latePressure01);
 
             if (hasExit)
             {
@@ -627,6 +801,124 @@ namespace LostBreadcrumbs.Runtime.Map
             activeStaminaPickups.Add(pickup);
         }
 
+        private void SpawnRiskCaches(IReadOnlyList<GeneratedMapCell> candidates, int seed, float latePressure01)
+        {
+            if (!spawnRiskCaches
+                || candidates == null
+                || candidates.Count <= 0
+                || pickupsRoot == null
+                || mapSystem == null
+                || CurrentStage < Mathf.Max(1, riskCacheStartStage)
+                || RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                return;
+            }
+
+            float chance = Mathf.Clamp01(riskCacheSpawnChance + latePressure01 * 0.16f);
+            System.Random random = new(seed);
+            if (random.NextDouble() > chance)
+            {
+                return;
+            }
+
+            List<GeneratedMapCell> pool = new(candidates);
+            int targetCount = Mathf.Clamp(riskCacheMaxPerStage, 1, 3);
+            targetCount = Mathf.Min(targetCount, pool.Count);
+            for (int i = 0; i < targetCount && pool.Count > 0; i++)
+            {
+                int index = random.Next(0, pool.Count);
+                GeneratedMapCell selected = pool[index];
+                pool.RemoveAt(index);
+                SpawnRiskCache(selected, i);
+            }
+        }
+
+        private bool TryPickRiskCacheCellForRuntime(Vector3 origin, out GeneratedMapCell selected)
+        {
+            selected = default;
+            IReadOnlyList<GeneratedMapCell> cells = mapSystem != null ? mapSystem.LastGeneratedCells : null;
+            if (cells == null || cells.Count <= 0)
+            {
+                return false;
+            }
+
+            bool found = false;
+            float bestScore = float.MinValue;
+            for (int pass = 0; pass < 2 && !found; pass++)
+            {
+                bool requireRiskCell = pass == 0;
+                for (int i = 0; i < cells.Count; i++)
+                {
+                    GeneratedMapCell cell = cells[i];
+                    if (cell.kind is MapCellKind.Start or MapCellKind.Exit)
+                    {
+                        continue;
+                    }
+
+                    float kindWeight = requireRiskCell
+                        ? (cell.kind == MapCellKind.Risk ? 1f : 0f)
+                        : GetRiskCacheRuntimeFallbackWeight(cell.kind);
+                    if (kindWeight <= 0f)
+                    {
+                        continue;
+                    }
+
+                    Vector3 world = ToWorld(cell.position, mapSystem);
+                    float distanceScore = Mathf.Min(64f, (world - origin).sqrMagnitude);
+                    float score = kindWeight * 100f + distanceScore + cell.order * 0.01f;
+                    if (found && score <= bestScore)
+                    {
+                        continue;
+                    }
+
+                    selected = cell;
+                    bestScore = score;
+                    found = true;
+                }
+            }
+
+            return found;
+        }
+
+        private static float GetRiskCacheRuntimeFallbackWeight(MapCellKind kind)
+        {
+            return kind switch
+            {
+                MapCellKind.Risk => 3f,
+                MapCellKind.Fork => 1.6f,
+                MapCellKind.Room => 1.2f,
+                MapCellKind.Hideout => 0.8f,
+                MapCellKind.Corridor => 0.35f,
+                _ => 0f
+            };
+        }
+
+        private void SpawnRiskCache(GeneratedMapCell cell, int index)
+        {
+            GameObject cacheObject = new($"RiskCache_{index:00}");
+            cacheObject.transform.SetParent(pickupsRoot, false);
+            cacheObject.transform.position = ToWorld(cell.position, mapSystem);
+            cacheObject.transform.localScale = Vector3.one * Mathf.Max(0.1f, riskCacheScale);
+
+            SpriteRenderer renderer = cacheObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = GetDebugSprite();
+            renderer.color = riskCacheColor;
+            renderer.sortingOrder = riskCacheSortingOrder;
+
+            CircleCollider2D trigger = cacheObject.AddComponent<CircleCollider2D>();
+            trigger.isTrigger = true;
+            trigger.radius = 0.43f;
+
+            RiskCachePickup pickup = cacheObject.AddComponent<RiskCachePickup>();
+            pickup.Configure(
+                Mathf.Max(0.1f, riskCacheStaminaRecoverAmount),
+                Mathf.Max(0f, riskCachePulseCooldownRefundSeconds),
+                Mathf.Max(0f, riskCacheNoiseLoudness),
+                Mathf.Max(0.1f, riskCacheNoiseRadius));
+            pickup.Collected += HandleRiskCacheCollected;
+            activeRiskCaches.Add(pickup);
+        }
+
         private void SpawnSafeHaven(GeneratedMapCell cell, int index, float radius, float latePressure01)
         {
             if (interactablesRoot == null || mapSystem == null)
@@ -655,6 +947,11 @@ namespace LostBreadcrumbs.Runtime.Map
 
         private void HandlePickupCollected(BreadcrumbPickup pickup)
         {
+            HandlePickupCollected(pickup, allowFeedback: true);
+        }
+
+        private void HandlePickupCollected(BreadcrumbPickup pickup, bool allowFeedback)
+        {
             Vector3 collectedPosition = pickup != null ? pickup.transform.position : Vector3.zero;
             if (pickup != null)
             {
@@ -662,19 +959,110 @@ namespace LostBreadcrumbs.Runtime.Map
                 activePickups.Remove(pickup);
             }
 
+            int momentumLevel = UpdateBreadcrumbMomentumLevel();
             CollectedBreadcrumbs++;
-            RuntimeEventBus.Raise(RuntimeEventType.Objective, $"Breadcrumb {CollectedBreadcrumbs}/{RequiredBreadcrumbs}", this, CurrentStage);
-            SaveManager.Instance?.NotifyBreadcrumbCollected(1);
             bool shouldUnlockExit = RequiredBreadcrumbs <= 0 || CollectedBreadcrumbs >= RequiredBreadcrumbs;
-            EmitBreadcrumbChainReaction(collectedPosition, shouldUnlockExit);
+            if (allowFeedback)
+            {
+                RuntimeEventBus.Raise(RuntimeEventType.Objective, $"Breadcrumb {CollectedBreadcrumbs}/{RequiredBreadcrumbs}", this, CurrentStage);
+                SaveManager.Instance?.NotifyBreadcrumbCollected(1);
+                ApplyBreadcrumbMomentumReward(collectedPosition, momentumLevel);
+                EmitBreadcrumbChainReaction(collectedPosition, shouldUnlockExit, momentumLevel);
+            }
+
             UpdateExitState();
         }
 
-        private void EmitBreadcrumbChainReaction(Vector3 origin, bool preferExit)
+        private int UpdateBreadcrumbMomentumLevel()
+        {
+            if (!enableBreadcrumbMomentum)
+            {
+                ResetBreadcrumbMomentum();
+                return 1;
+            }
+
+            float now = Time.realtimeSinceStartup;
+            float window = Mathf.Max(0.5f, breadcrumbMomentumWindowSeconds);
+            bool continuesChain = breadcrumbMomentumLevel > 0 && now <= lastBreadcrumbCollectRealtime + window;
+            breadcrumbMomentumLevel = continuesChain
+                ? Mathf.Min(Mathf.Max(2, breadcrumbMomentumMaxLevel), breadcrumbMomentumLevel + 1)
+                : 1;
+            lastBreadcrumbCollectRealtime = now;
+            return breadcrumbMomentumLevel;
+        }
+
+        private void ResetBreadcrumbMomentum()
+        {
+            breadcrumbMomentumLevel = 0;
+            lastBreadcrumbCollectRealtime = -999f;
+        }
+
+        private int CountActiveBreadcrumbs()
+        {
+            int count = 0;
+            for (int i = activePickups.Count - 1; i >= 0; i--)
+            {
+                if (activePickups[i] == null)
+                {
+                    activePickups.RemoveAt(i);
+                    continue;
+                }
+
+                count++;
+            }
+
+            return count;
+        }
+
+        private int CountActiveRiskCaches()
+        {
+            int count = 0;
+            for (int i = activeRiskCaches.Count - 1; i >= 0; i--)
+            {
+                if (activeRiskCaches[i] == null)
+                {
+                    activeRiskCaches.RemoveAt(i);
+                    continue;
+                }
+
+                count++;
+            }
+
+            return count;
+        }
+
+        private void ApplyBreadcrumbMomentumReward(Vector3 origin, int momentumLevel)
+        {
+            if (!enableBreadcrumbMomentum || momentumLevel <= 1 || RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                return;
+            }
+
+            if (momentumPlayer == null)
+            {
+                momentumPlayer = FindFirstObjectByType<PlayerDummyController>();
+            }
+
+            float reward = Mathf.Max(0f, breadcrumbMomentumStaminaReward)
+                           + Mathf.Max(0, momentumLevel - 2) * Mathf.Max(0f, breadcrumbMomentumStaminaRewardPerLevel);
+            float recovered = momentumPlayer != null ? momentumPlayer.RecoverStamina(reward) : 0f;
+
+            RuntimeEventBus.Raise(
+                RuntimeEventType.Objective,
+                recovered > 0.01f
+                    ? $"Breadcrumb chain x{momentumLevel} (+{recovered:0.0} stamina)"
+                    : $"Breadcrumb chain x{momentumLevel}",
+                this,
+                CurrentStage);
+
+            SpawnBreadcrumbMomentumPulse(origin, momentumLevel);
+        }
+
+        private void EmitBreadcrumbChainReaction(Vector3 origin, bool preferExit, int momentumLevel)
         {
             if (showBreadcrumbChainEcho && TryFindBreadcrumbChainTarget(origin, preferExit, out Vector3 target, out bool targetIsExit))
             {
-                SpawnBreadcrumbChainEcho(origin, target, targetIsExit);
+                SpawnBreadcrumbChainEcho(origin, target, targetIsExit, momentumLevel);
             }
 
             TrySpawnCorruptedBreadcrumbEcho(origin, preferExit);
@@ -684,10 +1072,11 @@ namespace LostBreadcrumbs.Runtime.Map
                 return;
             }
 
+            int momentumSteps = Mathf.Max(0, momentumLevel - 1);
             NoiseManager.Instance.EmitNoise(
                 origin,
-                Mathf.Max(0f, breadcrumbChainNoiseLoudness),
-                Mathf.Max(0.1f, breadcrumbChainNoiseRadius),
+                Mathf.Max(0f, breadcrumbChainNoiseLoudness) * (1f + breadcrumbMomentumNoiseLoudnessBonus * momentumSteps),
+                Mathf.Max(0.1f, breadcrumbChainNoiseRadius) * (1f + breadcrumbMomentumNoiseRadiusBonus * momentumSteps),
                 NoiseKind.ItemUse,
                 gameObject);
         }
@@ -779,8 +1168,19 @@ namespace LostBreadcrumbs.Runtime.Map
         private bool TryFindNearestActiveBreadcrumbPickup(Vector3 origin, out Vector3 target)
         {
             target = default;
-            BreadcrumbPickup nearestPickup = null;
-            float nearestDistanceSqr = float.PositiveInfinity;
+            if (!TryFindNearestActiveBreadcrumbPickupComponent(origin, out BreadcrumbPickup nearestPickup, out _))
+            {
+                return false;
+            }
+
+            target = nearestPickup.transform.position;
+            return true;
+        }
+
+        private bool TryFindNearestActiveBreadcrumbPickupComponent(Vector3 origin, out BreadcrumbPickup nearestPickup, out float nearestDistanceSqr)
+        {
+            nearestPickup = null;
+            nearestDistanceSqr = float.PositiveInfinity;
             for (int i = 0; i < activePickups.Count; i++)
             {
                 BreadcrumbPickup pickup = activePickups[i];
@@ -804,7 +1204,6 @@ namespace LostBreadcrumbs.Runtime.Map
                 return false;
             }
 
-            target = nearestPickup.transform.position;
             return true;
         }
 
@@ -858,7 +1257,7 @@ namespace LostBreadcrumbs.Runtime.Map
             return false;
         }
 
-        private void SpawnBreadcrumbChainEcho(Vector3 origin, Vector3 target, bool targetIsExit)
+        private void SpawnBreadcrumbChainEcho(Vector3 origin, Vector3 target, bool targetIsExit, int momentumLevel)
         {
             Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX/BreadcrumbChainEchoes");
             GameObject echoObject = new("BreadcrumbChainEcho");
@@ -877,11 +1276,11 @@ namespace LostBreadcrumbs.Runtime.Map
             line.textureMode = LineTextureMode.Stretch;
             line.numCornerVertices = 2;
             line.numCapVertices = 2;
-            line.widthMultiplier = Mathf.Max(0.01f, breadcrumbChainEchoWidth);
+            line.widthMultiplier = EvaluateBreadcrumbChainWidth(momentumLevel);
             line.sharedMaterial = GetChainEchoMaterial();
             line.sortingOrder = breadcrumbChainEchoSortingOrder;
 
-            StartCoroutine(BreadcrumbChainEchoRoutine(echoObject, line, targetIsExit));
+            StartCoroutine(BreadcrumbChainEchoRoutine(echoObject, line, targetIsExit, momentumLevel));
         }
 
         private void SpawnCorruptedBreadcrumbEcho(Vector3 origin, Vector3 target, float pressure)
@@ -914,21 +1313,25 @@ namespace LostBreadcrumbs.Runtime.Map
             StartCoroutine(CorruptedBreadcrumbEchoRoutine(echoObject, line, basePoints, pressure));
         }
 
-        private IEnumerator BreadcrumbChainEchoRoutine(GameObject echoObject, LineRenderer line, bool targetIsExit)
+        private IEnumerator BreadcrumbChainEchoRoutine(GameObject echoObject, LineRenderer line, bool targetIsExit, int momentumLevel)
         {
-            float duration = Mathf.Max(0.1f, breadcrumbChainEchoDuration);
+            float duration = Mathf.Max(0.1f, breadcrumbChainEchoDuration)
+                             * (1f + Mathf.Max(0, momentumLevel - 1) * Mathf.Max(0f, breadcrumbMomentumEchoDurationBonus));
             Color baseColor = targetIsExit ? breadcrumbExitChainEchoColor : breadcrumbChainEchoColor;
             float startedAt = Time.time;
+            float baseWidth = EvaluateBreadcrumbChainWidth(momentumLevel);
 
             while (line != null && Time.time < startedAt + duration)
             {
                 float t = Mathf.Clamp01((Time.time - startedAt) / duration);
                 float pulse = 0.5f + Mathf.Sin(t * Mathf.PI * 5f) * 0.5f;
                 Color color = baseColor;
-                color.a *= Mathf.Lerp(1f, 0f, t) * Mathf.Lerp(0.65f, 1f, pulse);
+                color.a *= Mathf.Lerp(1f, 0f, t)
+                           * Mathf.Lerp(0.65f, 1f, pulse)
+                           * Mathf.Lerp(1f, 1.18f, Mathf.Clamp01((momentumLevel - 1f) / Mathf.Max(1f, BreadcrumbMomentumMaxLevel - 1f)));
                 line.startColor = color;
                 line.endColor = color;
-                line.widthMultiplier = Mathf.Max(0.01f, breadcrumbChainEchoWidth) * Mathf.Lerp(1.2f, 0.35f, t);
+                line.widthMultiplier = baseWidth * Mathf.Lerp(1.2f, 0.35f, t);
                 yield return null;
             }
 
@@ -936,6 +1339,40 @@ namespace LostBreadcrumbs.Runtime.Map
             {
                 DestroySafe(echoObject);
             }
+        }
+
+        private float EvaluateBreadcrumbChainWidth(int momentumLevel)
+        {
+            return Mathf.Max(0.01f, breadcrumbChainEchoWidth)
+                   * (1f + Mathf.Max(0, momentumLevel - 1) * Mathf.Max(0f, breadcrumbMomentumEchoWidthBonus));
+        }
+
+        private void SpawnBreadcrumbMomentumPulse(Vector3 position, int momentumLevel)
+        {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX/BreadcrumbMomentum");
+            GameObject pulseObject = new($"BreadcrumbMomentumPulse_x{momentumLevel}");
+            if (vfxRoot != null)
+            {
+                pulseObject.transform.SetParent(vfxRoot, false);
+            }
+
+            pulseObject.transform.position = new Vector3(position.x, position.y, 0f);
+            EchoPulseVisualDummy visual = pulseObject.AddComponent<EchoPulseVisualDummy>();
+            int steps = Mathf.Max(0, momentumLevel - 2);
+            Color color = breadcrumbMomentumPulseColor;
+            color.a *= Mathf.Lerp(0.86f, 1.18f, Mathf.Clamp01((momentumLevel - 2f) / Mathf.Max(1f, BreadcrumbMomentumMaxLevel - 2f)));
+            visual.Configure(
+                Mathf.Max(0.1f, breadcrumbMomentumPulseRadius) * (1f + steps * 0.18f),
+                color,
+                Mathf.Max(0.1f, breadcrumbMomentumPulseDuration) * (1f + steps * 0.12f),
+                Mathf.Clamp(2 + steps, 2, 4),
+                Mathf.Max(0.08f, breadcrumbMomentumPulseDuration * 0.18f),
+                breadcrumbMomentumPulseSortingOrder);
         }
 
         private IEnumerator CorruptedBreadcrumbEchoRoutine(GameObject echoObject, LineRenderer line, Vector3[] basePoints, float pressure)
@@ -1035,8 +1472,94 @@ namespace LostBreadcrumbs.Runtime.Map
                 return;
             }
 
+            if (pickup == exitChoiceCachePickup)
+            {
+                exitChoiceCachePickup = null;
+                exitChoiceCachePosition = pickup.transform.position;
+            }
+
             pickup.Collected -= HandleStaminaPickupCollected;
+            pickup.Collected -= HandleExitChoiceCacheCollected;
             activeStaminaPickups.Remove(pickup);
+        }
+
+        private void HandleRiskCacheCollected(RiskCachePickup pickup)
+        {
+            if (pickup == null)
+            {
+                return;
+            }
+
+            pickup.Collected -= HandleRiskCacheCollected;
+            activeRiskCaches.Remove(pickup);
+
+            string pulseRefund = pickup.LastPulseCooldownRefund > 0.05f
+                ? $", Q -{pickup.LastPulseCooldownRefund:0.0}s"
+                : string.Empty;
+            RuntimeEventBus.Raise(
+                RuntimeEventType.Objective,
+                $"Risk cache opened (+{pickup.LastRecoveredStamina:0.0} stamina{pulseRefund})",
+                this,
+                CurrentStage,
+                semantic: RuntimeEventSemantic.RiskReward);
+
+            SpawnRiskCacheRewardPulse(pickup.transform.position);
+            TriggerRiskCacheAftershock(pickup.transform.position);
+        }
+
+        private void SpawnRiskCacheRewardPulse(Vector3 position)
+        {
+            Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX/RiskCache");
+            GameObject pulseObject = new("RiskCacheRewardPulse");
+            if (vfxRoot != null)
+            {
+                pulseObject.transform.SetParent(vfxRoot, false);
+            }
+
+            pulseObject.transform.position = new Vector3(position.x, position.y, 0f);
+            EchoPulseVisualDummy visual = pulseObject.AddComponent<EchoPulseVisualDummy>();
+            Color color = riskCacheColor;
+            color.a *= 0.68f;
+            visual.Configure(
+                1.45f,
+                color,
+                1.1f,
+                2,
+                0.2f,
+                riskCacheSortingOrder);
+        }
+
+        private void TriggerRiskCacheAftershock(Vector3 position)
+        {
+            if (riskCacheAftershockNoiseScale <= 0f || riskCacheAftershockNoiseDelay <= 0f)
+            {
+                return;
+            }
+
+            if (riskCacheAftershockRoutine != null)
+            {
+                StopCoroutine(riskCacheAftershockRoutine);
+            }
+
+            riskCacheAftershockRoutine = StartCoroutine(RiskCacheAftershockRoutine(position));
+        }
+
+        private IEnumerator RiskCacheAftershockRoutine(Vector3 position)
+        {
+            yield return new WaitForSeconds(Mathf.Max(0f, riskCacheAftershockNoiseDelay));
+
+            SpawnRiskCacheRewardPulse(position);
+            if (NoiseManager.Instance != null)
+            {
+                NoiseManager.Instance.EmitNoise(
+                    position,
+                    Mathf.Max(0f, riskCacheNoiseLoudness) * Mathf.Clamp01(riskCacheAftershockNoiseScale),
+                    Mathf.Max(0.1f, riskCacheNoiseRadius) * Mathf.Lerp(0.5f, 1f, Mathf.Clamp01(riskCacheAftershockNoiseScale)),
+                    NoiseKind.ItemUse,
+                    gameObject);
+            }
+
+            riskCacheAftershockRoutine = null;
         }
 
         private void UpdateExitState()
@@ -1057,7 +1580,11 @@ namespace LostBreadcrumbs.Runtime.Map
                     this,
                     CurrentStage,
                     semantic: RuntimeEventSemantic.ExitUnlocked);
-                TriggerExitUnlockPressure();
+                if (!RegressionChecklistRunner.IsRegressionRunActive)
+                {
+                    TriggerExitUnlockPressure();
+                    TrySpawnExitChoiceCache();
+                }
             }
 
             lastExitUnlockedState = shouldUnlock;
@@ -1103,6 +1630,223 @@ namespace LostBreadcrumbs.Runtime.Map
             exitUnlockPressureRoutine = null;
         }
 
+        private void TrySpawnExitChoiceCache()
+        {
+            if (!spawnExitChoiceCache
+                || RegressionChecklistRunner.IsRegressionRunActive
+                || CurrentStage < Mathf.Max(1, exitChoiceCacheStartStage)
+                || exitChoiceCachePickup != null
+                || mapSystem == null
+                || pickupsRoot == null)
+            {
+                return;
+            }
+
+            System.Random random = new(CurrentStage * 1009 + RequiredBreadcrumbs * 97 + CollectedBreadcrumbs * 17);
+            if (random.NextDouble() > Mathf.Clamp01(exitChoiceCacheSpawnChance))
+            {
+                return;
+            }
+
+            if (!TryPickExitChoiceCacheCell(random, out GeneratedMapCell cacheCell))
+            {
+                return;
+            }
+
+            SpawnExitChoiceCache(cacheCell);
+        }
+
+        private bool TryPickExitChoiceCacheCell(System.Random random, out GeneratedMapCell cacheCell)
+        {
+            cacheCell = default;
+            IReadOnlyList<GeneratedMapCell> cells = mapSystem != null ? mapSystem.LastGeneratedCells : null;
+            if (cells == null || cells.Count <= 0)
+            {
+                return false;
+            }
+
+            Vector3 exitPosition = exitPortal != null ? exitPortal.transform.position : Vector3.zero;
+            Vector3 playerPosition = momentumPlayer != null ? momentumPlayer.transform.position : Vector3.zero;
+            bool hasPlayer = momentumPlayer != null;
+            float minExitDistanceSqr = Mathf.Max(0.1f, exitChoiceCacheMinDistanceFromExit);
+            minExitDistanceSqr *= minExitDistanceSqr;
+            float minPlayerDistanceSqr = Mathf.Max(0f, exitChoiceCacheMinDistanceFromPlayer);
+            minPlayerDistanceSqr *= minPlayerDistanceSqr;
+
+            List<GeneratedMapCell> candidates = new();
+            for (int pass = 0; pass < 2 && candidates.Count <= 0; pass++)
+            {
+                bool relaxed = pass > 0;
+                float exitFloor = relaxed ? minExitDistanceSqr * 0.35f : minExitDistanceSqr;
+                float playerFloor = relaxed ? minPlayerDistanceSqr * 0.25f : minPlayerDistanceSqr;
+
+                for (int i = 0; i < cells.Count; i++)
+                {
+                    GeneratedMapCell cell = cells[i];
+                    if (cell.kind is MapCellKind.Start or MapCellKind.Exit)
+                    {
+                        continue;
+                    }
+
+                    if (GetExitChoiceCacheWeight(cell.kind) <= 0f)
+                    {
+                        continue;
+                    }
+
+                    Vector3 world = ToWorld(cell.position, mapSystem);
+                    if (exitPortal != null && (world - exitPosition).sqrMagnitude < exitFloor)
+                    {
+                        continue;
+                    }
+
+                    if (hasPlayer && (world - playerPosition).sqrMagnitude < playerFloor)
+                    {
+                        continue;
+                    }
+
+                    candidates.Add(cell);
+                }
+            }
+
+            if (candidates.Count <= 0)
+            {
+                return false;
+            }
+
+            int selectedIndex = PickWeightedExitChoiceCacheIndex(candidates, random);
+            cacheCell = candidates[Mathf.Clamp(selectedIndex, 0, candidates.Count - 1)];
+            return true;
+        }
+
+        private int PickWeightedExitChoiceCacheIndex(IReadOnlyList<GeneratedMapCell> candidates, System.Random random)
+        {
+            if (candidates == null || candidates.Count <= 0)
+            {
+                return -1;
+            }
+
+            float totalWeight = 0f;
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                totalWeight += GetExitChoiceCacheWeight(candidates[i].kind);
+            }
+
+            if (totalWeight <= 0.001f)
+            {
+                return random.Next(0, candidates.Count);
+            }
+
+            float roll = (float)(random.NextDouble() * totalWeight);
+            float running = 0f;
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                running += GetExitChoiceCacheWeight(candidates[i].kind);
+                if (roll <= running)
+                {
+                    return i;
+                }
+            }
+
+            return candidates.Count - 1;
+        }
+
+        private static float GetExitChoiceCacheWeight(MapCellKind kind)
+        {
+            return kind switch
+            {
+                MapCellKind.Risk => 3f,
+                MapCellKind.Room => 1.45f,
+                MapCellKind.Fork => 1.2f,
+                MapCellKind.Hideout => 1f,
+                MapCellKind.Corridor => 0.55f,
+                _ => 0f
+            };
+        }
+
+        private void SpawnExitChoiceCache(GeneratedMapCell cell)
+        {
+            GameObject cacheObject = new("ExitChoiceCache");
+            cacheObject.transform.SetParent(pickupsRoot, false);
+            cacheObject.transform.position = ToWorld(cell.position, mapSystem);
+            cacheObject.transform.localScale = Vector3.one * Mathf.Max(0.1f, exitChoiceCacheScale);
+
+            SpriteRenderer renderer = cacheObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = GetDebugSprite();
+            renderer.color = exitChoiceCacheColor;
+            renderer.sortingOrder = exitChoiceCacheSortingOrder;
+
+            CircleCollider2D trigger = cacheObject.AddComponent<CircleCollider2D>();
+            trigger.isTrigger = true;
+            trigger.radius = 0.42f;
+
+            StaminaPickup pickup = cacheObject.AddComponent<StaminaPickup>();
+            pickup.Configure(Mathf.Max(0.1f, exitChoiceCacheRecoverAmount));
+            pickup.Collected += HandleExitChoiceCacheCollected;
+            pickup.Collected += HandleStaminaPickupCollected;
+            activeStaminaPickups.Add(pickup);
+            exitChoiceCachePickup = pickup;
+            exitChoiceCachePosition = cacheObject.transform.position;
+
+            SpawnExitChoiceCacheBeacon(exitChoiceCachePosition, 0.72f);
+            RuntimeEventBus.Raise(
+                RuntimeEventType.Objective,
+                "Exit cache exposed",
+                this,
+                CurrentStage);
+        }
+
+        private void HandleExitChoiceCacheCollected(StaminaPickup pickup)
+        {
+            if (pickup == null || pickup != exitChoiceCachePickup)
+            {
+                return;
+            }
+
+            pickup.Collected -= HandleExitChoiceCacheCollected;
+            Vector3 position = pickup.transform.position;
+            exitChoiceCachePosition = position;
+            exitChoiceCachePickup = null;
+
+            SpawnExitChoiceCacheBeacon(position, 1f);
+            if (NoiseManager.Instance != null)
+            {
+                NoiseManager.Instance.EmitNoise(
+                    position,
+                    Mathf.Max(0f, exitChoiceCacheNoiseLoudness),
+                    Mathf.Max(0.1f, exitChoiceCacheNoiseRadius),
+                    NoiseKind.ItemUse,
+                    gameObject);
+            }
+
+            RuntimeEventBus.Raise(
+                RuntimeEventType.Objective,
+                $"Exit cache taken (+{exitChoiceCacheRecoverAmount:0.0} stamina)",
+                this,
+                CurrentStage);
+        }
+
+        private void SpawnExitChoiceCacheBeacon(Vector3 position, float alphaScale)
+        {
+            Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX/ExitChoiceCache");
+            GameObject beaconObject = new("ExitChoiceCacheBeacon");
+            if (vfxRoot != null)
+            {
+                beaconObject.transform.SetParent(vfxRoot, false);
+            }
+
+            beaconObject.transform.position = new Vector3(position.x, position.y, 0f);
+            EchoPulseVisualDummy visual = beaconObject.AddComponent<EchoPulseVisualDummy>();
+            Color color = exitChoiceCacheColor;
+            color.a *= Mathf.Clamp01(alphaScale);
+            visual.Configure(
+                Mathf.Max(0.1f, exitChoiceCacheBeaconRadius),
+                color,
+                Mathf.Max(0.1f, exitChoiceCacheBeaconDuration),
+                2,
+                Mathf.Max(0.08f, exitChoiceCacheBeaconDuration * 0.18f),
+                exitChoiceCacheSortingOrder);
+        }
+
         private void SpawnExitUnlockBeacon(Vector3 position, float alphaScale)
         {
             Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX/ExitUnlockBeacons");
@@ -1143,6 +1887,15 @@ namespace LostBreadcrumbs.Runtime.Map
                 exitUnlockPressureRoutine = null;
             }
 
+            if (riskCacheAftershockRoutine != null)
+            {
+                StopCoroutine(riskCacheAftershockRoutine);
+                riskCacheAftershockRoutine = null;
+            }
+
+            ResetBreadcrumbMomentum();
+            exitChoiceCachePickup = null;
+            exitChoiceCachePosition = Vector3.zero;
             nextCorruptedBreadcrumbEchoTime = 0f;
 
             for (int i = 0; i < activePickups.Count; i++)
@@ -1163,11 +1916,24 @@ namespace LostBreadcrumbs.Runtime.Map
                 if (pickup != null)
                 {
                     pickup.Collected -= HandleStaminaPickupCollected;
+                    pickup.Collected -= HandleExitChoiceCacheCollected;
                     DestroySafe(pickup.gameObject);
                 }
             }
 
             activeStaminaPickups.Clear();
+
+            for (int i = 0; i < activeRiskCaches.Count; i++)
+            {
+                RiskCachePickup cache = activeRiskCaches[i];
+                if (cache != null)
+                {
+                    cache.Collected -= HandleRiskCacheCollected;
+                    DestroySafe(cache.gameObject);
+                }
+            }
+
+            activeRiskCaches.Clear();
 
             for (int i = 0; i < activeSafeHavens.Count; i++)
             {

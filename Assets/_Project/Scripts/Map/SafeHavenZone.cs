@@ -1,4 +1,5 @@
 using LostBreadcrumbs.Runtime.Managers;
+using LostBreadcrumbs.Runtime.Events;
 using LostBreadcrumbs.Runtime.Player;
 using UnityEngine;
 
@@ -29,6 +30,18 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField, Min(0f)] private float unsafeFalseNoiseRadius = 3.6f;
         [SerializeField, Range(0f, 1f)] private float unsafeFalsePulseAlphaScale = 0.52f;
 
+        [Header("Overstay Pressure")]
+        [SerializeField] private bool enableOverstayPressure = true;
+        [SerializeField, Min(0.5f)] private float overstayWarningSeconds = 4.8f;
+        [SerializeField, Min(0.5f)] private float overstayBeatInterval = 2.6f;
+        [SerializeField, Min(0f)] private float overstayNoiseLoudness = 0.54f;
+        [SerializeField, Min(0.1f)] private float overstayNoiseRadius = 4.4f;
+        [SerializeField, Min(0f)] private float overstayNoiseGrowthPerBeat = 0.18f;
+        [SerializeField] private Color overstayPulseColor = new(1f, 0.28f, 0.14f, 0.42f);
+        [SerializeField, Min(0.2f)] private float overstayPulseRadius = 1.75f;
+        [SerializeField, Min(0.1f)] private float overstayPulseDuration = 1.55f;
+        [SerializeField] private int overstayPulseSortingOrder = 38;
+
         private PlayerConcealmentState activePlayerConcealment;
         private SpriteRenderer spriteRenderer;
         private Color baseRendererColor;
@@ -36,6 +49,10 @@ namespace LostBreadcrumbs.Runtime.Map
         private int configuredStage = 1;
         private float configuredPressure01;
         private float nextUnsafeDreadTime = float.PositiveInfinity;
+        private float safeHavenEnteredTime = -999f;
+        private float nextOverstayBeatTime = float.PositiveInfinity;
+        private int overstayBeatCount;
+        private bool overstayWarningRaised;
 
         public void Configure(float targetRadius)
         {
@@ -72,6 +89,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private void Update()
         {
             TickUnsafeDread();
+            TickOverstayPressure();
         }
 
         private void OnTriggerEnter2D(Collider2D other)
@@ -89,6 +107,10 @@ namespace LostBreadcrumbs.Runtime.Map
 
             activePlayerConcealment = concealment;
             activePlayerConcealment.EnterSafeHaven();
+            safeHavenEnteredTime = Time.time;
+            nextOverstayBeatTime = Time.time + Mathf.Max(0.5f, overstayWarningSeconds);
+            overstayBeatCount = 0;
+            overstayWarningRaised = false;
 
             float dread = EvaluateUnsafeDread01();
             if (dread > 0f)
@@ -115,6 +137,7 @@ namespace LostBreadcrumbs.Runtime.Map
             {
                 activePlayerConcealment = null;
                 nextUnsafeDreadTime = float.PositiveInfinity;
+                ResetOverstayPressure();
             }
         }
 
@@ -214,6 +237,85 @@ namespace LostBreadcrumbs.Runtime.Map
                 NoiseKind.Decoy,
                 gameObject);
             SpawnUnsafePulse(falseNoisePosition, dread, unsafeFalsePulseAlphaScale);
+        }
+
+        private void TickOverstayPressure()
+        {
+            bool active = enableOverstayPressure
+                          && Application.isPlaying
+                          && !RegressionChecklistRunner.IsRegressionRunActive
+                          && activePlayerConcealment != null
+                          && activePlayerConcealment.IsInsideSafeHaven;
+
+            if (!active || Time.time < nextOverstayBeatTime)
+            {
+                return;
+            }
+
+            overstayBeatCount++;
+            float pressure = Mathf.Clamp01((Time.time - safeHavenEnteredTime - overstayWarningSeconds) / Mathf.Max(0.5f, overstayBeatInterval * 3f));
+            TriggerOverstayPressure(pressure);
+
+            float interval = Mathf.Max(0.5f, overstayBeatInterval) * Mathf.Lerp(1f, 0.64f, pressure);
+            nextOverstayBeatTime = Time.time + interval;
+        }
+
+        private void TriggerOverstayPressure(float pressure)
+        {
+            if (!overstayWarningRaised)
+            {
+                overstayWarningRaised = true;
+                RuntimeEventBus.Raise(
+                    RuntimeEventType.Objective,
+                    "Safe haven thinning",
+                    this,
+                    configuredStage,
+                    semantic: RuntimeEventSemantic.SafeHavenThin);
+            }
+
+            SpawnOverstayPulse(pressure);
+            if (NoiseManager.Instance == null)
+            {
+                return;
+            }
+
+            float beatScale = 1f + Mathf.Max(0, overstayBeatCount - 1) * Mathf.Max(0f, overstayNoiseGrowthPerBeat);
+            NoiseManager.Instance.EmitNoise(
+                transform.position,
+                Mathf.Max(0f, overstayNoiseLoudness) * beatScale,
+                Mathf.Max(0.1f, overstayNoiseRadius) * Mathf.Lerp(1f, 1.32f, pressure),
+                NoiseKind.ItemUse,
+                gameObject);
+        }
+
+        private void SpawnOverstayPulse(float pressure)
+        {
+            Transform vfxRoot = EnsureUnsafeVfxRoot();
+            GameObject visualObject = new("SafeHavenOverstayPulse");
+            if (vfxRoot != null)
+            {
+                visualObject.transform.SetParent(vfxRoot, false);
+            }
+
+            visualObject.transform.position = new Vector3(transform.position.x, transform.position.y, 0f);
+            EchoPulseVisualDummy visual = visualObject.AddComponent<EchoPulseVisualDummy>();
+            Color color = overstayPulseColor;
+            color.a *= Mathf.Lerp(0.78f, 1.16f, Mathf.Clamp01(pressure));
+            visual.Configure(
+                Mathf.Max(0.2f, overstayPulseRadius * Mathf.Lerp(0.92f, 1.28f, Mathf.Clamp01(pressure))),
+                color,
+                Mathf.Max(0.1f, overstayPulseDuration),
+                2,
+                Mathf.Max(0.08f, overstayPulseDuration * 0.18f),
+                overstayPulseSortingOrder);
+        }
+
+        private void ResetOverstayPressure()
+        {
+            safeHavenEnteredTime = -999f;
+            nextOverstayBeatTime = float.PositiveInfinity;
+            overstayBeatCount = 0;
+            overstayWarningRaised = false;
         }
 
         private Vector2 EvaluateUnsafeFalseNoisePosition(float dread)
@@ -336,6 +438,7 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             nextUnsafeDreadTime = float.PositiveInfinity;
+            ResetOverstayPressure();
             if (spriteRenderer != null && hasBaseRendererColor)
             {
                 spriteRenderer.color = baseRendererColor;

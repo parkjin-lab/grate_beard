@@ -18,19 +18,24 @@ namespace LostBreadcrumbs.Runtime.UI
         [SerializeField] private bool hideDuringRegressionChecklist = true;
 
         [Header("Pressure Response")]
-        [SerializeField, Range(0f, 1f)] private float pressureFadeStart = 0.34f;
-        [SerializeField, Range(0f, 1f)] private float pressureFadeFull = 0.9f;
-        [SerializeField, Range(0f, 1f)] private float flashlightDreadWeight = 0.22f;
-        [SerializeField, Range(0f, 1f)] private float maxEdgeAlpha = 0.32f;
-        [SerializeField, Range(0f, 0.12f)] private float breathAlpha = 0.025f;
+        [SerializeField, Range(0f, 1f)] private float pressureFadeStart = 0.22f;
+        [SerializeField, Range(0f, 1f)] private float pressureFadeFull = 0.82f;
+        [SerializeField, Range(0f, 1f)] private float flashlightDreadWeight = 0.28f;
+        [SerializeField, Range(0f, 1f)] private float nearbyThreatWeight = 0.24f;
+        [SerializeField, Range(0f, 1f)] private float tunnelVisionWeight = 0.32f;
+        [SerializeField, Range(0f, 1f)] private float maxEdgeAlpha = 0.42f;
+        [SerializeField, Range(0f, 0.2f)] private float closeThreatExtraAlpha = 0.08f;
+        [SerializeField, Range(0f, 0.2f)] private float tunnelVisionExtraAlpha = 0.1f;
+        [SerializeField, Range(0f, 0.12f)] private float breathAlpha = 0.036f;
         [SerializeField, Min(0.05f)] private float breathSpeed = 0.58f;
+        [SerializeField, Min(0.1f)] private float closeThreatBreathSpeedMultiplier = 1.55f;
         [SerializeField, Min(0.1f)] private float fadeInSpeed = 2.2f;
         [SerializeField, Min(0.1f)] private float fadeOutSpeed = 3.6f;
         [SerializeField, Min(0.1f)] private float missingReferenceResolveInterval = 0.75f;
 
         [Header("Color")]
-        [SerializeField] private Color lowPressureEdgeColor = new(0.015f, 0.012f, 0.018f, 1f);
-        [SerializeField] private Color highPressureEdgeColor = new(0.18f, 0.012f, 0.026f, 1f);
+        [SerializeField] private Color lowPressureEdgeColor = new(0.006f, 0.007f, 0.012f, 1f);
+        [SerializeField] private Color highPressureEdgeColor = new(0.13f, 0.004f, 0.016f, 1f);
 
         private const string CanvasName = "DreadOverlay_Canvas";
         private const string ImageName = "DreadOverlay_Vignette";
@@ -40,6 +45,10 @@ namespace LostBreadcrumbs.Runtime.UI
         private Canvas ownedCanvas;
         private float currentAlpha;
         private float nextReferenceResolveTime;
+        private static readonly System.Reflection.PropertyInfo ThreatTunnelVisionProperty =
+            typeof(ThreatReadabilityDirector).GetProperty(
+                "CurrentThreatTunnelVision",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
 
         private void Awake()
         {
@@ -117,28 +126,41 @@ namespace LostBreadcrumbs.Runtime.UI
 
             float pressure = 0f;
             float flashlightDread = 0f;
+            float nearbyThreat = 0f;
+            float tunnelVision = 0f;
             if (threatReadabilityDirector != null)
             {
                 pressure = Mathf.Clamp01(threatReadabilityDirector.CurrentReadabilityPressure);
                 flashlightDread = Mathf.Clamp01(threatReadabilityDirector.CurrentFlashlightDread);
+                nearbyThreat = Mathf.Clamp01(threatReadabilityDirector.CurrentNearbyThreat);
+                tunnelVision = ResolveThreatTunnelVision(threatReadabilityDirector, nearbyThreat);
             }
 
-            float combinedPressure = Mathf.Clamp01(pressure + flashlightDread * flashlightDreadWeight);
+            float closePressure = Mathf.Max(nearbyThreat, tunnelVision);
+            float combinedPressure = Mathf.Clamp01(
+                pressure
+                + flashlightDread * flashlightDreadWeight
+                + nearbyThreat * nearbyThreatWeight
+                + tunnelVision * tunnelVisionWeight);
             float pressureFade = Mathf.InverseLerp(
                 Mathf.Min(pressureFadeStart, pressureFadeFull),
                 Mathf.Max(pressureFadeStart + 0.01f, pressureFadeFull),
                 combinedPressure);
             pressureFade = Mathf.SmoothStep(0f, 1f, pressureFade);
 
-            float breath = (Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f * breathSpeed) + 1f) * 0.5f;
-            float targetAlpha = pressureFade * maxEdgeAlpha + pressureFade * breath * breathAlpha;
-            targetAlpha = Mathf.Clamp(targetAlpha, 0f, maxEdgeAlpha + breathAlpha);
+            float effectiveBreathSpeed = breathSpeed * Mathf.Lerp(1f, closeThreatBreathSpeedMultiplier, closePressure);
+            float breath = (Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f * effectiveBreathSpeed) + 1f) * 0.5f;
+            float targetAlpha = pressureFade * maxEdgeAlpha
+                                + pressureFade * breath * breathAlpha
+                                + nearbyThreat * closeThreatExtraAlpha
+                                + tunnelVision * tunnelVisionExtraAlpha;
+            targetAlpha = Mathf.Clamp(targetAlpha, 0f, maxEdgeAlpha + breathAlpha + closeThreatExtraAlpha + tunnelVisionExtraAlpha);
 
             float speed = targetAlpha > currentAlpha ? fadeInSpeed : fadeOutSpeed;
             float t = 1f - Mathf.Exp(-Mathf.Max(0.1f, speed) * Time.unscaledDeltaTime);
             currentAlpha = Mathf.Lerp(currentAlpha, targetAlpha, t);
 
-            ApplyOverlay(currentAlpha, Mathf.Clamp01(pressureFade + flashlightDread * 0.25f));
+            ApplyOverlay(currentAlpha, Mathf.Clamp01(pressureFade + flashlightDread * 0.25f + closePressure * 0.32f));
         }
 
         public void SetThreatSourceForEditor(ThreatReadabilityDirector director)
@@ -149,6 +171,22 @@ namespace LostBreadcrumbs.Runtime.UI
         public void SetTargetCanvasForEditor(Canvas canvasRef)
         {
             targetCanvas = canvasRef;
+        }
+
+        private static float ResolveThreatTunnelVision(ThreatReadabilityDirector director, float fallback)
+        {
+            if (director == null)
+            {
+                return Mathf.Clamp01(fallback);
+            }
+
+            if (ThreatTunnelVisionProperty == null || ThreatTunnelVisionProperty.PropertyType != typeof(float))
+            {
+                return Mathf.Clamp01(fallback);
+            }
+
+            object value = ThreatTunnelVisionProperty.GetValue(director);
+            return value is float tunnel ? Mathf.Clamp01(tunnel) : Mathf.Clamp01(fallback);
         }
 
         private void TryResolveReferences(bool force = false)

@@ -1,8 +1,10 @@
 ﻿using LostBreadcrumbs.Runtime.AI;
 using LostBreadcrumbs.Runtime.Core;
+using LostBreadcrumbs.Runtime.Events;
 using LostBreadcrumbs.Runtime.Map;
 using LostBreadcrumbs.Runtime.Player;
 using LostBreadcrumbs.Runtime.Systems;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -22,9 +24,9 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         [Header("Flow")]
         [SerializeField] private bool applyOnStart = true;
-        [SerializeField, Min(0.02f)] private float updateInterval = 0.16f;
+        [SerializeField, Min(0.02f)] private float updateInterval = 0.18f;
         [SerializeField, Min(0.1f)] private float referenceResolveRetryInterval = 0.75f;
-        [SerializeField, Min(0.1f)] private float responseSmoothing = 5.6f;
+        [SerializeField, Min(0.1f)] private float responseSmoothing = 4.7f;
         [SerializeField] private bool logPressureChanges;
 
         [Header("Threat Evaluation")]
@@ -49,9 +51,13 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Range(0.7f, 1.3f)] private float expansivePressureBias = 1.08f;
 
         [Header("Camera Tuning")]
-        [SerializeField, Min(0f)] private float maxCameraZoomOut = 1.5f;
-        [SerializeField, Min(1f)] private float minimumCameraOrthoSize = 4f;
-        [SerializeField, Min(1f)] private float maximumCameraOrthoSize = 22f;
+        [SerializeField, Min(0f)] private float maxCameraZoomOut = 0.55f;
+        [SerializeField, Min(1f)] private float minimumCameraOrthoSize = 3.75f;
+        [SerializeField, Min(1f)] private float maximumCameraOrthoSize = 5.85f;
+        [SerializeField, Min(0f)] private float maxCloseThreatZoomIn = 0.52f;
+        [SerializeField, Range(0f, 1f)] private float closeThreatTunnelStart = 0.24f;
+        [SerializeField, Range(0f, 1f)] private float closeThreatTunnelFull = 0.78f;
+        [SerializeField, Range(0f, 1f)] private float closeThreatSuppressZoomOut = 0.72f;
         [SerializeField, Range(0.5f, 2f)] private float minLookAheadMultiplier = 0.95f;
         [SerializeField, Range(0.5f, 2f)] private float maxLookAheadMultiplier = 1.35f;
         [SerializeField, Range(0.5f, 2f)] private float minSmoothMultiplier = 0.95f;
@@ -62,26 +68,36 @@ namespace LostBreadcrumbs.Runtime.Managers
         [Header("Art Grade")]
         [SerializeField] private bool enableRuntimeArtGrade = true;
         [SerializeField, Min(0.1f)] private float cameraBackgroundLerpSpeed = 5.4f;
-        [SerializeField] private Color calmCameraBackgroundColor = new(0.03f, 0.04f, 0.06f, 1f);
-        [SerializeField] private Color dangerCameraBackgroundColor = new(0.075f, 0.014f, 0.024f, 1f);
-        [SerializeField] private Color calmFogTint = new(0.031f, 0.039f, 0.055f, 1f);
-        [SerializeField] private Color dangerFogTint = new(0.045f, 0.012f, 0.018f, 1f);
-        [SerializeField, Range(0.65f, 1.35f)] private float calmFogHiddenAlphaMultiplier = 1f;
-        [SerializeField, Range(0.65f, 1.35f)] private float dangerFogHiddenAlphaMultiplier = 1.2f;
-        [SerializeField, Range(0.4f, 1.3f)] private float calmFogVisibleAlphaMultiplier = 1f;
-        [SerializeField, Range(0.4f, 1.3f)] private float dangerFogVisibleAlphaMultiplier = 0.64f;
+        [SerializeField] private Color calmCameraBackgroundColor = new(0.018f, 0.024f, 0.034f, 1f);
+        [SerializeField] private Color dangerCameraBackgroundColor = new(0.052f, 0.006f, 0.014f, 1f);
+        [SerializeField] private Color calmFogTint = new(0.019f, 0.025f, 0.038f, 1f);
+        [SerializeField] private Color dangerFogTint = new(0.033f, 0.006f, 0.012f, 1f);
+        [SerializeField, Range(0.65f, 1.35f)] private float calmFogHiddenAlphaMultiplier = 1.08f;
+        [SerializeField, Range(0.65f, 1.35f)] private float dangerFogHiddenAlphaMultiplier = 1.28f;
+        [SerializeField, Range(0.4f, 1.3f)] private float calmFogVisibleAlphaMultiplier = 1.08f;
+        [SerializeField, Range(0.4f, 1.3f)] private float dangerFogVisibleAlphaMultiplier = 0.82f;
         [SerializeField] private bool enableThreatPulseImpulse = true;
         [SerializeField, Range(0f, 1f)] private float pulsePressureThreshold = 0.78f;
         [SerializeField, Range(0f, 1f)] private float pulsePressureDeltaThreshold = 0.12f;
         [SerializeField, Min(0.05f)] private float pulseCooldownSeconds = 1.25f;
         [SerializeField, Min(0f)] private float pulseImpulseAmplitude = 0.14f;
         [SerializeField, Min(0.05f)] private float pulseImpulseDuration = 0.18f;
+        [SerializeField] private bool enablePressureWaveFeedback = true;
+        [SerializeField] private bool pressureWaveRaisesRuntimeEvent = true;
+        [SerializeField, Min(0.1f)] private float pressureWaveEventCooldownSeconds = 5.5f;
+        [SerializeField] private Color pressureWaveColor = new(0.82f, 0.08f, 0.14f, 0.36f);
+        [SerializeField, Min(0.1f)] private float pressureWaveMinRadius = 2.4f;
+        [SerializeField, Min(0.1f)] private float pressureWaveMaxRadius = 4.2f;
+        [SerializeField, Min(0.1f)] private float pressureWaveDuration = 1.65f;
+        [SerializeField, Range(1, 4)] private int pressureWaveRingCount = 3;
+        [SerializeField, Min(0f)] private float pressureWaveRingInterval = 0.34f;
+        [SerializeField] private int pressureWaveSortingOrder = 42;
 
         [Header("Dread Beat")]
         [SerializeField] private bool enableDreadBeat = true;
         [SerializeField, Range(0f, 1f)] private float dreadBeatPressureThreshold = 0.34f;
-        [SerializeField, Min(0.1f)] private float maxDreadBeatInterval = 3.6f;
-        [SerializeField, Min(0.1f)] private float minDreadBeatInterval = 1.65f;
+        [SerializeField, Min(0.1f)] private float maxDreadBeatInterval = 4.5f;
+        [SerializeField, Min(0.1f)] private float minDreadBeatInterval = 2.05f;
         [SerializeField, Min(0f)] private float minDreadBeatImpulse = 0.025f;
         [SerializeField, Min(0f)] private float maxDreadBeatImpulse = 0.085f;
         [SerializeField, Min(0.05f)] private float dreadBeatImpulseDuration = 0.28f;
@@ -94,15 +110,15 @@ namespace LostBreadcrumbs.Runtime.Managers
         [Header("Phantom Cues")]
         [SerializeField] private bool enablePhantomCues = true;
         [SerializeField, Range(0f, 1f)] private float phantomCuePressureThreshold = 0.42f;
-        [SerializeField, Min(0.5f)] private float maxPhantomCueInterval = 7.5f;
-        [SerializeField, Min(0.5f)] private float minPhantomCueInterval = 3.1f;
+        [SerializeField, Min(0.5f)] private float maxPhantomCueInterval = 9f;
+        [SerializeField, Min(0.5f)] private float minPhantomCueInterval = 4.1f;
         [SerializeField, Range(0f, 2f)] private float phantomCueIntervalJitter = 0.65f;
         [SerializeField, Min(0.5f)] private float phantomCueMinDistance = 4.6f;
         [SerializeField, Min(0.5f)] private float phantomCueMaxDistance = 9.4f;
         [SerializeField, Range(0f, 1f)] private float phantomCueHiddenFogThreshold = 0.55f;
         [SerializeField] private Color phantomCueColor = new(0.2f, 0.58f, 1f, 0.34f);
         [SerializeField, Min(0.1f)] private float phantomCueRadius = 3.35f;
-        [SerializeField, Min(0.1f)] private float phantomCueDuration = 2.35f;
+        [SerializeField, Min(0.1f)] private float phantomCueDuration = 2.85f;
         [SerializeField, Range(1, 4)] private int phantomCueRingCount = 2;
         [SerializeField, Min(0f)] private float phantomCueRingInterval = 0.42f;
         [SerializeField] private int phantomCueSortingOrder = 32;
@@ -122,12 +138,12 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Min(0.5f)] private float closeStalkerTriggerDistance = 5.8f;
         [SerializeField, Min(0.2f)] private float closeStalkerCueTowardEnemyDistance = 1.85f;
         [SerializeField, Min(0f)] private float closeStalkerCueSideJitter = 1.15f;
-        [SerializeField, Min(0.5f)] private float closeStalkerMaxInterval = 5.8f;
-        [SerializeField, Min(0.5f)] private float closeStalkerMinInterval = 2.35f;
+        [SerializeField, Min(0.5f)] private float closeStalkerMaxInterval = 6.6f;
+        [SerializeField, Min(0.5f)] private float closeStalkerMinInterval = 2.95f;
         [SerializeField, Range(0f, 1f)] private float closeStalkerCueChance = 0.78f;
         [SerializeField] private Color closeStalkerCueColor = new(0.86f, 0.05f, 0.12f, 0.34f);
         [SerializeField, Min(0.1f)] private float closeStalkerCueRadius = 1.55f;
-        [SerializeField, Min(0.1f)] private float closeStalkerCueDuration = 1.32f;
+        [SerializeField, Min(0.1f)] private float closeStalkerCueDuration = 1.55f;
         [SerializeField, Range(1, 4)] private int closeStalkerCueRingCount = 2;
         [SerializeField, Min(0f)] private float closeStalkerCueRingInterval = 0.24f;
         [SerializeField] private int closeStalkerCueSortingOrder = 37;
@@ -139,6 +155,68 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private bool closeStalkerCueCameraImpulse = true;
         [SerializeField, Min(0f)] private float closeStalkerCueImpulseAmplitude = 0.045f;
         [SerializeField, Min(0.05f)] private float closeStalkerCueImpulseDuration = 0.16f;
+
+        [Header("Escape Relief Reward")]
+        [SerializeField] private bool enableEscapeReliefReward = true;
+        [SerializeField, Min(0.1f)] private float minEscapeReliefChaseSeconds = 2.4f;
+        [SerializeField, Min(0.5f)] private float escapeReliefRewardCooldownSeconds = 8.5f;
+        [SerializeField, Min(0f)] private float escapeReliefStaminaRecover = 0.82f;
+        [SerializeField, Min(0f)] private float escapeReliefPressureStaminaBonus = 0.38f;
+        [SerializeField] private bool escapeReliefRevealFog = true;
+        [SerializeField, Min(0.1f)] private float escapeReliefRevealRadius = 2.6f;
+        [SerializeField, Min(0f)] private float escapeReliefRevealSoftnessBoost = 0.68f;
+        [SerializeField] private Color escapeReliefPulseColor = new(0.22f, 1f, 0.78f, 0.42f);
+        [SerializeField, Min(0.1f)] private float escapeReliefPulseRadius = 2.15f;
+        [SerializeField, Min(0.1f)] private float escapeReliefPulseDuration = 1.42f;
+        [SerializeField, Range(1, 4)] private int escapeReliefPulseRingCount = 2;
+        [SerializeField, Min(0f)] private float escapeReliefPulseRingInterval = 0.28f;
+        [SerializeField] private int escapeReliefPulseSortingOrder = 38;
+        [SerializeField] private bool enableEscapeReliefAudio = true;
+        [SerializeField, Range(0f, 1f)] private float escapeReliefAudioVolume = 0.2f;
+        [SerializeField, Min(0.05f)] private float escapeReliefAudioDuration = 0.82f;
+        [SerializeField, Range(40f, 260f)] private float escapeReliefAudioFrequency = 118f;
+        [SerializeField, Range(0f, 1f)] private float escapeReliefAudioSpatialBlend = 0.2f;
+        [SerializeField] private bool enableEscapeReliefCalmWindow = true;
+        [SerializeField, Min(0.1f)] private float escapeReliefCalmSeconds = 2.8f;
+        [SerializeField, Range(0f, 0.75f)] private float escapeReliefPressureDip = 0.28f;
+        [SerializeField, Range(0f, 1f)] private float escapeReliefCueSuppression = 0.86f;
+        [SerializeField] private bool enableEscapeReliefEnemyTrail = true;
+        [SerializeField, Min(0.2f)] private float escapeReliefTrailMaxDistance = 8.5f;
+        [SerializeField, Min(0.1f)] private float escapeReliefTrailDuration = 1.65f;
+        [SerializeField, Min(0.01f)] private float escapeReliefTrailWidth = 0.07f;
+        [SerializeField, Min(0f)] private float escapeReliefTrailWaver = 0.42f;
+        [SerializeField] private Color escapeReliefTrailColor = new(0.18f, 1f, 0.78f, 0.38f);
+        [SerializeField] private int escapeReliefTrailSortingOrder = 37;
+        [SerializeField] private bool enableEscapeReliefQuietBreath = true;
+        [SerializeField, Min(0.1f)] private float escapeReliefQuietBreathSeconds = 2.6f;
+        [SerializeField, Range(0.2f, 1f)] private float escapeReliefFootstepNoiseMultiplier = 0.46f;
+        [SerializeField, Range(0.2f, 1f)] private float escapeReliefSprintNoiseMultiplier = 0.62f;
+        [SerializeField] private bool enableEscapeReliefBreathSnap = true;
+        [SerializeField, Min(0.05f)] private float escapeReliefBreathSnapStrainSeconds = 0.48f;
+        [SerializeField, Min(0.5f)] private float escapeReliefBreathSnapCooldownSeconds = 4.25f;
+        [SerializeField, Range(0f, 1f)] private float escapeReliefBreathSnapCalmPenalty = 0.42f;
+        [SerializeField] private bool escapeReliefBreathSnapEmitsNoise = true;
+        [SerializeField, Min(0f)] private float escapeReliefBreathSnapNoiseLoudness = 0.54f;
+        [SerializeField, Min(0f)] private float escapeReliefBreathSnapNoiseRadius = 4.3f;
+        [SerializeField] private Color escapeReliefBreathSnapColor = new(1f, 0.42f, 0.2f, 0.38f);
+        [SerializeField, Min(0.1f)] private float escapeReliefBreathSnapRadius = 1.45f;
+        [SerializeField, Min(0.1f)] private float escapeReliefBreathSnapDuration = 0.78f;
+        [SerializeField] private int escapeReliefBreathSnapSortingOrder = 40;
+        [SerializeField] private bool escapeReliefBreathSnapCameraImpulse = true;
+        [SerializeField, Min(0f)] private float escapeReliefBreathSnapImpulseAmplitude = 0.068f;
+        [SerializeField, Min(0.05f)] private float escapeReliefBreathSnapImpulseDuration = 0.14f;
+        [SerializeField] private bool enableEscapeReliefBreathSnapAudio = true;
+        [SerializeField, Range(0f, 1f)] private float escapeReliefBreathSnapAudioVolume = 0.24f;
+        [SerializeField, Min(0.05f)] private float escapeReliefBreathSnapAudioDuration = 0.52f;
+        [SerializeField, Range(80f, 360f)] private float escapeReliefBreathSnapAudioFrequency = 172f;
+        [SerializeField, Range(0f, 1f)] private float escapeReliefBreathSnapAudioSpatialBlend = 0.28f;
+        [SerializeField] private bool enableEscapeReliefObjectiveWhisper = true;
+        [SerializeField, Min(0.2f)] private float escapeReliefObjectiveWhisperMaxDistance = 12f;
+        [SerializeField, Min(0.1f)] private float escapeReliefObjectiveWhisperDuration = 1.35f;
+        [SerializeField, Min(0.01f)] private float escapeReliefObjectiveWhisperWidth = 0.055f;
+        [SerializeField] private Color escapeReliefBreadcrumbWhisperColor = new(1f, 0.82f, 0.24f, 0.46f);
+        [SerializeField] private Color escapeReliefExitWhisperColor = new(0.28f, 1f, 0.56f, 0.52f);
+        [SerializeField] private int escapeReliefObjectiveWhisperSortingOrder = 39;
 
         [Header("Flashlight Dread")]
         [SerializeField] private bool enableFlashlightDread = true;
@@ -162,25 +240,25 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         [Header("Enemy Perception Tuning")]
         [SerializeField, Range(0.35f, 2.5f)] private float minEnemyVisionMultiplier = 0.95f;
-        [SerializeField, Range(0.35f, 2.5f)] private float maxEnemyVisionMultiplier = 1.24f;
+        [SerializeField, Range(0.35f, 2.5f)] private float maxEnemyVisionMultiplier = 1.18f;
         [SerializeField, Range(0.35f, 2.5f)] private float minEnemyHearingMultiplier = 0.94f;
-        [SerializeField, Range(0.35f, 2.5f)] private float maxEnemyHearingMultiplier = 1.24f;
+        [SerializeField, Range(0.35f, 2.5f)] private float maxEnemyHearingMultiplier = 1.18f;
         [SerializeField, Range(0.35f, 2.5f)] private float minEnemySuspicionGainMultiplier = 0.9f;
-        [SerializeField, Range(0.35f, 2.5f)] private float maxEnemySuspicionGainMultiplier = 1.2f;
+        [SerializeField, Range(0.35f, 2.5f)] private float maxEnemySuspicionGainMultiplier = 1.14f;
 
         [Header("Chase Readability Tuning")]
-        [SerializeField, Range(0.55f, 1.8f)] private float minTransitionDurationMultiplier = 1.14f;
-        [SerializeField, Range(0.55f, 1.8f)] private float maxTransitionDurationMultiplier = 0.82f;
-        [SerializeField, Range(0.6f, 1.9f)] private float minTransitionPulseSpeedMultiplier = 0.92f;
-        [SerializeField, Range(0.6f, 1.9f)] private float maxTransitionPulseSpeedMultiplier = 1.28f;
+        [SerializeField, Range(0.55f, 1.8f)] private float minTransitionDurationMultiplier = 1.22f;
+        [SerializeField, Range(0.55f, 1.8f)] private float maxTransitionDurationMultiplier = 0.94f;
+        [SerializeField, Range(0.6f, 1.9f)] private float minTransitionPulseSpeedMultiplier = 0.84f;
+        [SerializeField, Range(0.6f, 1.9f)] private float maxTransitionPulseSpeedMultiplier = 1.06f;
         [SerializeField, Range(0.6f, 1.9f)] private float minTransitionFlashStrengthMultiplier = 0.9f;
         [SerializeField, Range(0.6f, 1.9f)] private float maxTransitionFlashStrengthMultiplier = 1.32f;
         [SerializeField, Range(0.55f, 1.8f)] private float minDisengageCueDurationMultiplier = 1.12f;
-        [SerializeField, Range(0.55f, 1.8f)] private float maxDisengageCueDurationMultiplier = 0.86f;
+        [SerializeField, Range(0.55f, 1.8f)] private float maxDisengageCueDurationMultiplier = 0.96f;
         [SerializeField, Range(0.55f, 1.8f)] private float minDisengageGraceMultiplier = 1.12f;
-        [SerializeField, Range(0.55f, 1.8f)] private float maxDisengageGraceMultiplier = 0.84f;
-        [SerializeField, Range(0.6f, 1.9f)] private float minChaseBlinkSpeedMultiplier = 0.96f;
-        [SerializeField, Range(0.6f, 1.9f)] private float maxChaseBlinkSpeedMultiplier = 1.26f;
+        [SerializeField, Range(0.55f, 1.8f)] private float maxDisengageGraceMultiplier = 0.94f;
+        [SerializeField, Range(0.6f, 1.9f)] private float minChaseBlinkSpeedMultiplier = 0.88f;
+        [SerializeField, Range(0.6f, 1.9f)] private float maxChaseBlinkSpeedMultiplier = 1.08f;
 
         [Header("Playtest Envelope")]
         [SerializeField] private bool useStageReadabilityEnvelope = true;
@@ -190,9 +268,9 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Range(0f, 1f)] private float earlyReadabilityCap = 0.72f;
         [SerializeField, Range(0f, 1f)] private float midReadabilityCap = 0.86f;
         [SerializeField, Range(0f, 1f)] private float lateReadabilityCap = 1f;
-        [SerializeField, Range(0.4f, 1.4f)] private float earlyChaseAggressionScale = 0.78f;
-        [SerializeField, Range(0.4f, 1.4f)] private float midChaseAggressionScale = 0.9f;
-        [SerializeField, Range(0.4f, 1.4f)] private float lateChaseAggressionScale = 1f;
+        [SerializeField, Range(0.4f, 1.4f)] private float earlyChaseAggressionScale = 0.72f;
+        [SerializeField, Range(0.4f, 1.4f)] private float midChaseAggressionScale = 0.84f;
+        [SerializeField, Range(0.4f, 1.4f)] private float lateChaseAggressionScale = 0.94f;
 
         private float updateElapsed;
         private float currentNearbyThreat;
@@ -208,6 +286,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         private float previousReadabilityPressure;
         private bool hasPreviousReadabilityPressure;
         private float nextAllowedPulseTime;
+        private float nextPressureWaveEventTime;
         private float nextDreadBeatTime;
         private float nextPhantomCueTime;
         private float nextCloseStalkerCueTime;
@@ -220,8 +299,28 @@ namespace LostBreadcrumbs.Runtime.Managers
         private AudioClip closeStalkerCueClip;
         private float closeStalkerCueClipDuration;
         private float closeStalkerCueClipFrequency;
+        private AudioSource escapeReliefAudioSource;
+        private AudioClip escapeReliefClip;
+        private float escapeReliefClipDuration;
+        private float escapeReliefClipFrequency;
+        private AudioSource escapeReliefBreathSnapAudioSource;
+        private AudioClip escapeReliefBreathSnapClip;
+        private float escapeReliefBreathSnapClipDuration;
+        private float escapeReliefBreathSnapClipFrequency;
+        private Material escapeReliefTrailMaterial;
+        private PlayerDummyController playerController;
         private float currentFlashlightDread;
         private float currentCloseThreatDistance = float.PositiveInfinity;
+        private int activeChaseEventCount;
+        private float activeChaseStartRealtime = -1f;
+        private float nextEscapeReliefRewardRealtime;
+        private float escapeReliefCalmStartedRealtime;
+        private float escapeReliefCalmUntilRealtime;
+        private float escapeReliefCalmDuration;
+        private float quietBreathStrainElapsed;
+        private float nextEscapeReliefBreathSnapRealtime;
+        private float currentThreatTunnelVision;
+        private float currentCameraTargetOrthoSize;
         private readonly List<EnemyController> cachedEnemies = new(16);
 
         public float CurrentNearbyThreat => currentNearbyThreat;
@@ -235,15 +334,24 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float ThreatPulseCooldownRemaining => Mathf.Max(0f, nextAllowedPulseTime - Time.time);
         public float CurrentFlashlightDread => currentFlashlightDread;
         public float CurrentCloseThreatDistance => currentCloseThreatDistance;
+        public float CurrentThreatTunnelVision => currentThreatTunnelVision;
+        public float CurrentCameraTargetOrthoSize => currentCameraTargetOrthoSize;
+        public float EscapeReliefCooldownRemaining => Mathf.Max(0f, nextEscapeReliefRewardRealtime - Time.realtimeSinceStartup);
+        public float CurrentEscapeReliefCalm => EvaluateEscapeReliefCalm01();
+        public float CurrentQuietBreathStrain => Mathf.Clamp01(quietBreathStrainElapsed / Mathf.Max(0.05f, escapeReliefBreathSnapStrainSeconds));
+        public float BreathSnapCooldownRemaining => Mathf.Max(0f, nextEscapeReliefBreathSnapRealtime - Time.realtimeSinceStartup);
 
         private void OnEnable()
         {
             ResolveReferences(force: true);
             SubscribeMap();
+            RuntimeEventBus.EventRaised -= HandleRuntimeEventRaised;
+            RuntimeEventBus.EventRaised += HandleRuntimeEventRaised;
         }
 
         private void OnDisable()
         {
+            RuntimeEventBus.EventRaised -= HandleRuntimeEventRaised;
             UnsubscribeMap();
             ResetAppliedTuning();
         }
@@ -335,6 +443,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             TryApplyDreadBeat(currentReadabilityPressure);
             TrySpawnPhantomCue(currentReadabilityPressure);
             TryApplyCloseStalkerCue(currentReadabilityPressure);
+            TrackEscapeReliefQuietBreathStrain(dt);
 
             if (logPressureChanges)
             {
@@ -362,6 +471,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             float rawPressure = Mathf.Clamp01((weightedNearby + weightedStage) / totalWeight);
             rawPressure = Mathf.Clamp01(rawPressure * presetBias);
             rawPressure = ApplyStageReadabilityEnvelope(rawPressure);
+            rawPressure = ApplyEscapeReliefCalmPressureDip(rawPressure);
 
             float smoothFactor = responseSmoothing <= 0f
                 ? 1f
@@ -377,6 +487,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             TryApplyDreadBeat(currentReadabilityPressure);
             TrySpawnPhantomCue(currentReadabilityPressure);
             TryApplyCloseStalkerCue(currentReadabilityPressure);
+            TrackEscapeReliefQuietBreathStrain(dt);
 
             if (logPressureChanges && Mathf.Abs(currentReadabilityPressure - lastLoggedPressure) >= 0.08f)
             {
@@ -399,19 +510,35 @@ namespace LostBreadcrumbs.Runtime.Managers
                 ? baseCameraOrthoSize
                 : Mathf.Max(minimumCameraOrthoSize, targetCamera.orthographicSize);
 
+            float closeDistanceFactor = float.IsInfinity(currentCloseThreatDistance)
+                ? 0f
+                : 1f - Mathf.Clamp01(currentCloseThreatDistance / Mathf.Max(0.1f, threatRange));
+            float tunnelInput = Mathf.Max(currentNearbyThreat, closeDistanceFactor);
+            float tunnelTarget = Mathf.SmoothStep(
+                0f,
+                1f,
+                Mathf.InverseLerp(
+                    Mathf.Min(closeThreatTunnelStart, closeThreatTunnelFull),
+                    Mathf.Max(closeThreatTunnelStart + 0.01f, closeThreatTunnelFull),
+                    tunnelInput));
             float targetSize = Mathf.Clamp(
-                baseSize + maxCameraZoomOut * pressure,
+                baseSize
+                + maxCameraZoomOut * Mathf.Clamp01(currentStagePressure) * Mathf.Lerp(1f, 1f - closeThreatSuppressZoomOut, tunnelTarget)
+                - maxCloseThreatZoomIn * tunnelTarget,
                 Mathf.Max(1f, minimumCameraOrthoSize),
                 Mathf.Max(Mathf.Max(1f, minimumCameraOrthoSize), maximumCameraOrthoSize));
 
             float zoomLerp = 1f - Mathf.Exp(-Mathf.Max(0.0001f, responseSmoothing) * Mathf.Max(0.0001f, dt));
+            currentThreatTunnelVision = Mathf.Lerp(currentThreatTunnelVision, tunnelTarget, zoomLerp);
+            currentCameraTargetOrthoSize = targetSize;
             targetCamera.orthographicSize = Mathf.Lerp(targetCamera.orthographicSize, targetSize, zoomLerp);
 
             if (cameraFollow != null)
             {
-                float lookAheadMultiplier = Mathf.Lerp(minLookAheadMultiplier, maxLookAheadMultiplier, pressure);
+                float pressureLookAhead = Mathf.Clamp01(pressure * Mathf.Lerp(1f, 0.55f, currentThreatTunnelVision));
+                float lookAheadMultiplier = Mathf.Lerp(minLookAheadMultiplier, maxLookAheadMultiplier, pressureLookAhead);
                 float smoothMultiplier = Mathf.Lerp(minSmoothMultiplier, maxSmoothMultiplier, pressure);
-                float lookAheadSmoothingMultiplier = Mathf.Lerp(minLookAheadSmoothingMultiplier, maxLookAheadSmoothingMultiplier, pressure);
+                float lookAheadSmoothingMultiplier = Mathf.Lerp(minLookAheadSmoothingMultiplier, maxLookAheadSmoothingMultiplier, pressureLookAhead);
                 cameraFollow.ApplyRuntimeTuningForEditor(lookAheadMultiplier, smoothMultiplier, lookAheadSmoothingMultiplier);
             }
 
@@ -556,6 +683,12 @@ namespace LostBreadcrumbs.Runtime.Managers
                 return;
             }
 
+            if (ShouldSuppressDreadCueDuringRelief())
+            {
+                nextDreadBeatTime = Mathf.Max(nextDreadBeatTime, Time.time + 0.45f);
+                return;
+            }
+
             float dread = Mathf.InverseLerp(dreadBeatPressureThreshold, 1f, pressure);
             if (dread <= 0.001f)
             {
@@ -583,6 +716,12 @@ namespace LostBreadcrumbs.Runtime.Managers
         {
             if (!Application.isPlaying || !enablePhantomCues || player == null || RegressionChecklistRunner.IsRegressionRunActive)
             {
+                return;
+            }
+
+            if (ShouldSuppressDreadCueDuringRelief())
+            {
+                nextPhantomCueTime = Mathf.Max(nextPhantomCueTime, Time.time + 0.85f);
                 return;
             }
 
@@ -770,9 +909,21 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         private void TryApplyCloseStalkerCue(float pressure)
         {
-            if (!Application.isPlaying || !enableCloseStalkerCues || player == null || RegressionChecklistRunner.IsRegressionRunActive)
+            if (!Application.isPlaying || !enableCloseStalkerCues || player == null)
             {
                 currentCloseThreatDistance = float.PositiveInfinity;
+                return;
+            }
+
+            if (RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                return;
+            }
+
+            if (ShouldSuppressDreadCueDuringRelief())
+            {
+                currentCloseThreatDistance = float.PositiveInfinity;
+                nextCloseStalkerCueTime = Mathf.Max(nextCloseStalkerCueTime, Time.time + 0.7f);
                 return;
             }
 
@@ -1010,16 +1161,793 @@ namespace LostBreadcrumbs.Runtime.Managers
             return (low + knock) * envelope * gain;
         }
 
+        private void HandleRuntimeEventRaised(RuntimeEventRecord record)
+        {
+            if (!Application.isPlaying || RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                return;
+            }
+
+            switch (record.Semantic)
+            {
+                case RuntimeEventSemantic.ChaseStarted:
+                    RegisterEscapeReliefChaseStart(record);
+                    break;
+                case RuntimeEventSemantic.ChaseDisengaged:
+                    TryGrantEscapeReliefReward(record);
+                    break;
+            }
+        }
+
+        private void RegisterEscapeReliefChaseStart(RuntimeEventRecord record)
+        {
+            float now = record.RealtimeSinceStartup > 0f ? record.RealtimeSinceStartup : Time.realtimeSinceStartup;
+            if (activeChaseEventCount <= 0)
+            {
+                activeChaseStartRealtime = now;
+            }
+
+            activeChaseEventCount = Mathf.Clamp(activeChaseEventCount + 1, 1, 64);
+        }
+
+        private void TryGrantEscapeReliefReward(RuntimeEventRecord record)
+        {
+            float now = record.RealtimeSinceStartup > 0f ? record.RealtimeSinceStartup : Time.realtimeSinceStartup;
+            if (activeChaseEventCount > 0)
+            {
+                activeChaseEventCount--;
+            }
+
+            if (activeChaseEventCount > 0)
+            {
+                return;
+            }
+
+            float chaseDuration = activeChaseStartRealtime > 0f ? Mathf.Max(0f, now - activeChaseStartRealtime) : 0f;
+            activeChaseStartRealtime = -1f;
+
+            if (!enableEscapeReliefReward || chaseDuration < minEscapeReliefChaseSeconds || now < nextEscapeReliefRewardRealtime)
+            {
+                return;
+            }
+
+            PlayerDummyController controller = ResolvePlayerController();
+            if (controller == null)
+            {
+                return;
+            }
+
+            float durationIntensity = Mathf.Clamp01(Mathf.InverseLerp(
+                minEscapeReliefChaseSeconds,
+                minEscapeReliefChaseSeconds + 4f,
+                chaseDuration));
+            float pressureIntensity = Mathf.Clamp01(currentReadabilityPressure);
+            float intensity = Mathf.Clamp01(0.45f + durationIntensity * 0.35f + pressureIntensity * 0.28f);
+            float recoverAmount = Mathf.Max(0f, escapeReliefStaminaRecover + escapeReliefPressureStaminaBonus * pressureIntensity);
+            float recovered = controller.RecoverStamina(recoverAmount);
+
+            Vector2 rewardPosition = controller.transform.position;
+            if (escapeReliefRevealFog && fogOfWar != null)
+            {
+                fogOfWar.ApplyEchoRevealPulse(
+                    rewardPosition,
+                    escapeReliefRevealRadius * Mathf.Lerp(0.85f, 1.25f, intensity),
+                    escapeReliefRevealSoftnessBoost * Mathf.Lerp(0.85f, 1.2f, intensity));
+            }
+
+            SpawnEscapeReliefPulse(rewardPosition, intensity);
+            TrySpawnEscapeReliefEnemyTrail(record, rewardPosition, intensity);
+            TrySpawnEscapeReliefObjectiveWhisper(rewardPosition, intensity);
+            PlayEscapeReliefAudio(rewardPosition, intensity);
+            StartEscapeReliefCalmWindow(intensity);
+            ApplyEscapeReliefQuietBreath(controller, intensity);
+            nextEscapeReliefRewardRealtime = now + Mathf.Max(0.5f, escapeReliefRewardCooldownSeconds);
+
+            int stage = record.HasStage ? record.Stage : (mapSystem != null ? Mathf.Max(1, mapSystem.CurrentStage) : 0);
+            RuntimeEventBus.Raise(
+                RuntimeEventType.Ability,
+                $"Escape relief recovered {recovered:0.0} stamina after {chaseDuration:0.0}s chase",
+                this,
+                stage,
+                semantic: RuntimeEventSemantic.EscapeRelief);
+        }
+
+        private void SpawnEscapeReliefPulse(Vector2 position, float intensity)
+        {
+            GameObject visualObject = new($"EscapeReliefPulse_{Time.frameCount}");
+            Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX/EscapeRelief");
+            if (vfxRoot != null)
+            {
+                visualObject.transform.SetParent(vfxRoot, false);
+            }
+
+            visualObject.transform.position = new Vector3(position.x, position.y, 0f);
+            EchoPulseVisualDummy visual = visualObject.AddComponent<EchoPulseVisualDummy>();
+            Color color = escapeReliefPulseColor;
+            color.a *= Mathf.Lerp(0.72f, 1.12f, Mathf.Clamp01(intensity));
+            visual.Configure(
+                Mathf.Max(0.25f, escapeReliefPulseRadius * Mathf.Lerp(0.9f, 1.28f, Mathf.Clamp01(intensity))),
+                color,
+                Mathf.Max(0.1f, escapeReliefPulseDuration),
+                Mathf.Clamp(escapeReliefPulseRingCount, 1, 4),
+                Mathf.Max(0f, escapeReliefPulseRingInterval),
+                escapeReliefPulseSortingOrder);
+        }
+
+        private void TrySpawnEscapeReliefEnemyTrail(RuntimeEventRecord record, Vector2 playerPosition, float intensity)
+        {
+            if (!enableEscapeReliefEnemyTrail)
+            {
+                return;
+            }
+
+            if (!TryResolveEscapeReliefThreatPosition(record, playerPosition, out Vector2 threatPosition))
+            {
+                return;
+            }
+
+            Vector2 toThreat = threatPosition - playerPosition;
+            float distance = toThreat.magnitude;
+            if (distance <= 0.2f)
+            {
+                return;
+            }
+
+            Vector2 direction = toThreat / distance;
+            float cappedDistance = Mathf.Min(distance, Mathf.Max(0.2f, escapeReliefTrailMaxDistance));
+            Vector2 trailEnd = playerPosition + direction * cappedDistance;
+
+            GameObject trailObject = new($"EscapeReliefThreatTrail_{Time.frameCount}");
+            Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX/EscapeRelief");
+            if (vfxRoot != null)
+            {
+                trailObject.transform.SetParent(vfxRoot, false);
+            }
+
+            LineRenderer line = trailObject.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.loop = false;
+            line.positionCount = 4;
+            line.alignment = LineAlignment.View;
+            line.textureMode = LineTextureMode.Stretch;
+            line.numCornerVertices = 2;
+            line.numCapVertices = 2;
+            line.widthMultiplier = Mathf.Max(0.01f, escapeReliefTrailWidth);
+            line.sharedMaterial = GetEscapeReliefTrailMaterial();
+            line.sortingOrder = escapeReliefTrailSortingOrder;
+
+            Vector3[] points = BuildEscapeReliefTrailPoints(playerPosition, trailEnd, Mathf.Clamp01(intensity));
+            for (int i = 0; i < points.Length; i++)
+            {
+                line.SetPosition(i, points[i]);
+            }
+
+            StartCoroutine(EscapeReliefTrailRoutine(trailObject, line, points, Mathf.Clamp01(intensity)));
+        }
+
+        private bool TryResolveEscapeReliefThreatPosition(RuntimeEventRecord record, Vector2 playerPosition, out Vector2 threatPosition)
+        {
+            threatPosition = default;
+            if (record.Source is EnemyController eventEnemy && eventEnemy != null)
+            {
+                threatPosition = eventEnemy.transform.position;
+                return true;
+            }
+
+            RefreshEnemyCache();
+            EnemyController nearestEnemy = null;
+            float nearestDistanceSqr = float.PositiveInfinity;
+            for (int i = 0; i < cachedEnemies.Count; i++)
+            {
+                EnemyController enemy = cachedEnemies[i];
+                if (enemy == null || enemy.IsStunned)
+                {
+                    continue;
+                }
+
+                float distanceSqr = ((Vector2)enemy.transform.position - playerPosition).sqrMagnitude;
+                if (distanceSqr >= nearestDistanceSqr)
+                {
+                    continue;
+                }
+
+                nearestEnemy = enemy;
+                nearestDistanceSqr = distanceSqr;
+            }
+
+            if (nearestEnemy == null)
+            {
+                return false;
+            }
+
+            threatPosition = nearestEnemy.transform.position;
+            return true;
+        }
+
+        private Vector3[] BuildEscapeReliefTrailPoints(Vector2 origin, Vector2 target, float intensity)
+        {
+            Vector2 direction = target - origin;
+            Vector2 side = direction.sqrMagnitude > 0.001f
+                ? new Vector2(-direction.y, direction.x).normalized
+                : Vector2.up;
+            if (Random.value < 0.5f)
+            {
+                side = -side;
+            }
+
+            float waver = Mathf.Max(0f, escapeReliefTrailWaver) * Mathf.Lerp(0.55f, 1.15f, intensity);
+            return new[]
+            {
+                new Vector3(origin.x, origin.y, 0f),
+                (Vector3)(Vector2.Lerp(origin, target, 0.34f) + side * waver),
+                (Vector3)(Vector2.Lerp(origin, target, 0.68f) - side * waver * 0.58f),
+                new Vector3(target.x, target.y, 0f)
+            };
+        }
+
+        private IEnumerator EscapeReliefTrailRoutine(GameObject trailObject, LineRenderer line, Vector3[] basePoints, float intensity)
+        {
+            float duration = Mathf.Max(0.1f, escapeReliefTrailDuration);
+            float startedAt = Time.time;
+            Vector3 direction = basePoints[^1] - basePoints[0];
+            Vector3 side = direction.sqrMagnitude > 0.001f
+                ? new Vector3(-direction.y, direction.x, 0f).normalized
+                : Vector3.up;
+            float waver = Mathf.Max(0f, escapeReliefTrailWaver) * Mathf.Lerp(0.45f, 1.05f, intensity);
+
+            while (line != null && Time.time < startedAt + duration)
+            {
+                float elapsed = Time.time - startedAt;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float fade = 1f - Mathf.SmoothStep(0.08f, 1f, t);
+                float shimmer = 0.75f + Mathf.Sin((elapsed * 5.4f + intensity * 1.7f) * Mathf.PI * 2f) * 0.25f;
+
+                for (int i = 0; i < basePoints.Length; i++)
+                {
+                    Vector3 point = basePoints[i];
+                    if (i > 0 && i < basePoints.Length - 1)
+                    {
+                        float local = Mathf.Sin((elapsed * 3.8f + i * 0.77f) * Mathf.PI * 2f);
+                        point += side * local * waver * fade;
+                    }
+
+                    line.SetPosition(i, point);
+                }
+
+                Color color = escapeReliefTrailColor;
+                color.a *= fade * shimmer * Mathf.Lerp(0.82f, 1.12f, intensity);
+                line.startColor = color;
+                line.endColor = color;
+                line.widthMultiplier = Mathf.Max(0.01f, escapeReliefTrailWidth) * Mathf.Lerp(1.2f, 0.2f, t);
+                yield return null;
+            }
+
+            if (trailObject != null)
+            {
+                Destroy(trailObject);
+            }
+        }
+
+        private Material GetEscapeReliefTrailMaterial()
+        {
+            if (escapeReliefTrailMaterial != null)
+            {
+                return escapeReliefTrailMaterial;
+            }
+
+            Shader shader = Shader.Find("Sprites/Default");
+            if (shader == null)
+            {
+                shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
+            }
+
+            if (shader == null)
+            {
+                shader = Shader.Find("Unlit/Color");
+            }
+
+            if (shader == null)
+            {
+                return null;
+            }
+
+            escapeReliefTrailMaterial = new Material(shader)
+            {
+                name = "EscapeReliefTrailMaterial",
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            return escapeReliefTrailMaterial;
+        }
+
+        private void TrySpawnEscapeReliefObjectiveWhisper(Vector2 playerPosition, float intensity)
+        {
+            if (!enableEscapeReliefObjectiveWhisper)
+            {
+                return;
+            }
+
+            StageLoopDirector stageLoop = StageLoopDirector.Instance;
+            if (stageLoop == null)
+            {
+                return;
+            }
+
+            if (!stageLoop.TryGetNextObjectiveTarget(playerPosition, out Vector3 target, out bool targetIsExit))
+            {
+                return;
+            }
+
+            Vector2 toTarget = (Vector2)target - playerPosition;
+            float distance = toTarget.magnitude;
+            if (distance <= 0.35f)
+            {
+                return;
+            }
+
+            float maxDistance = Mathf.Max(0.2f, escapeReliefObjectiveWhisperMaxDistance);
+            Vector2 whisperTarget = playerPosition + toTarget.normalized * Mathf.Min(distance, maxDistance);
+
+            GameObject whisperObject = new($"EscapeReliefObjectiveWhisper_{Time.frameCount}");
+            Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX/EscapeRelief");
+            if (vfxRoot != null)
+            {
+                whisperObject.transform.SetParent(vfxRoot, false);
+            }
+
+            LineRenderer line = whisperObject.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.loop = false;
+            line.positionCount = 3;
+            line.alignment = LineAlignment.View;
+            line.textureMode = LineTextureMode.Stretch;
+            line.numCornerVertices = 2;
+            line.numCapVertices = 2;
+            line.widthMultiplier = Mathf.Max(0.01f, escapeReliefObjectiveWhisperWidth);
+            line.sharedMaterial = GetEscapeReliefTrailMaterial();
+            line.sortingOrder = escapeReliefObjectiveWhisperSortingOrder;
+
+            Vector3[] points = BuildEscapeReliefObjectiveWhisperPoints(playerPosition, whisperTarget, intensity);
+            for (int i = 0; i < points.Length; i++)
+            {
+                line.SetPosition(i, points[i]);
+            }
+
+            Color color = targetIsExit ? escapeReliefExitWhisperColor : escapeReliefBreadcrumbWhisperColor;
+            StartCoroutine(EscapeReliefObjectiveWhisperRoutine(whisperObject, line, points, color, Mathf.Clamp01(intensity)));
+
+            Color pulseColor = color;
+            pulseColor.a *= 0.62f;
+            GameObject pulseObject = new(targetIsExit ? "EscapeReliefExitHint" : "EscapeReliefBreadcrumbHint");
+            if (vfxRoot != null)
+            {
+                pulseObject.transform.SetParent(vfxRoot, false);
+            }
+
+            pulseObject.transform.position = new Vector3(whisperTarget.x, whisperTarget.y, 0f);
+            EchoPulseVisualDummy visual = pulseObject.AddComponent<EchoPulseVisualDummy>();
+            visual.Configure(
+                Mathf.Lerp(0.85f, 1.35f, Mathf.Clamp01(intensity)),
+                pulseColor,
+                Mathf.Max(0.1f, escapeReliefObjectiveWhisperDuration * 0.9f),
+                1,
+                0f,
+                escapeReliefObjectiveWhisperSortingOrder);
+        }
+
+        private Vector3[] BuildEscapeReliefObjectiveWhisperPoints(Vector2 origin, Vector2 target, float intensity)
+        {
+            Vector2 direction = target - origin;
+            Vector2 side = direction.sqrMagnitude > 0.001f
+                ? new Vector2(-direction.y, direction.x).normalized
+                : Vector2.up;
+            float offset = Mathf.Lerp(0.18f, 0.36f, Mathf.Clamp01(intensity));
+            return new[]
+            {
+                new Vector3(origin.x, origin.y, 0f),
+                (Vector3)(Vector2.Lerp(origin, target, 0.56f) + side * offset),
+                new Vector3(target.x, target.y, 0f)
+            };
+        }
+
+        private IEnumerator EscapeReliefObjectiveWhisperRoutine(GameObject whisperObject, LineRenderer line, Vector3[] basePoints, Color baseColor, float intensity)
+        {
+            float duration = Mathf.Max(0.1f, escapeReliefObjectiveWhisperDuration);
+            float startedAt = Time.time;
+            Vector3 direction = basePoints[^1] - basePoints[0];
+            Vector3 side = direction.sqrMagnitude > 0.001f
+                ? new Vector3(-direction.y, direction.x, 0f).normalized
+                : Vector3.up;
+
+            while (line != null && Time.time < startedAt + duration)
+            {
+                float elapsed = Time.time - startedAt;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float fade = 1f - Mathf.SmoothStep(0.1f, 1f, t);
+                float shimmer = 0.72f + Mathf.Sin((elapsed * 4.8f + intensity) * Mathf.PI * 2f) * 0.28f;
+
+                for (int i = 0; i < basePoints.Length; i++)
+                {
+                    Vector3 point = basePoints[i];
+                    if (i == 1)
+                    {
+                        point += side * Mathf.Sin(elapsed * Mathf.PI * 2f * 2.2f) * 0.08f * fade;
+                    }
+
+                    line.SetPosition(i, point);
+                }
+
+                Color color = baseColor;
+                color.a *= fade * shimmer * Mathf.Lerp(0.86f, 1.14f, intensity);
+                line.startColor = color;
+                line.endColor = color;
+                line.widthMultiplier = Mathf.Max(0.01f, escapeReliefObjectiveWhisperWidth) * Mathf.Lerp(1.15f, 0.25f, t);
+                yield return null;
+            }
+
+            if (whisperObject != null)
+            {
+                Destroy(whisperObject);
+            }
+        }
+
+        private void PlayEscapeReliefAudio(Vector2 position, float intensity)
+        {
+            if (!enableEscapeReliefAudio || escapeReliefAudioVolume <= 0f)
+            {
+                return;
+            }
+
+            AudioSource source = EnsureEscapeReliefAudioSource();
+            AudioClip clip = EnsureEscapeReliefClip();
+            if (source == null || clip == null)
+            {
+                return;
+            }
+
+            source.transform.position = new Vector3(position.x, position.y, 0f);
+            source.spatialBlend = escapeReliefAudioSpatialBlend;
+            source.pitch = Random.Range(0.94f, 1.08f);
+            source.PlayOneShot(clip, escapeReliefAudioVolume * Mathf.Clamp01(intensity));
+        }
+
+        private AudioSource EnsureEscapeReliefAudioSource()
+        {
+            if (escapeReliefAudioSource != null)
+            {
+                return escapeReliefAudioSource;
+            }
+
+            GameObject sourceObject = new("EscapeReliefAudio");
+            Transform audioRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/AudioEmitters");
+            if (audioRoot != null)
+            {
+                sourceObject.transform.SetParent(audioRoot, false);
+            }
+
+            escapeReliefAudioSource = sourceObject.AddComponent<AudioSource>();
+            escapeReliefAudioSource.playOnAwake = false;
+            escapeReliefAudioSource.loop = false;
+            escapeReliefAudioSource.volume = 1f;
+            escapeReliefAudioSource.spatialBlend = escapeReliefAudioSpatialBlend;
+            escapeReliefAudioSource.minDistance = 1.5f;
+            escapeReliefAudioSource.maxDistance = 10f;
+            escapeReliefAudioSource.rolloffMode = AudioRolloffMode.Linear;
+            return escapeReliefAudioSource;
+        }
+
+        private AudioClip EnsureEscapeReliefClip()
+        {
+            float duration = Mathf.Max(0.05f, escapeReliefAudioDuration);
+            float frequency = Mathf.Max(1f, escapeReliefAudioFrequency);
+            if (escapeReliefClip != null
+                && Mathf.Approximately(escapeReliefClipDuration, duration)
+                && Mathf.Approximately(escapeReliefClipFrequency, frequency))
+            {
+                return escapeReliefClip;
+            }
+
+            int sampleRate = 44100;
+            int sampleCount = Mathf.Max(1, Mathf.RoundToInt(sampleRate * duration));
+            float[] samples = new float[sampleCount];
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = i / (float)sampleRate;
+                float normalized = Mathf.Clamp01(t / duration);
+                float inhaleWindow = Mathf.SmoothStep(0f, 1f, normalized) * (1f - Mathf.SmoothStep(0.62f, 1f, normalized));
+                float exhaleWindow = Mathf.SmoothStep(0.12f, 0.52f, normalized) * (1f - Mathf.SmoothStep(0.62f, 1f, normalized));
+                float tone = Mathf.Sin(t * frequency * Mathf.PI * 2f) * 0.16f * inhaleWindow;
+                float highTone = Mathf.Sin(t * frequency * 1.64f * Mathf.PI * 2f + 0.6f) * 0.06f * inhaleWindow;
+                float breath = (Mathf.PerlinNoise(t * 21f, 3.17f) - 0.5f) * 0.18f * exhaleWindow;
+                float tail = Mathf.Sin(t * frequency * 0.52f * Mathf.PI * 2f) * 0.11f * Mathf.Pow(1f - normalized, 1.8f);
+                samples[i] = Mathf.Clamp(tone + highTone + breath + tail, -1f, 1f);
+            }
+
+            escapeReliefClip = AudioClip.Create("EscapeReliefCue", sampleCount, 1, sampleRate, false);
+            escapeReliefClip.SetData(samples, 0);
+            escapeReliefClipDuration = duration;
+            escapeReliefClipFrequency = frequency;
+            return escapeReliefClip;
+        }
+
+        private void StartEscapeReliefCalmWindow(float intensity)
+        {
+            if (!enableEscapeReliefCalmWindow)
+            {
+                return;
+            }
+
+            float now = Time.realtimeSinceStartup;
+            escapeReliefCalmStartedRealtime = now;
+            escapeReliefCalmDuration = Mathf.Max(0.1f, escapeReliefCalmSeconds * Mathf.Lerp(0.82f, 1.24f, Mathf.Clamp01(intensity)));
+            escapeReliefCalmUntilRealtime = now + escapeReliefCalmDuration;
+
+            nextDreadBeatTime = Mathf.Max(nextDreadBeatTime, Time.time + 0.55f);
+            nextPhantomCueTime = Mathf.Max(nextPhantomCueTime, Time.time + 1f);
+            nextCloseStalkerCueTime = Mathf.Max(nextCloseStalkerCueTime, Time.time + 0.85f);
+        }
+
+        private void ApplyEscapeReliefQuietBreath(PlayerDummyController controller, float intensity)
+        {
+            if (!enableEscapeReliefQuietBreath || controller == null)
+            {
+                return;
+            }
+
+            float duration = Mathf.Max(
+                0.1f,
+                escapeReliefQuietBreathSeconds * Mathf.Lerp(0.85f, 1.2f, Mathf.Clamp01(intensity)));
+            controller.ApplyTemporaryNoiseDampeningForRuntime(
+                escapeReliefFootstepNoiseMultiplier,
+                escapeReliefSprintNoiseMultiplier,
+                duration);
+        }
+
+        private void TrackEscapeReliefQuietBreathStrain(float dt)
+        {
+            if (!Application.isPlaying || RegressionChecklistRunner.IsRegressionRunActive || !enableEscapeReliefBreathSnap)
+            {
+                quietBreathStrainElapsed = 0f;
+                return;
+            }
+
+            PlayerDummyController controller = ResolvePlayerController();
+            if (controller == null || controller.TemporaryNoiseDampeningRemaining <= 0.05f)
+            {
+                quietBreathStrainElapsed = 0f;
+                return;
+            }
+
+            float safeDt = Mathf.Max(0f, dt);
+            if (controller.IsTemporaryNoiseDampeningStrained)
+            {
+                quietBreathStrainElapsed += safeDt;
+            }
+            else
+            {
+                quietBreathStrainElapsed = Mathf.Max(0f, quietBreathStrainElapsed - safeDt * 1.8f);
+                return;
+            }
+
+            float threshold = Mathf.Max(0.05f, escapeReliefBreathSnapStrainSeconds);
+            if (quietBreathStrainElapsed < threshold)
+            {
+                return;
+            }
+
+            float now = Time.realtimeSinceStartup;
+            if (now < nextEscapeReliefBreathSnapRealtime)
+            {
+                quietBreathStrainElapsed = Mathf.Min(quietBreathStrainElapsed, threshold);
+                return;
+            }
+
+            TriggerEscapeReliefBreathSnap(controller, Mathf.Clamp01(quietBreathStrainElapsed / threshold));
+            quietBreathStrainElapsed = 0f;
+            nextEscapeReliefBreathSnapRealtime = now + Mathf.Max(0.5f, escapeReliefBreathSnapCooldownSeconds);
+        }
+
+        private void TriggerEscapeReliefBreathSnap(PlayerDummyController controller, float intensity)
+        {
+            if (controller == null)
+            {
+                return;
+            }
+
+            float safeIntensity = Mathf.Clamp01(intensity);
+            Vector2 position = controller.transform.position;
+
+            ShortenEscapeReliefCalmWindow(safeIntensity);
+            SpawnEscapeReliefBreathSnapPulse(position, safeIntensity);
+            PlayEscapeReliefBreathSnapAudio(position, safeIntensity);
+
+            if (escapeReliefBreathSnapCameraImpulse && cameraFollow != null && escapeReliefBreathSnapImpulseAmplitude > 0f)
+            {
+                cameraFollow.AddImpulse(
+                    escapeReliefBreathSnapImpulseAmplitude * Mathf.Lerp(0.75f, 1.2f, safeIntensity),
+                    Mathf.Max(0.05f, escapeReliefBreathSnapImpulseDuration));
+            }
+
+            if (escapeReliefBreathSnapEmitsNoise && NoiseManager.Instance != null)
+            {
+                NoiseManager.Instance.EmitNoise(
+                    position,
+                    escapeReliefBreathSnapNoiseLoudness * Mathf.Lerp(0.8f, 1.18f, safeIntensity),
+                    escapeReliefBreathSnapNoiseRadius * Mathf.Lerp(0.84f, 1.22f, safeIntensity),
+                    NoiseKind.Footstep,
+                    controller.gameObject);
+            }
+
+            int stage = mapSystem != null ? Mathf.Max(1, mapSystem.CurrentStage) : 0;
+            RuntimeEventBus.Raise(
+                RuntimeEventType.Ability,
+                "Quiet breath broke under sprint strain",
+                this,
+                stage,
+                semantic: RuntimeEventSemantic.QuietBreathBroken);
+        }
+
+        private void ShortenEscapeReliefCalmWindow(float intensity)
+        {
+            if (!enableEscapeReliefCalmWindow || escapeReliefCalmUntilRealtime <= 0f || escapeReliefBreathSnapCalmPenalty <= 0f)
+            {
+                return;
+            }
+
+            float now = Time.realtimeSinceStartup;
+            if (now >= escapeReliefCalmUntilRealtime)
+            {
+                return;
+            }
+
+            float penalty = Mathf.Max(0.1f, escapeReliefCalmDuration) * escapeReliefBreathSnapCalmPenalty * Mathf.Lerp(0.65f, 1f, Mathf.Clamp01(intensity));
+            escapeReliefCalmUntilRealtime = Mathf.Max(now, escapeReliefCalmUntilRealtime - penalty);
+            nextDreadBeatTime = Mathf.Min(nextDreadBeatTime, Time.time + 0.12f);
+            nextPhantomCueTime = Mathf.Min(nextPhantomCueTime, Time.time + 0.32f);
+            nextCloseStalkerCueTime = Mathf.Min(nextCloseStalkerCueTime, Time.time + 0.22f);
+        }
+
+        private void SpawnEscapeReliefBreathSnapPulse(Vector2 position, float intensity)
+        {
+            GameObject visualObject = new($"EscapeReliefBreathSnap_{Time.frameCount}");
+            Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX/EscapeRelief");
+            if (vfxRoot != null)
+            {
+                visualObject.transform.SetParent(vfxRoot, false);
+            }
+
+            visualObject.transform.position = new Vector3(position.x, position.y, 0f);
+            EchoPulseVisualDummy visual = visualObject.AddComponent<EchoPulseVisualDummy>();
+            Color color = escapeReliefBreathSnapColor;
+            color.a *= Mathf.Lerp(0.78f, 1.16f, Mathf.Clamp01(intensity));
+            visual.Configure(
+                Mathf.Max(0.2f, escapeReliefBreathSnapRadius * Mathf.Lerp(0.86f, 1.22f, Mathf.Clamp01(intensity))),
+                color,
+                Mathf.Max(0.1f, escapeReliefBreathSnapDuration),
+                1,
+                0f,
+                escapeReliefBreathSnapSortingOrder);
+        }
+
+        private void PlayEscapeReliefBreathSnapAudio(Vector2 position, float intensity)
+        {
+            if (!enableEscapeReliefBreathSnapAudio || escapeReliefBreathSnapAudioVolume <= 0f)
+            {
+                return;
+            }
+
+            AudioSource source = EnsureEscapeReliefBreathSnapAudioSource();
+            AudioClip clip = EnsureEscapeReliefBreathSnapClip();
+            if (source == null || clip == null)
+            {
+                return;
+            }
+
+            source.transform.position = new Vector3(position.x, position.y, 0f);
+            source.spatialBlend = escapeReliefBreathSnapAudioSpatialBlend;
+            source.pitch = Random.Range(0.96f, 1.12f);
+            source.PlayOneShot(clip, escapeReliefBreathSnapAudioVolume * Mathf.Clamp01(intensity));
+        }
+
+        private AudioSource EnsureEscapeReliefBreathSnapAudioSource()
+        {
+            if (escapeReliefBreathSnapAudioSource != null)
+            {
+                return escapeReliefBreathSnapAudioSource;
+            }
+
+            GameObject sourceObject = new("EscapeReliefBreathSnapAudio");
+            Transform audioRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/AudioEmitters");
+            if (audioRoot != null)
+            {
+                sourceObject.transform.SetParent(audioRoot, false);
+            }
+
+            escapeReliefBreathSnapAudioSource = sourceObject.AddComponent<AudioSource>();
+            escapeReliefBreathSnapAudioSource.playOnAwake = false;
+            escapeReliefBreathSnapAudioSource.loop = false;
+            escapeReliefBreathSnapAudioSource.volume = 1f;
+            escapeReliefBreathSnapAudioSource.spatialBlend = escapeReliefBreathSnapAudioSpatialBlend;
+            escapeReliefBreathSnapAudioSource.minDistance = 1.2f;
+            escapeReliefBreathSnapAudioSource.maxDistance = 9f;
+            escapeReliefBreathSnapAudioSource.rolloffMode = AudioRolloffMode.Linear;
+            return escapeReliefBreathSnapAudioSource;
+        }
+
+        private AudioClip EnsureEscapeReliefBreathSnapClip()
+        {
+            float duration = Mathf.Max(0.05f, escapeReliefBreathSnapAudioDuration);
+            float frequency = Mathf.Max(1f, escapeReliefBreathSnapAudioFrequency);
+            if (escapeReliefBreathSnapClip != null
+                && Mathf.Approximately(escapeReliefBreathSnapClipDuration, duration)
+                && Mathf.Approximately(escapeReliefBreathSnapClipFrequency, frequency))
+            {
+                return escapeReliefBreathSnapClip;
+            }
+
+            int sampleRate = 44100;
+            int sampleCount = Mathf.Max(1, Mathf.RoundToInt(sampleRate * duration));
+            float[] samples = new float[sampleCount];
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = i / (float)sampleRate;
+                float normalized = Mathf.Clamp01(t / duration);
+                float attack = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.035f, t));
+                float decay = Mathf.Pow(1f - normalized, 2.25f);
+                float rasp = (Mathf.PerlinNoise(t * 68f, 9.37f) - 0.5f) * 0.46f;
+                float chirp = Mathf.Sin(t * frequency * (1f + normalized * 1.6f) * Mathf.PI * 2f) * 0.14f;
+                float thump = Mathf.Sin(t * 46f * Mathf.PI * 2f) * Mathf.Exp(-t / 0.09f) * 0.22f;
+                samples[i] = Mathf.Clamp((rasp + chirp) * attack * decay + thump, -1f, 1f);
+            }
+
+            escapeReliefBreathSnapClip = AudioClip.Create("EscapeReliefBreathSnapCue", sampleCount, 1, sampleRate, false);
+            escapeReliefBreathSnapClip.SetData(samples, 0);
+            escapeReliefBreathSnapClipDuration = duration;
+            escapeReliefBreathSnapClipFrequency = frequency;
+            return escapeReliefBreathSnapClip;
+        }
+
+        private float EvaluateEscapeReliefCalm01()
+        {
+            if (!enableEscapeReliefCalmWindow || escapeReliefCalmUntilRealtime <= 0f)
+            {
+                return 0f;
+            }
+
+            float now = Time.realtimeSinceStartup;
+            if (now >= escapeReliefCalmUntilRealtime)
+            {
+                return 0f;
+            }
+
+            float duration = Mathf.Max(0.1f, escapeReliefCalmDuration);
+            float remaining = Mathf.Clamp01((escapeReliefCalmUntilRealtime - now) / duration);
+            float elapsed = Mathf.Clamp01((now - escapeReliefCalmStartedRealtime) / duration);
+            float fadeIn = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.18f, elapsed));
+            return Mathf.Clamp01(Mathf.SmoothStep(0f, 1f, remaining) * fadeIn);
+        }
+
+        private float ApplyEscapeReliefCalmPressureDip(float pressure)
+        {
+            float calm = EvaluateEscapeReliefCalm01();
+            if (calm <= 0.001f)
+            {
+                return Mathf.Clamp01(pressure);
+            }
+
+            return Mathf.Clamp01(pressure * (1f - escapeReliefPressureDip * calm));
+        }
+
+        private bool ShouldSuppressDreadCueDuringRelief()
+        {
+            return escapeReliefCueSuppression > 0.001f
+                   && EvaluateEscapeReliefCalm01() * escapeReliefCueSuppression >= 0.12f;
+        }
+
         private void TryApplyThreatPulse(float pressure)
         {
             float delta = hasPreviousReadabilityPressure ? pressure - previousReadabilityPressure : 0f;
             previousReadabilityPressure = pressure;
             hasPreviousReadabilityPressure = true;
-
-            if (!enableThreatPulseImpulse || cameraFollow == null)
-            {
-                return;
-            }
 
             bool spikeDetected = pressure >= pulsePressureThreshold && delta >= pulsePressureDeltaThreshold;
             if (!spikeDetected || Time.time < nextAllowedPulseTime)
@@ -1027,14 +1955,70 @@ namespace LostBreadcrumbs.Runtime.Managers
                 return;
             }
 
-            float amplitude = Mathf.Max(0f, pulseImpulseAmplitude);
-            if (amplitude <= 0f)
+            if (enableThreatPulseImpulse && cameraFollow != null)
+            {
+                float amplitude = Mathf.Max(0f, pulseImpulseAmplitude);
+                if (amplitude > 0f)
+                {
+                    cameraFollow.AddImpulse(amplitude, Mathf.Max(0.05f, pulseImpulseDuration));
+                }
+            }
+
+            TriggerPressureWaveFeedback(pressure, delta);
+            nextAllowedPulseTime = Time.time + Mathf.Max(0.05f, pulseCooldownSeconds);
+        }
+
+        private void TriggerPressureWaveFeedback(float pressure, float delta)
+        {
+            if (!enablePressureWaveFeedback && !pressureWaveRaisesRuntimeEvent)
             {
                 return;
             }
 
-            cameraFollow.AddImpulse(amplitude, Mathf.Max(0.05f, pulseImpulseDuration));
-            nextAllowedPulseTime = Time.time + Mathf.Max(0.05f, pulseCooldownSeconds);
+            float pressureIntensity = Mathf.InverseLerp(pulsePressureThreshold, 1f, pressure);
+            float deltaIntensity = Mathf.InverseLerp(pulsePressureDeltaThreshold, 0.35f, delta);
+            float intensity = Mathf.Clamp01(0.55f + Mathf.Max(pressureIntensity, deltaIntensity) * 0.45f);
+
+            if (enablePressureWaveFeedback && player != null)
+            {
+                SpawnPressureWaveVisual(player.position, intensity);
+            }
+
+            if (!pressureWaveRaisesRuntimeEvent || Time.time < nextPressureWaveEventTime)
+            {
+                return;
+            }
+
+            int stage = mapSystem != null ? Mathf.Max(1, mapSystem.CurrentStage) : 0;
+            RuntimeEventBus.Raise(
+                RuntimeEventType.System,
+                $"Pressure wave {pressure:0.00} (+{Mathf.Max(0f, delta):0.00})",
+                this,
+                stage,
+                semantic: RuntimeEventSemantic.PressureWave);
+            nextPressureWaveEventTime = Time.time + Mathf.Max(0.1f, pressureWaveEventCooldownSeconds);
+        }
+
+        private void SpawnPressureWaveVisual(Vector3 position, float intensity)
+        {
+            GameObject visualObject = new($"PressureWave_{Time.frameCount}");
+            Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX/PressureWave");
+            if (vfxRoot != null)
+            {
+                visualObject.transform.SetParent(vfxRoot, false);
+            }
+
+            visualObject.transform.position = new Vector3(position.x, position.y, 0f);
+            EchoPulseVisualDummy visual = visualObject.AddComponent<EchoPulseVisualDummy>();
+            Color color = pressureWaveColor;
+            color.a *= Mathf.Lerp(0.72f, 1.12f, Mathf.Clamp01(intensity));
+            visual.Configure(
+                Mathf.Lerp(Mathf.Max(0.3f, pressureWaveMinRadius), Mathf.Max(pressureWaveMinRadius, pressureWaveMaxRadius), Mathf.Clamp01(intensity)),
+                color,
+                Mathf.Max(0.1f, pressureWaveDuration),
+                Mathf.Clamp(pressureWaveRingCount, 1, 4),
+                Mathf.Max(0f, pressureWaveRingInterval),
+                pressureWaveSortingOrder);
         }
 
         private float EvaluateNearbyThreat(out int sampledEnemyCount)
@@ -1052,6 +2036,7 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             float maxScore = 0f;
             float totalScore = 0f;
+            float closestDistance = float.PositiveInfinity;
             int counted = 0;
 
             for (int i = 0; i < cachedEnemies.Count; i++)
@@ -1075,15 +2060,18 @@ namespace LostBreadcrumbs.Runtime.Managers
 
                 maxScore = Mathf.Max(maxScore, score);
                 totalScore += score;
+                closestDistance = Mathf.Min(closestDistance, distance);
                 counted++;
             }
 
             sampledEnemyCount = counted;
             if (counted <= 0)
             {
+                currentCloseThreatDistance = float.PositiveInfinity;
                 return 0f;
             }
 
+            currentCloseThreatDistance = closestDistance;
             float averageScore = totalScore / counted;
             return Mathf.Clamp01(maxScore * 0.62f + averageScore * 0.38f);
         }
@@ -1214,6 +2202,8 @@ namespace LostBreadcrumbs.Runtime.Managers
             nextCloseStalkerCueTime = 0f;
             currentFlashlightDread = 0f;
             currentCloseThreatDistance = float.PositiveInfinity;
+            currentThreatTunnelVision = 0f;
+            currentCameraTargetOrthoSize = hasBaseCameraOrthoSize ? baseCameraOrthoSize : 0f;
 
             if (phantomCueAudioSource != null)
             {
@@ -1224,6 +2214,25 @@ namespace LostBreadcrumbs.Runtime.Managers
             {
                 closeStalkerCueAudioSource.Stop();
             }
+
+            if (escapeReliefAudioSource != null)
+            {
+                escapeReliefAudioSource.Stop();
+            }
+
+            if (escapeReliefBreathSnapAudioSource != null)
+            {
+                escapeReliefBreathSnapAudioSource.Stop();
+            }
+
+            activeChaseEventCount = 0;
+            activeChaseStartRealtime = -1f;
+            nextEscapeReliefRewardRealtime = 0f;
+            escapeReliefCalmStartedRealtime = 0f;
+            escapeReliefCalmUntilRealtime = 0f;
+            escapeReliefCalmDuration = 0f;
+            quietBreathStrainElapsed = 0f;
+            nextEscapeReliefBreathSnapRealtime = 0f;
 
             RefreshEnemyCache();
             for (int i = 0; i < cachedEnemies.Count; i++)
@@ -1242,6 +2251,19 @@ namespace LostBreadcrumbs.Runtime.Managers
         private void RefreshEnemyCache()
         {
             EnemyController.CopyActiveControllers(cachedEnemies);
+        }
+
+        private PlayerDummyController ResolvePlayerController()
+        {
+            if (playerController != null && (player == null || playerController.transform == player))
+            {
+                return playerController;
+            }
+
+            playerController = player != null
+                ? player.GetComponent<PlayerDummyController>()
+                : FindFirstObjectByType<PlayerDummyController>();
+            return playerController;
         }
 
         private void ResolveReferences(bool force = false)
@@ -1291,6 +2313,8 @@ namespace LostBreadcrumbs.Runtime.Managers
                     ? player.GetComponent<PlayerVisibilitySource>()
                     : FindFirstObjectByType<PlayerVisibilitySource>();
             }
+
+            ResolvePlayerController();
 
             if (targetCamera == null)
             {

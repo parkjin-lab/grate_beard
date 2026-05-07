@@ -301,6 +301,12 @@ namespace LostBreadcrumbs.Runtime.Player
 
             float cellSize = mapSystem.CellSize;
             checkpointWorldPosition = new Vector3(startCell.x * cellSize, startCell.y * cellSize, transform.position.z);
+            if (mapSystem.TryGetSafePlayerStartPosition(transform, out Vector3 safeStartPosition))
+            {
+                checkpointWorldPosition = safeStartPosition;
+                checkpointWorldPosition.z = transform.position.z;
+            }
+
             hasCheckpoint = true;
             lastKnownStage = Mathf.Max(lastKnownStage, stage);
         }
@@ -355,14 +361,19 @@ namespace LostBreadcrumbs.Runtime.Player
                 concealmentState.ResetConcealment();
             }
 
+            if (playerController != null)
+            {
+                playerController.RefreshRuntimeReferencesForRespawn();
+            }
+
             if (resetFlashlightOnDeath && visibilitySource != null)
             {
-                visibilitySource.ResetFlashlightState();
+                visibilitySource.ResetForRespawn();
             }
 
             if (resetPulseCooldownOnDeath && pulseAbility != null)
             {
-                pulseAbility.ResetCooldown();
+                pulseAbility.ResetAbilityState(clearActiveVisuals: true);
             }
 
             if (resetDecoyCooldownOnDeath && decoyAbility != null)
@@ -477,7 +488,15 @@ namespace LostBreadcrumbs.Runtime.Player
                 return;
             }
 
-            transform.position = checkpointWorldPosition;
+            Vector3 respawnPosition = checkpointWorldPosition;
+            if (mapSystem != null && mapSystem.TryResolveSafePlayerPosition(respawnPosition, transform, out Vector3 safeRespawnPosition))
+            {
+                safeRespawnPosition.z = checkpointWorldPosition.z;
+                respawnPosition = safeRespawnPosition;
+                checkpointWorldPosition = respawnPosition;
+            }
+
+            transform.position = respawnPosition;
 
             Rigidbody2D rb = GetComponent<Rigidbody2D>();
             if (rb != null)

@@ -31,6 +31,10 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField, Min(0.05f)] private float enemyHideoutWeight = 0.55f;
         [SerializeField, Min(0.05f)] private float enemyRiskWeight = 1.7f;
 
+        [Header("Spawn Safety")]
+        [SerializeField] private bool avoidNarrowSpawnCells = true;
+        [SerializeField, Min(0f)] private float spawnStabilizationSeconds = 0.38f;
+
         [Header("Contact Damage")]
         [SerializeField, Min(1)] private int damagePerHit = 1;
         [SerializeField, Min(0.05f)] private float hitIntervalSeconds = 0.75f;
@@ -54,11 +58,18 @@ namespace LostBreadcrumbs.Runtime.Map
         private int lastSpawnTargetEnemyCount;
         private int lastSeekerSpawnCount;
         private int lastSpawnStage;
+        private int lastOpenSpawnCandidateCount;
+        private int lastNarrowSpawnCandidateCount;
+        private int lastSelectedNarrowSpawnCount;
 
         public int ActiveEnemyCount => activeEnemies.Count;
         public int LastSpawnTargetEnemyCount => lastSpawnTargetEnemyCount;
         public int LastSeekerSpawnCount => lastSeekerSpawnCount;
         public int LastSpawnStage => lastSpawnStage;
+        public int LastOpenSpawnCandidateCount => lastOpenSpawnCandidateCount;
+        public int LastNarrowSpawnCandidateCount => lastNarrowSpawnCandidateCount;
+        public int LastSelectedNarrowSpawnCount => lastSelectedNarrowSpawnCount;
+        public bool LastNarrowSpawnsWereFallbackOnly => lastSelectedNarrowSpawnCount <= 0 || lastOpenSpawnCandidateCount < lastSpawnTargetEnemyCount;
         public float RuntimeEnemyCountMultiplier => runtimeEnemyCountMultiplier;
         public float RuntimeRiskWeightMultiplier => runtimeRiskWeightMultiplier;
         public float RuntimeSeekerExtraChance => runtimeSeekerExtraChance;
@@ -181,6 +192,8 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             int targetCount = Mathf.Clamp(additionalCount, 1, candidates.Count);
+            candidates = PreferOpenSpawnCandidates(candidates, targetCount, cells);
+            targetCount = Mathf.Clamp(targetCount, 1, candidates.Count);
             int seed = Mathf.Max(1, stage) * 911
                        + Mathf.RoundToInt(focusWorld.x * 37f)
                        + Mathf.RoundToInt(focusWorld.y * 53f)
@@ -291,11 +304,13 @@ namespace LostBreadcrumbs.Runtime.Map
                 lastSpawnTargetEnemyCount = 0;
                 lastSeekerSpawnCount = 0;
                 lastSpawnStage = stage;
+                ResetSpawnSafetyTelemetry();
                 return;
             }
 
             if (enemiesRoot == null)
             {
+                ResetSpawnSafetyTelemetry();
                 return;
             }
 
@@ -310,12 +325,16 @@ namespace LostBreadcrumbs.Runtime.Map
                 lastSpawnTargetEnemyCount = 0;
                 lastSeekerSpawnCount = 0;
                 lastSpawnStage = stage;
+                ResetSpawnSafetyTelemetry();
                 return;
             }
 
             int baseTargetCount = Mathf.Clamp(baseEnemyCount + (stage - 1) * enemyIncreasePerStage, 1, maxEnemyCount);
             int targetEnemyCount = Mathf.RoundToInt(baseTargetCount * runtimeEnemyCountMultiplier);
             targetEnemyCount = Mathf.Clamp(targetEnemyCount, 1, maxEnemyCount);
+            targetEnemyCount = Mathf.Min(targetEnemyCount, spawnCandidates.Count);
+            CountSpawnCandidateSafety(spawnCandidates, cells, out lastOpenSpawnCandidateCount, out lastNarrowSpawnCandidateCount);
+            spawnCandidates = PreferOpenSpawnCandidates(spawnCandidates, targetEnemyCount, cells);
             targetEnemyCount = Mathf.Min(targetEnemyCount, spawnCandidates.Count);
 
             List<GeneratedMapCell> selectedSpawnCells = SelectWeightedCells(
@@ -339,6 +358,7 @@ namespace LostBreadcrumbs.Runtime.Map
             lastSpawnTargetEnemyCount = selectedSpawnCells.Count;
             lastSeekerSpawnCount = seekerCount;
             lastSpawnStage = stage;
+            lastSelectedNarrowSpawnCount = CountNarrowSpawnCells(selectedSpawnCells, cells);
         }
 
         private List<GeneratedMapCell> BuildSpawnCandidates(IReadOnlyList<GeneratedMapCell> cells)
@@ -381,6 +401,180 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             return candidates;
+        }
+
+        private List<GeneratedMapCell> PreferOpenSpawnCandidates(
+            List<GeneratedMapCell> candidates,
+            int desiredCount,
+            IReadOnlyList<GeneratedMapCell> cells)
+        {
+            if (!avoidNarrowSpawnCells || candidates == null || candidates.Count <= 1 || desiredCount <= 0)
+            {
+                return candidates;
+            }
+
+            HashSet<Vector2Int> occupiedCells = BuildOccupiedCellSet(cells);
+            if (occupiedCells.Count == 0)
+            {
+                return candidates;
+            }
+
+            List<GeneratedMapCell> openCandidates = new();
+            List<GeneratedMapCell> fallbackNarrowCandidates = new();
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                if (IsNarrowSpawnCell(candidates[i], occupiedCells))
+                {
+                    fallbackNarrowCandidates.Add(candidates[i]);
+                    continue;
+                }
+
+                openCandidates.Add(candidates[i]);
+            }
+
+            if (openCandidates.Count <= 0)
+            {
+                return candidates;
+            }
+
+            if (openCandidates.Count >= desiredCount)
+            {
+                return openCandidates;
+            }
+
+            openCandidates.AddRange(fallbackNarrowCandidates);
+            return openCandidates;
+        }
+
+        private static HashSet<Vector2Int> BuildOccupiedCellSet(IReadOnlyList<GeneratedMapCell> cells)
+        {
+            HashSet<Vector2Int> occupiedCells = new();
+            if (cells == null)
+            {
+                return occupiedCells;
+            }
+
+            for (int i = 0; i < cells.Count; i++)
+            {
+                occupiedCells.Add(cells[i].position);
+            }
+
+            return occupiedCells;
+        }
+
+        private static bool IsNarrowSpawnCell(GeneratedMapCell cell, HashSet<Vector2Int> occupiedCells)
+        {
+            if (occupiedCells == null || occupiedCells.Count == 0)
+            {
+                return false;
+            }
+
+            int cardinalNeighbors = CountCardinalNeighbors(cell.position, occupiedCells);
+            if (cardinalNeighbors <= 1)
+            {
+                return true;
+            }
+
+            if (cell.kind != MapCellKind.Corridor || cardinalNeighbors != 2)
+            {
+                return false;
+            }
+
+            bool horizontal = occupiedCells.Contains(cell.position + Vector2Int.left)
+                && occupiedCells.Contains(cell.position + Vector2Int.right);
+            bool vertical = occupiedCells.Contains(cell.position + Vector2Int.up)
+                && occupiedCells.Contains(cell.position + Vector2Int.down);
+            return horizontal || vertical;
+        }
+
+        private static int CountCardinalNeighbors(Vector2Int position, HashSet<Vector2Int> occupiedCells)
+        {
+            int count = 0;
+            if (occupiedCells.Contains(position + Vector2Int.left))
+            {
+                count++;
+            }
+
+            if (occupiedCells.Contains(position + Vector2Int.right))
+            {
+                count++;
+            }
+
+            if (occupiedCells.Contains(position + Vector2Int.up))
+            {
+                count++;
+            }
+
+            if (occupiedCells.Contains(position + Vector2Int.down))
+            {
+                count++;
+            }
+
+            return count;
+        }
+
+        private static void CountSpawnCandidateSafety(
+            IReadOnlyList<GeneratedMapCell> candidates,
+            IReadOnlyList<GeneratedMapCell> cells,
+            out int openCount,
+            out int narrowCount)
+        {
+            openCount = 0;
+            narrowCount = 0;
+            if (candidates == null || candidates.Count == 0)
+            {
+                return;
+            }
+
+            HashSet<Vector2Int> occupiedCells = BuildOccupiedCellSet(cells);
+            if (occupiedCells.Count == 0)
+            {
+                openCount = candidates.Count;
+                return;
+            }
+
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                if (IsNarrowSpawnCell(candidates[i], occupiedCells))
+                {
+                    narrowCount++;
+                    continue;
+                }
+
+                openCount++;
+            }
+        }
+
+        private static int CountNarrowSpawnCells(IReadOnlyList<GeneratedMapCell> selectedCells, IReadOnlyList<GeneratedMapCell> cells)
+        {
+            if (selectedCells == null || selectedCells.Count == 0)
+            {
+                return 0;
+            }
+
+            HashSet<Vector2Int> occupiedCells = BuildOccupiedCellSet(cells);
+            if (occupiedCells.Count == 0)
+            {
+                return 0;
+            }
+
+            int count = 0;
+            for (int i = 0; i < selectedCells.Count; i++)
+            {
+                if (IsNarrowSpawnCell(selectedCells[i], occupiedCells))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        private void ResetSpawnSafetyTelemetry()
+        {
+            lastOpenSpawnCandidateCount = 0;
+            lastNarrowSpawnCandidateCount = 0;
+            lastSelectedNarrowSpawnCount = 0;
         }
 
         private float GetSpawnWeight(MapCellKind kind)
@@ -535,6 +729,7 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             controller.ConfigureMapBoundsConstraintForRuntime(true);
+            controller.PrimeSpawnStabilizationForRuntime(spawnStabilizationSeconds);
 
             activeEnemies.Add(controller);
         }

@@ -56,9 +56,39 @@ namespace LostBreadcrumbs.Runtime.AI
         [SerializeField, Min(0.05f)] private float mapBoundsRefreshInterval = 0.4f;
         [SerializeField] private bool preventMovementThroughColliders = true;
         [SerializeField] private LayerMask movementBlockerMask = ~0;
+        [SerializeField] private bool movementBlockGeneratedOccludersOnly = true;
         [SerializeField, Min(0.01f)] private float movementCollisionRadius = 0.18f;
         [SerializeField, Min(0f)] private float movementCollisionSkin = 0.02f;
         [SerializeField] private bool ignoreTriggerBlockers = true;
+        [SerializeField] private bool enableWallSlide = true;
+        [SerializeField, Range(20f, 85f)] private float wallSlideProbeAngle = 62f;
+        [SerializeField, Range(1, 4)] private int wallSlideProbePairs = 2;
+        [SerializeField, Min(0f)] private float wallSlideMinDistance = 0.02f;
+
+        [Header("Movement Recovery")]
+        [SerializeField] private bool enableStuckRecovery = true;
+        [SerializeField, Min(0.05f)] private float stuckRecoverySeconds = 0.55f;
+        [SerializeField, Min(0f)] private float stuckRecoveryMinMoveDistance = 0.018f;
+        [SerializeField, Min(0.2f)] private float stuckRecoveryWaypointRadius = 2.35f;
+        [SerializeField, Min(0.1f)] private float stuckRecoveryWaypointHoldSeconds = 0.75f;
+        [SerializeField, Min(0.05f)] private float stuckRecoveryCooldownSeconds = 0.45f;
+        [SerializeField, Min(0.01f)] private float stuckRecoveryNudgeDistance = 0.22f;
+        [SerializeField] private bool recoverFromMovementOverlap = true;
+        [SerializeField, Min(0.1f)] private float overlapRecoverySearchRadius = 1.4f;
+        [SerializeField, Range(8, 24)] private int overlapRecoveryProbeCount = 16;
+
+        [Header("Movement Steering")]
+        [SerializeField] private bool enableMovementSteeringWaypoints = true;
+        [SerializeField, Min(0.2f)] private float steeringBlockedProbeDistance = 1.15f;
+        [SerializeField, Min(0.5f)] private float steeringWaypointSearchRadius = 3.4f;
+        [SerializeField, Min(0.1f)] private float steeringWaypointHoldSeconds = 0.62f;
+        [SerializeField, Min(0.05f)] private float steeringRepathInterval = 0.22f;
+        [SerializeField, Min(0.05f)] private float steeringWaypointReachDistance = 0.24f;
+        [SerializeField, Min(0.05f)] private float steeringIntentRefreshDistance = 0.55f;
+        [SerializeField, Range(0f, 1f)] private float steeringForwardBias = 0.24f;
+
+        [Header("Spawn Stabilization")]
+        [SerializeField, Min(0f)] private float spawnStabilizationSeconds = 0.38f;
 
         [Header("Disruption")]
         [SerializeField, Min(0.1f)] private float baseStunResistance = 1f;
@@ -94,10 +124,10 @@ namespace LostBreadcrumbs.Runtime.AI
 
         [Header("Movement Echo Visual")]
         [SerializeField] private bool showMovementEchoVisual = true;
-        [SerializeField, Min(0.05f)] private float movementEchoInterval = 0.64f;
+        [SerializeField, Min(0.05f)] private float movementEchoInterval = 0.78f;
         [SerializeField, Min(0.01f)] private float movementEchoMinSpeed = 0.32f;
         [SerializeField] private Color movementEchoColor = new(0.36f, 0.9f, 1f, 0.9f);
-        [SerializeField, Min(0.05f)] private float movementEchoDuration = 0.92f;
+        [SerializeField, Min(0.05f)] private float movementEchoDuration = 1.18f;
         [SerializeField, Range(1, 4)] private int movementEchoArcCount = 3;
         [SerializeField, Range(40f, 170f)] private float movementEchoArcAngle = 102f;
         [SerializeField, Min(0.05f)] private float movementEchoBaseRadius = 0.22f;
@@ -119,6 +149,20 @@ namespace LostBreadcrumbs.Runtime.AI
         [SerializeField] private bool movementEchoClearActivePulsesWhenVisible = true;
         [SerializeField] private bool movementEchoPrewarmPool = true;
         [SerializeField, Range(0, 256)] private int movementEchoPrewarmPoolTargetCount = 64;
+
+        [Header("Vision Cone Visual")]
+        [SerializeField] private bool showVisionConeVisual = true;
+        [SerializeField] private bool visionConeVisibleWhenIdle = true;
+        [SerializeField] private bool visionConeClipToWalls = true;
+        [SerializeField, Min(0.5f)] private float visionConeVisibleDistance = 13f;
+        [SerializeField, Range(6, 48)] private int visionConeSegments = 28;
+        [SerializeField] private Color visionConeIdleColor = new(1f, 0.72f, 0.18f, 0.12f);
+        [SerializeField] private Color visionConeAlertColor = new(1f, 0.42f, 0.08f, 0.18f);
+        [SerializeField] private Color visionConeChaseColor = new(1f, 0.08f, 0.1f, 0.24f);
+        [SerializeField] private Color visionConeOutlineColor = new(1f, 0.86f, 0.36f, 0.48f);
+        [SerializeField, Min(0.005f)] private float visionConeOutlineWidth = 0.035f;
+        [SerializeField] private int visionConeSortingOrder = 34;
+        [SerializeField, Min(0.01f)] private float visionConeRefreshInterval = 0.05f;
 
         private readonly EnemyMemory memory = new();
         private readonly List<Vector2> searchPriority = new();
@@ -190,6 +234,31 @@ namespace LostBreadcrumbs.Runtime.AI
         private Rigidbody2D movementBody2D;
         private Collider2D movementCollider2D;
         private readonly RaycastHit2D[] movementCastHits = new RaycastHit2D[8];
+        private readonly Collider2D[] movementOverlapHits = new Collider2D[12];
+        private float stuckElapsed;
+        private float nextStuckRecoveryTime;
+        private bool hasMovementRecoveryWaypoint;
+        private Vector2 movementRecoveryWaypoint;
+        private float movementRecoveryWaypointUntil;
+        private bool hasMovementSteeringWaypoint;
+        private Vector2 movementSteeringWaypoint;
+        private Vector2 movementSteeringIntent;
+        private float movementSteeringWaypointUntil;
+        private float nextMovementSteeringEvaluateTime;
+        private float spawnStabilizedUntil;
+        private int movementRecoveryCount;
+        private int movementOverlapRecoveryCount;
+        private string lastMovementRecoveryReason = "None";
+        private Vector2 lastMovementRecoveryFrom;
+        private Vector2 lastMovementRecoveryTo;
+        private Transform visionConeRoot;
+        private MeshFilter visionConeMeshFilter;
+        private MeshRenderer visionConeRenderer;
+        private LineRenderer visionConeOutline;
+        private Mesh visionConeMesh;
+        private Material visionConeMaterial;
+        private Material visionConeOutlineMaterial;
+        private float nextVisionConeRefreshTime;
 
         private float disengageCueTimer;
         private float chaseReacquireBlockedUntil;
@@ -243,6 +312,14 @@ namespace LostBreadcrumbs.Runtime.AI
         public float EffectiveDisengageDistanceGraceSeconds => Mathf.Max(0.1f, chaseDisengageDistanceGrace * runtimeDisengageGraceMultiplier);
         public float EffectiveDisengageLostSightGraceSeconds => Mathf.Max(0.1f, chaseLostSightGraceSeconds * runtimeDisengageGraceMultiplier);
         public float EffectiveChaseBlinkSpeed => Mathf.Max(0.5f, chaseBlinkSpeed * runtimeChaseBlinkSpeedMultiplier);
+        public bool HasMovementRecoveryWaypoint => hasMovementRecoveryWaypoint;
+        public bool HasMovementSteeringWaypoint => hasMovementSteeringWaypoint;
+        public float MovementStuckElapsed => Mathf.Max(0f, stuckElapsed);
+        public int MovementRecoveryCount => movementRecoveryCount;
+        public int MovementOverlapRecoveryCount => movementOverlapRecoveryCount;
+        public string LastMovementRecoveryReason => string.IsNullOrWhiteSpace(lastMovementRecoveryReason) ? "None" : lastMovementRecoveryReason;
+        public Vector2 LastMovementRecoveryFrom => lastMovementRecoveryFrom;
+        public Vector2 LastMovementRecoveryTo => lastMovementRecoveryTo;
         public static int ActiveControllerCount => activeControllers.Count;
 
         private EnemyProfile ActiveProfile => profile != null ? profile : EnemyProfileFallback.Instance;
@@ -288,6 +365,7 @@ namespace LostBreadcrumbs.Runtime.AI
             EnsureChaseMarker();
             SetChaseMarkerVisible(false);
             EnsureMovementEchoVisual();
+            EnsureVisionConeVisual();
             RefreshGeneratedMapBounds(force: true);
             homePosition = ClampToGeneratedMapBounds(homePosition);
         }
@@ -332,6 +410,7 @@ namespace LostBreadcrumbs.Runtime.AI
             }
 
             EnsureMovementEchoVisual();
+            EnsureVisionConeVisual();
         }
 
         private void OnEnable()
@@ -344,11 +423,13 @@ namespace LostBreadcrumbs.Runtime.AI
         {
             UnregisterActiveController();
             NoiseManager.NoiseRaised -= OnNoiseRaised;
+            SetVisionConeVisible(false);
         }
 
         private void OnDestroy()
         {
             UnregisterActiveController();
+            ReleaseVisionConeResources();
         }
 
         public void SetPlayerReference(Transform target)
@@ -374,6 +455,46 @@ namespace LostBreadcrumbs.Runtime.AI
             Vector2 clampedPosition = ClampToGeneratedMapBounds(transform.position);
             transform.position = clampedPosition;
             homePosition = ClampToGeneratedMapBounds(homePosition);
+        }
+
+        public void PrimeSpawnStabilizationForRuntime(float seconds = -1f)
+        {
+            float duration = seconds >= 0f ? seconds : spawnStabilizationSeconds;
+            spawnStabilizedUntil = Time.time + Mathf.Max(0f, duration);
+            stuckElapsed = 0f;
+            nextStuckRecoveryTime = Time.time + Mathf.Max(0f, duration);
+            nextMovementSteeringEvaluateTime = Time.time + Mathf.Max(0f, duration);
+            ClearMovementRecoveryWaypoint();
+            ClearMovementSteeringWaypoint();
+            hasCurrentTarget = false;
+        }
+
+        public bool IsMovementPositionBlockedForRuntime(Vector2 position)
+        {
+            RefreshGeneratedMapBounds(force: true);
+            return IsMovementPositionBlocked(position);
+        }
+
+        public bool TryResolveMovementOverlapRecoveryForRuntime(Vector2 position, Vector2 intendedTarget, out Vector2 recoveredPosition)
+        {
+            RefreshGeneratedMapBounds(force: true);
+            return TryRecoverCurrentMovementOverlap(position, intendedTarget, out recoveredPosition);
+        }
+
+        public bool TryRecoverMovementOverlapNowForRuntime(Vector2 intendedTarget, out Vector2 recoveredPosition)
+        {
+            Vector2 current = transform.position;
+            if (!TryResolveMovementOverlapRecoveryForRuntime(current, intendedTarget, out recoveredPosition))
+            {
+                return false;
+            }
+
+            ApplyMovementPosition(recoveredPosition);
+            RegisterMovementRecovery("RuntimeProbe", current, recoveredPosition, overlapRecovery: true);
+            stuckElapsed = 0f;
+            ClearMovementRecoveryWaypoint();
+            ClearMovementSteeringWaypoint();
+            return true;
         }
 
         public void ApplyRuntimePerceptionTuningForEditor(float visionRangeMultiplier, float hearingRangeMultiplier, float suspicionGainMultiplier)
@@ -468,6 +589,7 @@ namespace LostBreadcrumbs.Runtime.AI
             if (currentState == EnemyStateId.Stunned)
             {
                 TickStunned();
+                UpdateVisionConeVisual(force: true);
                 return;
             }
 
@@ -535,10 +657,18 @@ namespace LostBreadcrumbs.Runtime.AI
 
             UpdateStateMachine();
             ApplyStateVisuals();
+            UpdateVisionConeVisual();
         }
 
         private void UpdateStateMachine()
         {
+            if (Time.time < spawnStabilizedUntil)
+            {
+                hasCurrentTarget = false;
+                stuckElapsed = 0f;
+                return;
+            }
+
             switch (currentState)
             {
                 case EnemyStateId.IdlePatrol:
@@ -751,8 +881,16 @@ namespace LostBreadcrumbs.Runtime.AI
 
         private void MoveTo(Vector2 target, float speed)
         {
-            target = ClampToGeneratedMapBounds(target);
+            Vector2 intendedTarget = ClampToGeneratedMapBounds(target);
+            target = ResolveActiveMovementTarget(intendedTarget);
             Vector2 current = transform.position;
+            if (TryRecoverCurrentMovementOverlap(current, intendedTarget, out Vector2 recoveredPosition))
+            {
+                ApplyMovementPosition(recoveredPosition);
+                RegisterMovementRecovery("Overlap", current, recoveredPosition, overlapRecovery: true);
+                current = recoveredPosition;
+            }
+
             float requestedDistance = Mathf.Max(0.1f, speed) * Time.deltaTime;
             Vector2 toTarget = target - current;
             float toTargetDistance = toTarget.magnitude;
@@ -762,8 +900,20 @@ namespace LostBreadcrumbs.Runtime.AI
                 Vector2 moveDirection = toTarget / Mathf.Max(0.0001f, toTargetDistance);
                 float allowedDistance = ResolveAllowedMovementDistance(current, moveDirection, desiredDistance);
                 Vector2 next = current + moveDirection * allowedDistance;
+                bool blocked = allowedDistance < desiredDistance - 0.0001f;
+                if (blocked && TryResolveWallSlide(current, moveDirection, desiredDistance, intendedTarget, out Vector2 slidePosition))
+                {
+                    next = slidePosition;
+                    blocked = false;
+                }
+
                 next = ClampToGeneratedMapBounds(next);
                 ApplyMovementPosition(next);
+                UpdateMovementStuckRecovery(intendedTarget, current, next, toTargetDistance, desiredDistance, blocked);
+            }
+            else
+            {
+                ResetMovementStuckTracking();
             }
 
             Vector2 direction = target - current;
@@ -836,12 +986,7 @@ namespace LostBreadcrumbs.Runtime.AI
                     continue;
                 }
 
-                if (hitCollider.transform != null && hitCollider.transform.IsChildOf(transform))
-                {
-                    continue;
-                }
-
-                if (ignoreTriggerBlockers && hitCollider.isTrigger)
+                if (!IsMovementBlockingCollider(hitCollider))
                 {
                     continue;
                 }
@@ -858,6 +1003,541 @@ namespace LostBreadcrumbs.Runtime.AI
             }
 
             return blocked ? Mathf.Clamp(bestDistance, 0f, safeDesiredDistance) : safeDesiredDistance;
+        }
+
+        private Vector2 ResolveActiveMovementTarget(Vector2 intendedTarget)
+        {
+            if (!hasMovementRecoveryWaypoint)
+            {
+                return ResolveSteeringMovementTarget(intendedTarget);
+            }
+
+            bool expired = Time.time >= movementRecoveryWaypointUntil;
+            bool reached = Vector2.Distance(transform.position, movementRecoveryWaypoint) <= Mathf.Max(stopDistance, 0.12f);
+            if (expired || reached)
+            {
+                hasMovementRecoveryWaypoint = false;
+                return ResolveSteeringMovementTarget(intendedTarget);
+            }
+
+            return ClampToGeneratedMapBounds(movementRecoveryWaypoint);
+        }
+
+        private Vector2 ResolveSteeringMovementTarget(Vector2 intendedTarget)
+        {
+            if (!enableMovementSteeringWaypoints)
+            {
+                ClearMovementSteeringWaypoint();
+                return intendedTarget;
+            }
+
+            Vector2 current = transform.position;
+            if (hasMovementSteeringWaypoint)
+            {
+                bool expired = Time.time >= movementSteeringWaypointUntil;
+                bool reached = Vector2.Distance(current, movementSteeringWaypoint) <= Mathf.Max(stopDistance, steeringWaypointReachDistance);
+                bool intentChanged = Vector2.Distance(intendedTarget, movementSteeringIntent) >= Mathf.Max(0.05f, steeringIntentRefreshDistance);
+                if (!expired && !reached && !intentChanged)
+                {
+                    return ClampToGeneratedMapBounds(movementSteeringWaypoint);
+                }
+
+                ClearMovementSteeringWaypoint();
+            }
+
+            if (Time.time < nextMovementSteeringEvaluateTime)
+            {
+                return intendedTarget;
+            }
+
+            nextMovementSteeringEvaluateTime = Time.time + Mathf.Max(0.05f, steeringRepathInterval);
+            if (!IsDirectMovementBlockedForSteering(current, intendedTarget))
+            {
+                return intendedTarget;
+            }
+
+            if (!TryFindMovementSteeringWaypoint(current, intendedTarget, out Vector2 waypoint))
+            {
+                return intendedTarget;
+            }
+
+            movementSteeringWaypoint = waypoint;
+            movementSteeringIntent = intendedTarget;
+            movementSteeringWaypointUntil = Time.time + Mathf.Max(0.1f, steeringWaypointHoldSeconds);
+            hasMovementSteeringWaypoint = true;
+            return movementSteeringWaypoint;
+        }
+
+        private bool IsDirectMovementBlockedForSteering(Vector2 current, Vector2 intendedTarget)
+        {
+            if (!preventMovementThroughColliders)
+            {
+                return false;
+            }
+
+            Vector2 toTarget = intendedTarget - current;
+            float distance = toTarget.magnitude;
+            if (distance <= Mathf.Max(stopDistance * 1.6f, 0.25f))
+            {
+                return false;
+            }
+
+            Vector2 direction = toTarget / Mathf.Max(0.0001f, distance);
+            float probeDistance = Mathf.Min(distance, Mathf.Max(0.2f, steeringBlockedProbeDistance));
+            float allowed = ResolveAllowedMovementDistance(current, direction, probeDistance);
+            return allowed < probeDistance - Mathf.Max(0.015f, movementCollisionSkin * 1.5f);
+        }
+
+        private bool TryFindMovementSteeringWaypoint(Vector2 current, Vector2 intendedTarget, out Vector2 waypoint)
+        {
+            waypoint = current;
+            if (!hasGeneratedWalkableCellCache || generatedWalkableCellCenters.Count <= 0)
+            {
+                return false;
+            }
+
+            float searchRadius = Mathf.Max(0.5f, steeringWaypointSearchRadius);
+            float currentTargetDistance = Vector2.Distance(current, intendedTarget);
+            Vector2 targetDirection = intendedTarget - current;
+            if (targetDirection.sqrMagnitude > 0.0001f)
+            {
+                targetDirection.Normalize();
+            }
+
+            float bestScore = float.PositiveInfinity;
+            bool found = false;
+            for (int i = 0; i < generatedWalkableCellCenters.Count; i++)
+            {
+                Vector2 candidate = ClampToGeneratedMapBounds(generatedWalkableCellCenters[i]);
+                Vector2 toCandidate = candidate - current;
+                float candidateDistance = toCandidate.magnitude;
+                if (candidateDistance < Mathf.Max(steeringWaypointReachDistance, 0.18f) || candidateDistance > searchRadius)
+                {
+                    continue;
+                }
+
+                Vector2 candidateDirection = toCandidate / Mathf.Max(0.0001f, candidateDistance);
+                float allowed = ResolveAllowedMovementDistance(current, candidateDirection, candidateDistance);
+                if (allowed < candidateDistance - Mathf.Max(0.04f, movementCollisionSkin * 2f))
+                {
+                    continue;
+                }
+
+                float targetDistance = Vector2.Distance(candidate, intendedTarget);
+                if (targetDistance > currentTargetDistance + 0.65f)
+                {
+                    continue;
+                }
+
+                float forwardScore = targetDirection.sqrMagnitude > 0.0001f
+                    ? 1f - Mathf.Clamp01((Vector2.Dot(candidateDirection, targetDirection) + 1f) * 0.5f)
+                    : 0f;
+                float score = targetDistance + candidateDistance * 0.22f + forwardScore * steeringForwardBias;
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    waypoint = candidate;
+                    found = true;
+                }
+            }
+
+            return found;
+        }
+
+        private void ClearMovementSteeringWaypoint()
+        {
+            hasMovementSteeringWaypoint = false;
+            movementSteeringWaypoint = Vector2.zero;
+            movementSteeringIntent = Vector2.zero;
+            movementSteeringWaypointUntil = 0f;
+        }
+
+        private void ClearMovementRecoveryWaypoint()
+        {
+            hasMovementRecoveryWaypoint = false;
+            movementRecoveryWaypoint = Vector2.zero;
+            movementRecoveryWaypointUntil = 0f;
+        }
+
+        private bool TryResolveWallSlide(Vector2 current, Vector2 moveDirection, float desiredDistance, Vector2 intendedTarget, out Vector2 slidePosition)
+        {
+            slidePosition = current;
+            if (!enableWallSlide || desiredDistance <= 0.0001f || moveDirection.sqrMagnitude <= 0.0001f)
+            {
+                return false;
+            }
+
+            int pairs = Mathf.Clamp(wallSlideProbePairs, 1, 4);
+            float maxAngle = Mathf.Clamp(wallSlideProbeAngle, 20f, 85f);
+            float currentTargetSqr = (intendedTarget - current).sqrMagnitude;
+            float bestScore = float.PositiveInfinity;
+            bool hasSlide = false;
+
+            for (int i = 0; i < pairs; i++)
+            {
+                float t = (i + 1f) / pairs;
+                float angle = Mathf.Lerp(28f, maxAngle, t);
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    Vector2 slideDirection = Quaternion.Euler(0f, 0f, angle * side) * moveDirection;
+                    float allowed = ResolveAllowedMovementDistance(current, slideDirection, desiredDistance);
+                    if (allowed <= Mathf.Max(0.001f, wallSlideMinDistance))
+                    {
+                        continue;
+                    }
+
+                    Vector2 candidate = ClampToGeneratedMapBounds(current + slideDirection.normalized * allowed);
+                    float candidateMoveSqr = (candidate - current).sqrMagnitude;
+                    if (candidateMoveSqr <= wallSlideMinDistance * wallSlideMinDistance)
+                    {
+                        continue;
+                    }
+
+                    float targetSqr = (intendedTarget - candidate).sqrMagnitude;
+                    if (targetSqr > currentTargetSqr + 0.45f)
+                    {
+                        continue;
+                    }
+
+                    float score = targetSqr - candidateMoveSqr * 0.08f + i * 0.03f;
+                    if (score < bestScore)
+                    {
+                        bestScore = score;
+                        slidePosition = candidate;
+                        hasSlide = true;
+                    }
+                }
+            }
+
+            return hasSlide;
+        }
+
+        private void UpdateMovementStuckRecovery(
+            Vector2 intendedTarget,
+            Vector2 from,
+            Vector2 to,
+            float targetDistance,
+            float desiredDistance,
+            bool blocked)
+        {
+            if (!enableStuckRecovery || targetDistance <= Mathf.Max(stopDistance * 1.5f, 0.18f))
+            {
+                ResetMovementStuckTracking();
+                return;
+            }
+
+            float moved = Vector2.Distance(from, to);
+            float minimumMove = Mathf.Max(0.001f, Mathf.Min(stuckRecoveryMinMoveDistance, desiredDistance * 0.45f));
+            if (!blocked && moved >= minimumMove)
+            {
+                stuckElapsed = 0f;
+                return;
+            }
+
+            stuckElapsed += Time.deltaTime;
+            if (stuckElapsed < Mathf.Max(0.05f, stuckRecoverySeconds) || Time.time < nextStuckRecoveryTime)
+            {
+                return;
+            }
+
+            if (TryFindMovementRecoveryWaypoint(to, intendedTarget, out Vector2 waypoint))
+            {
+                movementRecoveryWaypoint = waypoint;
+                movementRecoveryWaypointUntil = Time.time + Mathf.Max(0.1f, stuckRecoveryWaypointHoldSeconds);
+                hasMovementRecoveryWaypoint = true;
+                ClearMovementSteeringWaypoint();
+                RegisterMovementRecovery("Waypoint", to, waypoint, overlapRecovery: false);
+            }
+            else if (TryBuildMovementNudge(to, out Vector2 nudgeTarget))
+            {
+                Vector2 clampedNudge = ClampToGeneratedMapBounds(nudgeTarget);
+                ApplyMovementPosition(clampedNudge);
+                ClearMovementSteeringWaypoint();
+                RegisterMovementRecovery("Nudge", to, clampedNudge, overlapRecovery: false);
+            }
+
+            stuckElapsed = 0f;
+            nextStuckRecoveryTime = Time.time + Mathf.Max(0.05f, stuckRecoveryCooldownSeconds);
+        }
+
+        private void ResetMovementStuckTracking()
+        {
+            stuckElapsed = 0f;
+            if (hasMovementRecoveryWaypoint && Time.time >= movementRecoveryWaypointUntil)
+            {
+                hasMovementRecoveryWaypoint = false;
+            }
+        }
+
+        private bool TryRecoverCurrentMovementOverlap(Vector2 current, Vector2 intendedTarget, out Vector2 recoveredPosition)
+        {
+            recoveredPosition = current;
+            if (!enableStuckRecovery || !recoverFromMovementOverlap || !preventMovementThroughColliders)
+            {
+                return false;
+            }
+
+            if (!IsMovementPositionBlocked(current))
+            {
+                return false;
+            }
+
+            if (TryBuildMovementNudge(current, out Vector2 nudgeTarget))
+            {
+                recoveredPosition = ClampToGeneratedMapBounds(nudgeTarget);
+                return true;
+            }
+
+            return TryFindOverlapRecoveryCandidate(current, intendedTarget, out recoveredPosition);
+        }
+
+        private bool TryFindOverlapRecoveryCandidate(Vector2 current, Vector2 intendedTarget, out Vector2 recoveredPosition)
+        {
+            recoveredPosition = current;
+            float radius = Mathf.Max(0.1f, overlapRecoverySearchRadius);
+            float bestScore = float.PositiveInfinity;
+            bool found = false;
+
+            if (hasGeneratedWalkableCellCache && generatedWalkableCellCenters.Count > 0)
+            {
+                for (int i = 0; i < generatedWalkableCellCenters.Count; i++)
+                {
+                    Vector2 candidate = ClampToGeneratedMapBounds(generatedWalkableCellCenters[i]);
+                    float distance = Vector2.Distance(current, candidate);
+                    if (distance < 0.12f || distance > radius || IsMovementPositionBlocked(candidate))
+                    {
+                        continue;
+                    }
+
+                    float score = Vector2.Distance(candidate, intendedTarget) + distance * 0.24f;
+                    if (score < bestScore)
+                    {
+                        bestScore = score;
+                        recoveredPosition = candidate;
+                        found = true;
+                    }
+                }
+            }
+
+            int probeCount = Mathf.Clamp(overlapRecoveryProbeCount, 8, 24);
+            for (int ring = 1; ring <= 3; ring++)
+            {
+                float distance = radius * (ring / 3f);
+                for (int i = 0; i < probeCount; i++)
+                {
+                    float angle = i * (360f / probeCount);
+                    Vector2 direction = Quaternion.Euler(0f, 0f, angle) * Vector2.right;
+                    Vector2 candidate = ClampToGeneratedMapBounds(current + direction * distance);
+                    if (Vector2.Distance(current, candidate) < 0.08f || IsMovementPositionBlocked(candidate))
+                    {
+                        continue;
+                    }
+
+                    float score = Vector2.Distance(candidate, intendedTarget) + Vector2.Distance(current, candidate) * 0.32f;
+                    if (score < bestScore)
+                    {
+                        bestScore = score;
+                        recoveredPosition = candidate;
+                        found = true;
+                    }
+                }
+
+                if (found)
+                {
+                    return true;
+                }
+            }
+
+            return found;
+        }
+
+        private bool IsMovementPositionBlocked(Vector2 position)
+        {
+            int hitCount = QueryMovementOverlapHits(position);
+            int safeHitCount = Mathf.Min(hitCount, movementOverlapHits.Length);
+            for (int i = 0; i < safeHitCount; i++)
+            {
+                if (IsMovementBlockingCollider(movementOverlapHits[i]))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private int QueryMovementOverlapHits(Vector2 position)
+        {
+            if (!preventMovementThroughColliders)
+            {
+                return 0;
+            }
+
+            ContactFilter2D filter = new()
+            {
+                useLayerMask = true,
+                layerMask = movementBlockerMask,
+                useTriggers = !ignoreTriggerBlockers
+            };
+            float radius = Mathf.Max(0.01f, movementCollisionRadius);
+            return Physics2D.OverlapCircle(position, radius, filter, movementOverlapHits);
+        }
+
+        private void RegisterMovementRecovery(string reason, Vector2 from, Vector2 to, bool overlapRecovery)
+        {
+            movementRecoveryCount++;
+            if (overlapRecovery)
+            {
+                movementOverlapRecoveryCount++;
+            }
+
+            lastMovementRecoveryReason = string.IsNullOrWhiteSpace(reason) ? "Unknown" : reason;
+            lastMovementRecoveryFrom = from;
+            lastMovementRecoveryTo = to;
+        }
+
+        private bool TryFindMovementRecoveryWaypoint(Vector2 current, Vector2 intendedTarget, out Vector2 waypoint)
+        {
+            waypoint = current;
+            float radius = Mathf.Max(0.2f, stuckRecoveryWaypointRadius);
+            float bestScore = float.PositiveInfinity;
+            bool found = false;
+
+            if (hasGeneratedWalkableCellCache && generatedWalkableCellCenters.Count > 0)
+            {
+                for (int i = 0; i < generatedWalkableCellCenters.Count; i++)
+                {
+                    Vector2 candidate = ClampToGeneratedMapBounds(generatedWalkableCellCenters[i]);
+                    Vector2 toCandidate = candidate - current;
+                    float distance = toCandidate.magnitude;
+                    if (distance < 0.16f || distance > radius)
+                    {
+                        continue;
+                    }
+
+                    Vector2 direction = toCandidate / Mathf.Max(0.0001f, distance);
+                    float allowed = ResolveAllowedMovementDistance(current, direction, distance);
+                    if (allowed < distance - Mathf.Max(0.04f, movementCollisionSkin * 2f))
+                    {
+                        continue;
+                    }
+
+                    float score = Vector2.Distance(candidate, intendedTarget) + distance * 0.18f;
+                    if (score < bestScore)
+                    {
+                        bestScore = score;
+                        waypoint = candidate;
+                        found = true;
+                    }
+                }
+            }
+
+            if (found)
+            {
+                return true;
+            }
+
+            const int probeCount = 12;
+            for (int i = 0; i < probeCount; i++)
+            {
+                float angle = i * (360f / probeCount);
+                Vector2 direction = Quaternion.Euler(0f, 0f, angle) * Vector2.right;
+                float probeDistance = radius * 0.65f;
+                float allowed = ResolveAllowedMovementDistance(current, direction, probeDistance);
+                if (allowed < probeDistance * 0.55f)
+                {
+                    continue;
+                }
+
+                Vector2 candidate = ClampToGeneratedMapBounds(current + direction * allowed);
+                float score = Vector2.Distance(candidate, intendedTarget);
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    waypoint = candidate;
+                    found = true;
+                }
+            }
+
+            return found;
+        }
+
+        private bool TryBuildMovementNudge(Vector2 current, out Vector2 nudgeTarget)
+        {
+            nudgeTarget = current;
+            if (!preventMovementThroughColliders)
+            {
+                return false;
+            }
+
+            int hitCount = QueryMovementOverlapHits(current);
+            if (hitCount <= 0)
+            {
+                return false;
+            }
+
+            Vector2 combinedAway = Vector2.zero;
+            int safeHitCount = Mathf.Min(hitCount, movementOverlapHits.Length);
+            for (int i = 0; i < safeHitCount; i++)
+            {
+                Collider2D hitCollider = movementOverlapHits[i];
+                if (!IsMovementBlockingCollider(hitCollider))
+                {
+                    continue;
+                }
+
+                Vector2 closest = hitCollider.ClosestPoint(current);
+                Vector2 away = current - closest;
+                if (away.sqrMagnitude <= 0.0001f)
+                {
+                    away = current - (Vector2)hitCollider.bounds.center;
+                }
+
+                if (away.sqrMagnitude <= 0.0001f)
+                {
+                    away = -(Vector2)transform.right;
+                }
+
+                combinedAway += away.normalized;
+            }
+
+            if (combinedAway.sqrMagnitude <= 0.0001f)
+            {
+                return false;
+            }
+
+            nudgeTarget = current + combinedAway.normalized * Mathf.Max(0.01f, stuckRecoveryNudgeDistance);
+            return !IsMovementPositionBlocked(ClampToGeneratedMapBounds(nudgeTarget));
+        }
+
+        private bool IsMovementBlockingCollider(Collider2D hitCollider)
+        {
+            if (hitCollider == null)
+            {
+                return false;
+            }
+
+            if (hitCollider == movementCollider2D || hitCollider.transform == transform)
+            {
+                return false;
+            }
+
+            if (hitCollider.transform != null && hitCollider.transform.IsChildOf(transform))
+            {
+                return false;
+            }
+
+            if (ignoreTriggerBlockers && hitCollider.isTrigger)
+            {
+                return false;
+            }
+
+            if (IsSelfOrPlayerCollider(hitCollider))
+            {
+                return false;
+            }
+
+            return !movementBlockGeneratedOccludersOnly || IsGeneratedOccluderCollider(hitCollider.transform);
         }
 
         private Vector2 ClampToGeneratedMapBounds(Vector2 point)
@@ -1441,6 +2121,9 @@ namespace LostBreadcrumbs.Runtime.AI
 
             currentState = nextState;
             stateTimer = 0f;
+            stuckElapsed = 0f;
+            ClearMovementRecoveryWaypoint();
+            ClearMovementSteeringWaypoint();
 
             if (!string.IsNullOrWhiteSpace(reason))
             {
@@ -1770,6 +2453,326 @@ namespace LostBreadcrumbs.Runtime.AI
             if (spriteRenderer != null)
             {
                 baseColor = spriteRenderer.color;
+            }
+        }
+
+        private void EnsureVisionConeVisual()
+        {
+            if (!showVisionConeVisual)
+            {
+                SetVisionConeVisible(false);
+                return;
+            }
+
+            if (visionConeRoot == null)
+            {
+                Transform existing = transform.Find("VisionConeVisual");
+                visionConeRoot = existing;
+                if (visionConeRoot == null)
+                {
+                    GameObject coneObject = new("VisionConeVisual");
+                    coneObject.transform.SetParent(transform, false);
+                    visionConeRoot = coneObject.transform;
+                }
+            }
+
+            visionConeRoot.localPosition = Vector3.zero;
+            visionConeRoot.localRotation = Quaternion.identity;
+            visionConeRoot.localScale = Vector3.one;
+
+            visionConeMeshFilter = visionConeRoot.GetComponent<MeshFilter>();
+            if (visionConeMeshFilter == null)
+            {
+                visionConeMeshFilter = visionConeRoot.gameObject.AddComponent<MeshFilter>();
+            }
+
+            visionConeRenderer = visionConeRoot.GetComponent<MeshRenderer>();
+            if (visionConeRenderer == null)
+            {
+                visionConeRenderer = visionConeRoot.gameObject.AddComponent<MeshRenderer>();
+            }
+
+            if (visionConeMesh == null)
+            {
+                visionConeMesh = new Mesh
+                {
+                    name = "EnemyVisionConeMesh",
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+            }
+
+            visionConeMeshFilter.sharedMesh = visionConeMesh;
+
+            if (visionConeMaterial == null)
+            {
+                visionConeMaterial = new Material(ResolveTransparentRuntimeShader())
+                {
+                    name = "EnemyVisionConeMaterial",
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+            }
+
+            visionConeRenderer.sharedMaterial = visionConeMaterial;
+            visionConeRenderer.sortingOrder = visionConeSortingOrder;
+            visionConeRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            visionConeRenderer.receiveShadows = false;
+
+            visionConeOutline = visionConeRoot.GetComponent<LineRenderer>();
+            if (visionConeOutline == null)
+            {
+                visionConeOutline = visionConeRoot.gameObject.AddComponent<LineRenderer>();
+            }
+
+            if (visionConeOutlineMaterial == null)
+            {
+                visionConeOutlineMaterial = new Material(ResolveTransparentRuntimeShader())
+                {
+                    name = "EnemyVisionConeOutlineMaterial",
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+            }
+
+            visionConeOutline.sharedMaterial = visionConeOutlineMaterial;
+            visionConeOutline.useWorldSpace = false;
+            visionConeOutline.loop = false;
+            visionConeOutline.widthMultiplier = Mathf.Max(0.005f, visionConeOutlineWidth);
+            visionConeOutline.numCapVertices = 2;
+            visionConeOutline.numCornerVertices = 2;
+            visionConeOutline.sortingOrder = visionConeSortingOrder + 1;
+        }
+
+        private void UpdateVisionConeVisual(bool force = false)
+        {
+            if (!showVisionConeVisual)
+            {
+                SetVisionConeVisible(false);
+                return;
+            }
+
+            EnsureVisionConeVisual();
+            bool shouldShow = ShouldShowVisionConeVisual();
+            SetVisionConeVisible(shouldShow);
+            if (!shouldShow || visionConeMesh == null || visionConeOutline == null)
+            {
+                return;
+            }
+
+            if (!force && Time.time < nextVisionConeRefreshTime)
+            {
+                return;
+            }
+
+            nextVisionConeRefreshTime = Time.time + Mathf.Max(0.01f, visionConeRefreshInterval);
+
+            int segments = Mathf.Clamp(visionConeSegments, 6, 48);
+            Vector3[] vertices = new Vector3[segments + 2];
+            int[] triangles = new int[segments * 3];
+            Vector3[] outlinePositions = new Vector3[segments + 3];
+            vertices[0] = Vector3.zero;
+            outlinePositions[0] = Vector3.zero;
+
+            float range = EvaluateEffectiveVisionRangeForVisual();
+            float halfAngle = visionAngle * 0.5f;
+            Vector2 origin = transform.position;
+            for (int i = 0; i <= segments; i++)
+            {
+                float t = i / (float)segments;
+                float angle = Mathf.Lerp(-halfAngle, halfAngle, t);
+                Vector2 localDirection = Quaternion.Euler(0f, 0f, angle) * Vector2.right;
+                Vector2 worldDirection = transform.TransformDirection(localDirection);
+                float rayDistance = visionConeClipToWalls
+                    ? ResolveVisionConeRayDistance(origin, worldDirection, range)
+                    : range;
+                Vector3 localPoint = new(localDirection.x * rayDistance, localDirection.y * rayDistance, 0f);
+                vertices[i + 1] = localPoint;
+                outlinePositions[i + 1] = localPoint;
+
+                if (i < segments)
+                {
+                    int triangleIndex = i * 3;
+                    triangles[triangleIndex] = 0;
+                    triangles[triangleIndex + 1] = i + 1;
+                    triangles[triangleIndex + 2] = i + 2;
+                }
+            }
+
+            outlinePositions[segments + 2] = Vector3.zero;
+            visionConeMesh.Clear();
+            visionConeMesh.vertices = vertices;
+            visionConeMesh.triangles = triangles;
+            visionConeMesh.RecalculateBounds();
+
+            Color coneColor = EvaluateVisionConeColor();
+            if (visionConeMaterial != null)
+            {
+                visionConeMaterial.color = coneColor;
+            }
+
+            Color outlineColor = visionConeOutlineColor;
+            outlineColor.a *= Mathf.Lerp(0.7f, 1.2f, Mathf.Clamp01(coneColor.a / Mathf.Max(0.001f, visionConeChaseColor.a)));
+            if (visionConeOutlineMaterial != null)
+            {
+                visionConeOutlineMaterial.color = outlineColor;
+            }
+
+            visionConeOutline.positionCount = outlinePositions.Length;
+            visionConeOutline.SetPositions(outlinePositions);
+            visionConeOutline.widthMultiplier = Mathf.Max(0.005f, visionConeOutlineWidth);
+        }
+
+        private bool ShouldShowVisionConeVisual()
+        {
+            if (!showVisionConeVisual || currentState == EnemyStateId.Stunned)
+            {
+                return false;
+            }
+
+            if (visionConeVisibleWhenIdle)
+            {
+                return true;
+            }
+
+            if (currentState == EnemyStateId.Suspicion
+                || currentState == EnemyStateId.Investigate
+                || currentState == EnemyStateId.Chase
+                || currentState == EnemyStateId.Search)
+            {
+                return true;
+            }
+
+            return player != null
+                   && Vector2.Distance(transform.position, player.position) <= Mathf.Max(0.5f, visionConeVisibleDistance);
+        }
+
+        private float EvaluateEffectiveVisionRangeForVisual()
+        {
+            return Mathf.Max(
+                0.5f,
+                visionRange * runtimeVisionRangeMultiplier * Mathf.Max(0.1f, ActiveProfile.lightSensitivity));
+        }
+
+        private Color EvaluateVisionConeColor()
+        {
+            if (currentState == EnemyStateId.Chase)
+            {
+                return visionConeChaseColor;
+            }
+
+            if (currentState == EnemyStateId.Suspicion
+                || currentState == EnemyStateId.Investigate
+                || currentState == EnemyStateId.Search
+                || chaseTransitionPending)
+            {
+                return Color.Lerp(visionConeAlertColor, visionConeChaseColor, ChaseTransitionProgress);
+            }
+
+            return visionConeIdleColor;
+        }
+
+        private float ResolveVisionConeRayDistance(Vector2 origin, Vector2 direction, float range)
+        {
+            if (direction.sqrMagnitude <= 0.0001f)
+            {
+                return range;
+            }
+
+            direction.Normalize();
+            float nearest = range;
+            LayerMask mask = lineOfSightBlockers;
+            if (mask.value != 0)
+            {
+                RaycastHit2D[] maskedHits = Physics2D.RaycastAll(origin, direction, range, mask);
+                nearest = Mathf.Min(nearest, FindNearestOccludingRayDistance(maskedHits, range));
+            }
+
+            RaycastHit2D[] fallbackHits = Physics2D.RaycastAll(origin, direction, range);
+            nearest = Mathf.Min(nearest, FindNearestOccludingRayDistance(fallbackHits, range));
+            return Mathf.Clamp(nearest, 0.05f, range);
+        }
+
+        private float FindNearestOccludingRayDistance(RaycastHit2D[] hits, float fallbackDistance)
+        {
+            float nearest = fallbackDistance;
+            if (hits == null)
+            {
+                return nearest;
+            }
+
+            for (int i = 0; i < hits.Length; i++)
+            {
+                RaycastHit2D hit = hits[i];
+                Collider2D hitCollider = hit.collider;
+                if (!IsOccludingWallCollider(hitCollider))
+                {
+                    continue;
+                }
+
+                if (hit.distance <= 0.001f)
+                {
+                    continue;
+                }
+
+                nearest = Mathf.Min(nearest, hit.distance);
+            }
+
+            return nearest;
+        }
+
+        private void SetVisionConeVisible(bool visible)
+        {
+            if (visionConeRoot != null && visionConeRoot.gameObject.activeSelf != visible)
+            {
+                visionConeRoot.gameObject.SetActive(visible);
+            }
+        }
+
+        private static Shader ResolveTransparentRuntimeShader()
+        {
+            Shader shader = Shader.Find("Sprites/Default");
+            if (shader != null)
+            {
+                return shader;
+            }
+
+            shader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader != null)
+            {
+                return shader;
+            }
+
+            shader = Shader.Find("Unlit/Transparent");
+            if (shader != null)
+            {
+                return shader;
+            }
+
+            return Shader.Find("Unlit/Color");
+        }
+
+        private void ReleaseVisionConeResources()
+        {
+            ReleaseRuntimeObject(visionConeMesh);
+            ReleaseRuntimeObject(visionConeMaterial);
+            ReleaseRuntimeObject(visionConeOutlineMaterial);
+            visionConeMesh = null;
+            visionConeMaterial = null;
+            visionConeOutlineMaterial = null;
+        }
+
+        private static void ReleaseRuntimeObject(Object target)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(target);
+            }
+            else
+            {
+                DestroyImmediate(target);
             }
         }
 

@@ -22,7 +22,7 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         [Header("Pressure Curve")]
         [SerializeField, Min(1)] private int pressureRampStartStage = 1;
-        [SerializeField, Min(2)] private int pressureRampEndStage = 8;
+        [SerializeField, Min(2)] private int pressureRampEndStage = 9;
         [SerializeField, Range(0f, 1f)] private float stagePressureWeight = 0.72f;
         [SerializeField, Range(0f, 1f)] private float behaviorPressureWeight = 0.28f;
         [SerializeField] private bool applyLowBehaviorCompensation = true;
@@ -33,15 +33,15 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private bool enableLateStagePressureBonus = true;
         [SerializeField, Min(1)] private int lateStageBonusStartStage = 6;
         [SerializeField, Min(2)] private int lateStageBonusPeakStage = 12;
-        [SerializeField, Range(0f, 0.45f)] private float lateStagePressureBonusMax = 0.2f;
+        [SerializeField, Range(0f, 0.45f)] private float lateStagePressureBonusMax = 0.16f;
 
         [Header("Enemy Pressure")]
         [SerializeField, Range(0.5f, 2.5f)] private float minEnemyCountMultiplier = 1f;
-        [SerializeField, Range(0.5f, 2.5f)] private float maxEnemyCountMultiplier = 1.75f;
+        [SerializeField, Range(0.5f, 2.5f)] private float maxEnemyCountMultiplier = 1.62f;
         [SerializeField, Range(0.6f, 2.5f)] private float minRiskWeightMultiplier = 1f;
-        [SerializeField, Range(0.6f, 2.5f)] private float maxRiskWeightMultiplier = 1.95f;
-        [SerializeField, Range(0f, 0.85f)] private float maxSeekerExtraChance = 0.36f;
-        [SerializeField, Range(0f, 0.65f)] private float maxStartDistanceReduction = 0.35f;
+        [SerializeField, Range(0.6f, 2.5f)] private float maxRiskWeightMultiplier = 1.82f;
+        [SerializeField, Range(0f, 0.85f)] private float maxSeekerExtraChance = 0.3f;
+        [SerializeField, Range(0f, 0.65f)] private float maxStartDistanceReduction = 0.28f;
 
         [Header("Ability Cooldown Economy")]
         [SerializeField, Range(0.5f, 2.5f)] private float pulseCooldownPressureMax = 1.38f;

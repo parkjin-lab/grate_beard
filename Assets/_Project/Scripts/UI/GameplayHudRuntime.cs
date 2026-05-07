@@ -39,6 +39,11 @@ namespace LostBreadcrumbs.Runtime.UI
         [SerializeField] private bool includeSaveLoadAlerts;
         [SerializeField] private bool includeSystemAlerts;
 
+        [Header("Status Colors")]
+        [SerializeField] private Color staminaNormalColor = new(0.3f, 0.85f, 1f, 0.95f);
+        [SerializeField] private Color quietBreathStaminaColor = new(0.22f, 1f, 0.78f, 0.96f);
+        [SerializeField] private Color quietBreathStrainedColor = new(1f, 0.72f, 0.36f, 0.96f);
+
         private PlayerVitalSystem playerVitals;
         private PlayerDummyController playerController;
         private PlayerEchoPulseAbility pulseAbility;
@@ -208,7 +213,7 @@ namespace LostBreadcrumbs.Runtime.UI
             hpFill = CreateBar("HP_Bar", hudRoot, new Vector2(16f, -46f), new Vector2(420f, 14f), new Color(0.95f, 0.25f, 0.3f, 0.95f));
 
             staminaText = CreateText("Stamina_Text", hudRoot, new Vector2(16f, -68f), new Vector2(420f, 24f), 18, FontStyle.Bold);
-            staminaFill = CreateBar("Stamina_Bar", hudRoot, new Vector2(16f, -98f), new Vector2(420f, 14f), new Color(0.3f, 0.85f, 1f, 0.95f));
+            staminaFill = CreateBar("Stamina_Bar", hudRoot, new Vector2(16f, -98f), new Vector2(420f, 14f), staminaNormalColor);
 
             objectiveText = CreateText("Objective_Text", hudRoot, new Vector2(16f, -126f), new Vector2(430f, 24f), 16, FontStyle.Bold);
             abilityText = CreateText("Ability_Text", hudRoot, new Vector2(16f, -152f), new Vector2(430f, 50f), 15, FontStyle.Normal);
@@ -277,13 +282,27 @@ namespace LostBreadcrumbs.Runtime.UI
 
             if (playerController != null)
             {
-                staminaText.text = $"스태미나 {playerController.CurrentStamina:0.0}/{playerController.MaxStamina:0.0}";
+                float quietRemaining = playerController.TemporaryNoiseDampeningRemaining;
+                bool quietStrained = playerController.IsTemporaryNoiseDampeningStrained;
+                string breathLabel = quietStrained ? "숨 가쁨" : "숨";
+                staminaText.text = quietRemaining > 0.05f
+                    ? $"스태미나 {playerController.CurrentStamina:0.0}/{playerController.MaxStamina:0.0}  {breathLabel} {quietRemaining:0.0}s"
+                    : $"스태미나 {playerController.CurrentStamina:0.0}/{playerController.MaxStamina:0.0}";
                 staminaFill.fillAmount = Mathf.Clamp01(playerController.MaxStamina > 0f ? playerController.CurrentStamina / playerController.MaxStamina : 0f);
+                float breathPulse = quietRemaining > 0.05f
+                    ? (quietStrained
+                        ? 0.72f + Mathf.Sin(Time.unscaledTime * 9.2f) * 0.26f
+                        : 0.65f + Mathf.Sin(Time.unscaledTime * 5.4f) * 0.18f)
+                    : 0f;
+                staminaFill.color = quietRemaining > 0.05f
+                    ? Color.Lerp(staminaNormalColor, quietStrained ? quietBreathStrainedColor : quietBreathStaminaColor, Mathf.Clamp01(breathPulse))
+                    : staminaNormalColor;
             }
             else
             {
                 staminaText.text = "스태미나 정보 없음";
                 staminaFill.fillAmount = 0f;
+                staminaFill.color = staminaNormalColor;
             }
         }
 
@@ -296,16 +315,73 @@ namespace LostBreadcrumbs.Runtime.UI
                 return;
             }
 
-            objectiveText.text = $"목표: Breadcrumb {stageLoop.CollectedBreadcrumbs}/{stageLoop.RequiredBreadcrumbs}  |  스테이지 {stageLoop.CurrentStage}  |  출구 {(stageLoop.ExitUnlocked ? "OPEN" : "LOCKED")}";
+            string momentum = stageLoop.HasBreadcrumbMomentum
+                ? $"  |  연쇄 x{stageLoop.BreadcrumbMomentumLevel} {stageLoop.BreadcrumbMomentumRemaining:0.0}s"
+                : string.Empty;
+            string exitCache = string.Empty;
+            if (stageLoop.ExitChoiceCacheActive)
+            {
+                float distance = playerController != null
+                    ? Vector2.Distance(playerController.transform.position, stageLoop.ExitChoiceCacheWorldPosition)
+                    : 0f;
+                exitCache = playerController != null ? $"  |  보상 {distance:0.0}m" : "  |  보상 노출";
+            }
+
+            string riskCache = string.Empty;
+            if (playerController != null
+                && stageLoop.TryGetNearestRiskCacheTarget(playerController.transform.position, out _, out float riskDistance))
+            {
+                riskCache = $"  |  위험보상 {riskDistance:0.0}m";
+            }
+            else if (stageLoop.ActiveRiskCacheCount > 0)
+            {
+                riskCache = "  |  위험보상";
+            }
+
+            objectiveText.text = $"목표: Breadcrumb {stageLoop.CollectedBreadcrumbs}/{stageLoop.RequiredBreadcrumbs}  |  스테이지 {stageLoop.CurrentStage}  |  출구 {(stageLoop.ExitUnlocked ? "OPEN" : "LOCKED")}{momentum}{exitCache}{riskCache}";
         }
 
         private void UpdateAbilityLine()
         {
-            string pulse = FormatAbility("Q 펄스", pulseAbility != null && pulseAbility.IsReady, pulseAbility != null ? pulseAbility.CooldownRemaining : 0f);
+            string pulse;
+            if (pulseAbility != null && pulseAbility.IsEchoReturnWarningActive)
+            {
+                string count = pulseAbility.LastEchoReturnThreatCount > 1 ? $" x{pulseAbility.LastEchoReturnThreatCount}" : string.Empty;
+                pulse = $"Q 응답{count} {pulseAbility.LastEchoReturnDistance:0.0}m";
+            }
+            else if (pulseAbility != null && pulseAbility.IsEchoResonating)
+            {
+                pulse = $"Q 잔향 {pulseAbility.EchoResonanceRemaining:0.0}s";
+            }
+            else
+            {
+                pulse = FormatAbility("Q 펄스", pulseAbility != null && pulseAbility.IsReady, pulseAbility != null ? pulseAbility.CooldownRemaining : 0f);
+            }
+
             string decoy = FormatAbility("E 디코이", decoyAbility != null && decoyAbility.IsReady, decoyAbility != null ? decoyAbility.CooldownRemaining : 0f);
             string smoke = FormatAbility("R 스모크", smokeAbility != null && smokeAbility.IsReady, smokeAbility != null ? smokeAbility.CooldownRemaining : 0f);
 
-            abilityText.text = $"{pulse}   |   {decoy}   |   {smoke}";
+            string scanStatus = BuildEchoObjectiveScanStatus();
+            abilityText.text = string.IsNullOrEmpty(scanStatus)
+                ? $"{pulse}   |   {decoy}   |   {smoke}"
+                : $"{pulse}   |   {decoy}   |   {smoke}\n{scanStatus}";
+        }
+
+        private string BuildEchoObjectiveScanStatus()
+        {
+            if (playerController == null || playerController.EchoObjectiveScanStatusRemaining <= 0.05f)
+            {
+                return string.Empty;
+            }
+
+            string primary = playerController.LastEchoObjectivePrimaryWasExit ? "출구" : "빵조각";
+            int choices = Mathf.Max(0, playerController.LastEchoObjectiveChoiceScanCount);
+            if (choices <= 0)
+            {
+                return $"Space Echo: {primary} 경로 {playerController.EchoObjectiveScanStatusRemaining:0.0}s";
+            }
+
+            return $"Space Echo: {primary} + 선택 {choices}개 {playerController.EchoObjectiveScanStatusRemaining:0.0}s";
         }
 
         private void UpdateLearningLine()
@@ -636,6 +712,13 @@ namespace LostBreadcrumbs.Runtime.UI
                 RuntimeEventSemantic.LockOnWarning => "LOCK-ON WARNING",
                 RuntimeEventSemantic.ChaseStarted => "CHASE STARTED",
                 RuntimeEventSemantic.ChaseDisengaged => "CHASE DISENGAGED",
+                RuntimeEventSemantic.EscapeRelief => "BREATH FOUND",
+                RuntimeEventSemantic.QuietBreathBroken => "BREATH BROKE",
+                RuntimeEventSemantic.EchoReturn => "ECHO RETURN",
+                RuntimeEventSemantic.EchoChoiceScan => "ECHO CHOICES",
+                RuntimeEventSemantic.RiskReward => "RISK CACHE TAKEN",
+                RuntimeEventSemantic.SafeHavenThin => "HAVEN THINS",
+                RuntimeEventSemantic.PressureWave => "PRESSURE WAVE",
                 RuntimeEventSemantic.SetPieceShift => "SET-PIECE SHIFT",
                 _ => string.Empty
             };

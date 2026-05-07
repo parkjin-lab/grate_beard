@@ -71,9 +71,19 @@ namespace LostBreadcrumbs.Runtime.Player
             flashlightEnabled = enabled;
         }
 
-        public void ResetFlashlightState()
+        public void ResetFlashlightState(bool clearDreadModifiers = false)
         {
             flashlightEnabled = false;
+
+            if (clearDreadModifiers)
+            {
+                ResetDreadRuntimeModifiersForEditor();
+            }
+        }
+
+        public void ResetForRespawn()
+        {
+            ResetFlashlightState(clearDreadModifiers: true);
         }
 
         public bool IsPointInsideFlashlight(Vector2 point)

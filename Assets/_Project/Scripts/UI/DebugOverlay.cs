@@ -373,6 +373,8 @@ namespace LostBreadcrumbs.Runtime.UI
                 GUILayout.Label($"Readability Pressure N/S/F: {readabilityDirector.CurrentNearbyThreat:0.00}/{readabilityDirector.CurrentStagePressure:0.00}/{readabilityDirector.CurrentReadabilityPressure:0.00}");
                 GUILayout.Label($"Readability Preset/Enemies: {readabilityDirector.LastPresetLabel}/{readabilityDirector.LastEnemySampleCount}");
                 GUILayout.Label($"Readability Art/PulseCD: {(readabilityDirector.RuntimeArtGradeEnabled ? "On" : "Off")}/{readabilityDirector.ThreatPulseCooldownRemaining:0.00}s");
+                GUILayout.Label($"Readability Tunnel/Close: {readabilityDirector.CurrentThreatTunnelVision:0.00}/{readabilityDirector.CurrentCloseThreatDistance:0.0}m -> cam {readabilityDirector.CurrentCameraTargetOrthoSize:0.00}");
+                GUILayout.Label($"Readability BreathSnap: strain={readabilityDirector.CurrentQuietBreathStrain:0.00} cd={readabilityDirector.BreathSnapCooldownRemaining:0.00}s");
                 if (readabilityDirector.HasBaseCameraOrthoSize)
                 {
                     GUILayout.Label($"Readability Camera BaseSize: {readabilityDirector.BaseCameraOrthoSize:0.00}");
@@ -398,6 +400,10 @@ namespace LostBreadcrumbs.Runtime.UI
                 GUILayout.Label($"Exhausted: {(playerController.IsExhausted ? "Yes" : "No")}");
                 GUILayout.Label($"Stamina: {playerController.CurrentStamina:0.00}/{playerController.MaxStamina:0.00}");
                 GUILayout.Label($"Move Speed: {playerController.CurrentMoveSpeed:0.00}");
+                GUILayout.Label($"Quiet Breath: {playerController.TemporaryNoiseDampeningRemaining:0.00}s {(playerController.IsTemporaryNoiseDampeningStrained ? $"strain x{playerController.TemporaryNoiseSprintDecayMultiplier:0.00}" : "calm")}");
+                GUILayout.Label($"Noise Foot/Sprint: {playerController.EffectiveFootstepNoiseMultiplier:0.00}/{playerController.EffectiveSprintNoiseMultiplier:0.00}");
+                GUILayout.Label($"Echo Scan: total={playerController.LastEchoObjectiveScanCount}, choice={playerController.LastEchoObjectiveChoiceScanCount}, primary={(playerController.LastEchoObjectivePrimaryWasExit ? "Exit" : "Breadcrumb")}, status={playerController.EchoObjectiveScanStatusRemaining:0.00}s");
+                GUILayout.Label($"Position Safety: {playerController.UnsafePositionRecoveryCount} recoveries, watch {playerController.UnsafePositionRecoveryWindowRemaining:0.00}s");
             }
 
             if (runLoadout != null)
@@ -437,7 +443,9 @@ namespace LostBreadcrumbs.Runtime.UI
             {
                 GUILayout.Label($"Pulse Ready: {(pulseAbility.IsReady ? "Yes" : "No")}");
                 GUILayout.Label($"Pulse Cooldown: {pulseAbility.CooldownRemaining:0.00}s");
+                GUILayout.Label($"Pulse Resonance: {(pulseAbility.IsEchoResonating ? "On" : "Off")} {pulseAbility.EchoResonanceRemaining:0.00}s");
                 GUILayout.Label($"Pulse Last Stun Count: {pulseAbility.LastStunnedCount}");
+                GUILayout.Label($"Pulse Last Return: {pulseAbility.LastEchoReturnThreatCount} / {pulseAbility.LastEchoReturnDistance:0.00}m warn={pulseAbility.EchoReturnWarningRemaining:0.00}s");
                 GUILayout.Label($"Pulse Last Noise Scale: {pulseAbility.LastNoiseScale:0.00}");
             }
 
@@ -488,6 +496,8 @@ namespace LostBreadcrumbs.Runtime.UI
             GUILayout.Label($"Stun Remaining: {target.StunRemaining:0.00}s");
             GUILayout.Label($"Stun Count: {target.StunCount}");
             GUILayout.Label($"Target Point: {(target.HasCurrentTarget ? target.CurrentTargetPoint.ToString("F2") : "none")}");
+            GUILayout.Label($"Move Recovery: {target.MovementRecoveryCount} total / {target.MovementOverlapRecoveryCount} overlap ({target.LastMovementRecoveryReason})");
+            GUILayout.Label($"Move Stuck: {target.MovementStuckElapsed:0.00}s R={(target.HasMovementRecoveryWaypoint ? "Y" : "N")} S={(target.HasMovementSteeringWaypoint ? "Y" : "N")}");
             GUILayout.Label($"Predicted Escape: {target.LastPredictedEscape}");
             GUILayout.Label($"Hotspots: {target.DebugMemorySummary}");
 

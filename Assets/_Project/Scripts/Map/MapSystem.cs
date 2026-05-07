@@ -119,16 +119,22 @@ namespace LostBreadcrumbs.Runtime.Systems
 
         [Header("Integration")]
         [SerializeField] private bool movePlayerToStartOnGenerate = true;
+        [SerializeField] private bool resolveSafePlayerSpawn = true;
+        [SerializeField, Min(0.05f)] private float playerSpawnClearanceRadius = 0.38f;
+        [SerializeField, Min(0.05f)] private float playerSpawnSearchStep = 0.35f;
+        [SerializeField, Range(1, 8)] private int playerSpawnSearchRings = 5;
+        [SerializeField, Min(0f)] private float playerSpawnCellInset = 0.42f;
+        [SerializeField] private LayerMask playerSpawnBlockerMask = ~0;
+        [SerializeField] private bool playerSpawnGeneratedBlockersOnly = true;
         [SerializeField] private bool updateFogBounds = true;
         [SerializeField, Min(0f)] private float fogPadding = 5f;
         [SerializeField] private FogOfWarSystem fogSystem;
-
         [Header("Camera Fit")]
         [SerializeField] private bool autoFitCameraOnGenerate = true;
         [SerializeField] private Camera targetCamera;
-        [SerializeField, Min(0f)] private float cameraFitPadding = 3f;
-        [SerializeField, Min(1f)] private float minOrthographicSize = 7f;
-        [SerializeField, Min(1f)] private float maxOrthographicSize = 16f;
+        [SerializeField, Min(0f)] private float cameraFitPadding = 1.25f;
+        [SerializeField, Min(1f)] private float minOrthographicSize = 4.25f;
+        [SerializeField, Min(1f)] private float maxOrthographicSize = 5.75f;
         [SerializeField] private bool applyCameraBoundsToFollow = true;
         [SerializeField, Min(0f)] private float cameraFollowBoundsPadding = 0.45f;
 
@@ -145,6 +151,9 @@ namespace LostBreadcrumbs.Runtime.Systems
         private int lastArchetypeHookCount;
         private int lastRiskTileColliderCount;
         private int lastFallbackVisibleColliderCount;
+        private bool lastPlayerSpawnAdjusted;
+        private bool lastPlayerSpawnUsedBlockedFallback;
+        private Vector3 lastPlayerSpawnPosition;
         private bool loggedRiskFloorVisibilityGuard;
         private float lastHookStagePressure01;
         private float lastHookChanceMultiplier = 1f;
@@ -155,6 +164,7 @@ namespace LostBreadcrumbs.Runtime.Systems
         private Vector2 lastGeneratedWorldCenter;
         private Vector2 lastGeneratedWorldSize = new(10f, 10f);
         private int currentStageVariantSalt;
+        private readonly Collider2D[] playerSpawnOverlapHits = new Collider2D[24];
 
         private static readonly Vector2Int[] CardinalDirections =
         {
@@ -174,6 +184,9 @@ namespace LostBreadcrumbs.Runtime.Systems
         public int LastArchetypeHookCount => lastArchetypeHookCount;
         public int LastRiskTileColliderCount => lastRiskTileColliderCount;
         public int LastFallbackVisibleColliderCount => lastFallbackVisibleColliderCount;
+        public bool LastPlayerSpawnAdjusted => lastPlayerSpawnAdjusted;
+        public bool LastPlayerSpawnUsedBlockedFallback => lastPlayerSpawnUsedBlockedFallback;
+        public Vector3 LastPlayerSpawnPosition => lastPlayerSpawnPosition;
         public float LastHookStagePressure01 => lastHookStagePressure01;
         public float LastHookChanceMultiplier => lastHookChanceMultiplier;
         public float LastHookLoudnessMultiplier => lastHookLoudnessMultiplier;
@@ -243,6 +256,13 @@ namespace LostBreadcrumbs.Runtime.Systems
             targetCamera = cameraRef;
         }
 
+        public void ConfigureCameraFitForEditor(float padding, float minSize, float maxSize)
+        {
+            cameraFitPadding = Mathf.Max(0f, padding);
+            minOrthographicSize = Mathf.Max(1f, minSize);
+            maxOrthographicSize = Mathf.Max(minOrthographicSize, maxSize);
+        }
+
         public void ForceFogReset()
         {
             if (fogSystem == null)
@@ -258,6 +278,30 @@ namespace LostBreadcrumbs.Runtime.Systems
             {
                 fogSystem.ResetFogToHidden();
             }
+        }
+
+        public bool TryGetSafePlayerStartPosition(Transform playerTransform, out Vector3 position)
+        {
+            position = playerTransform != null ? playerTransform.position : Vector3.zero;
+            if (lastGeneratedCells.Count == 0 || config == null)
+            {
+                return false;
+            }
+
+            return TryResolveSafePlayerSpawnPosition(lastGeneratedCells, playerTransform, out position);
+        }
+
+        public bool TryResolveSafePlayerPosition(Vector3 preferredPosition, Transform playerTransform, out Vector3 position)
+        {
+            position = preferredPosition;
+            if (lastGeneratedCells.Count == 0 || config == null)
+            {
+                return false;
+            }
+
+            float z = playerTransform != null ? playerTransform.position.z : preferredPosition.z;
+            preferredPosition.z = z;
+            return TryResolveSafePlayerPosition(lastGeneratedCells, preferredPosition, playerTransform, out position);
         }
 
         [ContextMenu("Generate Current Stage")]
@@ -1421,19 +1465,262 @@ namespace LostBreadcrumbs.Runtime.Systems
                 return;
             }
 
-            GeneratedMapCell spawnCell = cells[0];
+            Vector3 position = ToWorld(cells[0].position);
+            position.z = player.transform.position.z;
+            if (!TryResolveSafePlayerSpawnPosition(cells, player.transform, out position))
+            {
+                position.z = player.transform.position.z;
+            }
+
+            player.transform.position = position;
+        }
+
+        private bool TryResolveSafePlayerSpawnPosition(
+            IReadOnlyList<GeneratedMapCell> cells,
+            Transform playerTransform,
+            out Vector3 position)
+        {
+            position = playerTransform != null ? playerTransform.position : Vector3.zero;
+            lastPlayerSpawnAdjusted = false;
+            lastPlayerSpawnUsedBlockedFallback = false;
+
+            if (cells == null || cells.Count == 0 || config == null)
+            {
+                return false;
+            }
+
+            if (!TryFindStartCell(cells, out GeneratedMapCell spawnCell))
+            {
+                spawnCell = cells[0];
+            }
+
+            float z = playerTransform != null ? playerTransform.position.z : position.z;
+            Vector3 preferred = ToWorld(spawnCell.position);
+            preferred.z = z;
+
+            return TryResolveSafePlayerPosition(cells, preferred, playerTransform, out position);
+        }
+
+        private bool TryResolveSafePlayerPosition(
+            IReadOnlyList<GeneratedMapCell> cells,
+            Vector3 preferred,
+            Transform playerTransform,
+            out Vector3 position)
+        {
+            position = preferred;
+            lastPlayerSpawnAdjusted = false;
+            lastPlayerSpawnUsedBlockedFallback = false;
+
+            if (cells == null || cells.Count == 0 || config == null)
+            {
+                return false;
+            }
+
+            float z = playerTransform != null ? playerTransform.position.z : preferred.z;
+            preferred.z = z;
+
+            if (!resolveSafePlayerSpawn)
+            {
+                lastPlayerSpawnPosition = preferred;
+                position = preferred;
+                return true;
+            }
+
+            HashSet<Vector2Int> occupied = BuildOccupiedCellSet(cells);
+            if (TryFindSafePlayerSpawnCandidate(preferred, occupied, playerTransform, out Vector3 safePosition))
+            {
+                safePosition.z = z;
+                lastPlayerSpawnAdjusted = ((Vector2)safePosition - (Vector2)preferred).sqrMagnitude > 0.0001f;
+                lastPlayerSpawnPosition = safePosition;
+                position = safePosition;
+                return true;
+            }
+
+            lastPlayerSpawnUsedBlockedFallback = IsPlayerSpawnBlocked(preferred, playerTransform);
+            lastPlayerSpawnPosition = preferred;
+            position = preferred;
+            return true;
+        }
+
+        private bool TryFindStartCell(IReadOnlyList<GeneratedMapCell> cells, out GeneratedMapCell startCell)
+        {
+            startCell = default;
+            if (cells == null || cells.Count == 0)
+            {
+                return false;
+            }
+
+            startCell = cells[0];
             for (int i = 0; i < cells.Count; i++)
             {
                 if (cells[i].kind == MapCellKind.Start)
                 {
-                    spawnCell = cells[i];
-                    break;
+                    startCell = cells[i];
+                    return true;
                 }
             }
 
-            Vector3 position = ToWorld(spawnCell.position);
-            position.z = player.transform.position.z;
-            player.transform.position = position;
+            return false;
+        }
+
+        private bool TryFindSafePlayerSpawnCandidate(
+            Vector3 preferred,
+            HashSet<Vector2Int> occupied,
+            Transform playerTransform,
+            out Vector3 safePosition)
+        {
+            safePosition = preferred;
+
+            if (IsInsideGeneratedWalkableCell(preferred, occupied) && !IsPlayerSpawnBlocked(preferred, playerTransform))
+            {
+                return true;
+            }
+
+            float step = Mathf.Max(0.05f, playerSpawnSearchStep);
+            int rings = Mathf.Clamp(playerSpawnSearchRings, 1, 8);
+            float bestDistanceSqr = float.PositiveInfinity;
+            bool found = false;
+
+            for (int ring = 1; ring <= rings; ring++)
+            {
+                for (int x = -ring; x <= ring; x++)
+                {
+                    for (int y = -ring; y <= ring; y++)
+                    {
+                        if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != ring)
+                        {
+                            continue;
+                        }
+
+                        Vector3 candidate = preferred + new Vector3(x * step, y * step, 0f);
+                        if (!IsInsideGeneratedWalkableCell(candidate, occupied) || IsPlayerSpawnBlocked(candidate, playerTransform))
+                        {
+                            continue;
+                        }
+
+                        float distanceSqr = ((Vector2)candidate - (Vector2)preferred).sqrMagnitude;
+                        if (distanceSqr < bestDistanceSqr)
+                        {
+                            bestDistanceSqr = distanceSqr;
+                            safePosition = candidate;
+                            found = true;
+                        }
+                    }
+                }
+
+                if (found)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsInsideGeneratedWalkableCell(Vector3 worldPosition, HashSet<Vector2Int> occupied)
+        {
+            if (occupied == null || occupied.Count == 0 || config == null)
+            {
+                return false;
+            }
+
+            float cellSize = Mathf.Max(0.1f, config.cellSize);
+            Vector2Int cell = new(
+                Mathf.RoundToInt(worldPosition.x / cellSize),
+                Mathf.RoundToInt(worldPosition.y / cellSize));
+
+            if (!occupied.Contains(cell))
+            {
+                return false;
+            }
+
+            Vector2 center = ToWorld(cell);
+            float halfCell = cellSize * 0.5f;
+            float inset = Mathf.Clamp(
+                Mathf.Max(playerSpawnCellInset, playerSpawnClearanceRadius),
+                0f,
+                Mathf.Max(0f, halfCell - 0.02f));
+            Vector2 delta = (Vector2)worldPosition - center;
+            return Mathf.Abs(delta.x) <= halfCell - inset && Mathf.Abs(delta.y) <= halfCell - inset;
+        }
+
+        private bool IsPlayerSpawnBlocked(Vector3 worldPosition, Transform playerTransform)
+        {
+            float radius = Mathf.Max(0.05f, playerSpawnClearanceRadius);
+            ContactFilter2D filter = new()
+            {
+                useLayerMask = true,
+                layerMask = playerSpawnBlockerMask,
+                useTriggers = false
+            };
+            int hitCount = Physics2D.OverlapCircle(worldPosition, radius, filter, playerSpawnOverlapHits);
+            if (hitCount <= 0)
+            {
+                return false;
+            }
+
+            int safeHitCount = Mathf.Min(hitCount, playerSpawnOverlapHits.Length);
+            for (int i = 0; i < safeHitCount; i++)
+            {
+                Collider2D hit = playerSpawnOverlapHits[i];
+                if (hit == null || hit.isTrigger)
+                {
+                    continue;
+                }
+
+                if (playerTransform != null && (hit.transform == playerTransform || hit.transform.IsChildOf(playerTransform)))
+                {
+                    continue;
+                }
+
+                if (!IsPlayerSpawnBlockingCollider(hit))
+                {
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool IsPlayerSpawnBlockingCollider(Collider2D collider)
+        {
+            if (collider == null)
+            {
+                return false;
+            }
+
+            if (!playerSpawnGeneratedBlockersOnly)
+            {
+                return true;
+            }
+
+            Transform hitTransform = collider.transform;
+            return IsChildOfRoot(hitTransform, generatedWallRoot)
+                   || IsChildOfRoot(hitTransform, generatedOccluderRoot)
+                   || IsChildOfRoot(hitTransform, generatedRoot);
+        }
+
+        private static HashSet<Vector2Int> BuildOccupiedCellSet(IReadOnlyList<GeneratedMapCell> cells)
+        {
+            HashSet<Vector2Int> occupied = new();
+            if (cells == null)
+            {
+                return occupied;
+            }
+
+            for (int i = 0; i < cells.Count; i++)
+            {
+                occupied.Add(cells[i].position);
+            }
+
+            return occupied;
+        }
+
+        private static bool IsChildOfRoot(Transform target, Transform root)
+        {
+            return target != null && root != null && (target == root || target.IsChildOf(root));
         }
 
         private void UpdateFogBounds(List<GeneratedMapCell> cells)

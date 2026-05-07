@@ -36,10 +36,10 @@ namespace LostBreadcrumbs.Runtime.AI
         [Min(0f)] public float resumeDelaySeconds = 1f;
 
         [Header("Motion")]
-        [Min(0.1f)] public float patrolSpeed = 1.6f;
-        [Min(0.1f)] public float investigateSpeed = 2.1f;
-        [Min(0.1f)] public float chaseSpeed = 2.9f;
-        [Min(0.1f)] public float returnSpeed = 2.2f;
+        [Min(0.1f)] public float patrolSpeed = 1.45f;
+        [Min(0.1f)] public float investigateSpeed = 1.9f;
+        [Min(0.1f)] public float chaseSpeed = 2.65f;
+        [Min(0.1f)] public float returnSpeed = 2f;
 
         [Header("Learning")]
         [Min(0.01f)] public float memoryDecayPerSecond = 0.03f;
