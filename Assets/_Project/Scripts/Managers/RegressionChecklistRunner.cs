@@ -168,6 +168,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private SaveManager saveManager;
         [SerializeField] private NoiseManager noiseManager;
         [SerializeField] private StagePressureDirector pressureDirector;
+        [SerializeField] private GameplayRhythmDirector rhythmDirector;
         [SerializeField] private ThreatReadabilityDirector readabilityDirector;
         [SerializeField] private EnemySpawnDirector enemySpawnDirector;
         [SerializeField] private RunLoadoutDirector runLoadoutDirector;
@@ -699,6 +700,7 @@ namespace LostBreadcrumbs.Runtime.Managers
                 AddResult("Refs.MapSystem", mapSystem != null, mapSystem != null ? "ok" : "missing");
                 AddResult("Refs.PlayerVitals", playerVitals != null, playerVitals != null ? "ok" : "missing");
                 AddResult("Refs.Pressure", pressureDirector != null, pressureDirector != null ? "ok" : "missing");
+                AddResult("Refs.Rhythm", rhythmDirector != null, rhythmDirector != null ? "ok" : "missing");
                 AddResult("Refs.Readability", readabilityDirector != null, readabilityDirector != null ? "ok" : "missing");
 
                 int hooksAcrossRegressionStages = 0;
@@ -718,6 +720,7 @@ namespace LostBreadcrumbs.Runtime.Managers
                 yield return RunObjectiveLoopContractCheck();
                 RunFeedbackFeatureWiringCheck(hooksAcrossRegressionStages);
                 yield return RunPressureScalingCheck();
+                RunRhythmDesignContractCheck();
                 yield return RunPresetStageMatrixCheck();
                 yield return RunChaseReadabilityRegressionCheck();
                 yield return RunDeathResetCheck();
@@ -745,6 +748,8 @@ namespace LostBreadcrumbs.Runtime.Managers
         private IEnumerator RunReleaseCandidateSoakRoutine()
         {
             isSoakRunning = true;
+            bool wasRegressionRunActive = IsRegressionRunActive;
+            IsRegressionRunActive = true;
             soakRunCount++;
             currentSoakResults.Clear();
             lastSoakDetailedReportFilePath = "none";
@@ -753,6 +758,8 @@ namespace LostBreadcrumbs.Runtime.Managers
             SaveManager.RuntimeDiskWriteSuppressionScope diskWriteScope = default;
             bool suppressionPushed = false;
             bool diskWriteSuppressionPushed = false;
+            SaveManager.RuntimeSaveSnapshot saveSnapshot = default;
+            bool shouldRestoreSaveSnapshot = false;
 
             try
             {
@@ -771,9 +778,11 @@ namespace LostBreadcrumbs.Runtime.Managers
                 ResolveReferences();
 
                 RuntimeSnapshot runtimeSnapshot = CaptureRuntimeSnapshot();
-                SaveManager.RuntimeSaveSnapshot saveSnapshot = saveManager != null
-                    ? saveManager.CaptureRuntimeSaveSnapshotForRuntime()
-                    : default;
+                if (saveManager != null)
+                {
+                    saveSnapshot = saveManager.CaptureRuntimeSaveSnapshotForRuntime();
+                    shouldRestoreSaveSnapshot = saveSnapshot.IsValid;
+                }
 
                 AddSoakResult("ReleaseSoak.Enabled", enableReleaseCandidateSoakPass, enableReleaseCandidateSoakPass ? "enabled" : "disabled");
                 if (!enableReleaseCandidateSoakPass)
@@ -856,7 +865,8 @@ namespace LostBreadcrumbs.Runtime.Managers
                     bool expectedFlashlight = visibilitySource != null && visibilitySource.FlashlightEnabled;
                     int expectedHealth = playerVitals != null ? playerVitals.CurrentHealth : 0;
 
-                    bool savePass = saveManager.SaveCheckpoint($"ReleaseSoak.Iter{runIndex}.Save");
+                    bool savePass = RunWithRegressionSaveMutationAllowed(
+                        () => saveManager.SaveCheckpoint($"ReleaseSoak.Iter{runIndex}.Save"));
                     AddSoakResult(
                         $"ReleaseSoak.I{runIndex}.Save",
                         savePass,
@@ -877,13 +887,18 @@ namespace LostBreadcrumbs.Runtime.Managers
                         playerVitals.ApplySavedVitals(Mathf.Max(1, playerVitals.MaxHealth - 1), playerVitals.DeathCount);
                     }
 
-                    bool loadPass = saveManager.TryLoadCheckpointToRuntime($"ReleaseSoak.Iter{runIndex}.Load");
+                    PrimeUnsavedTransientStateForSaveLoadRegression();
+
+                    bool loadPass = RunWithRegressionSaveMutationAllowed(
+                        () => saveManager.TryLoadCheckpointToRuntime($"ReleaseSoak.Iter{runIndex}.Load"));
+                    yield return WaitSettle();
                     yield return WaitSettle();
 
                     int loadedStage = Mathf.Max(1, mapSystem.CurrentStage);
                     float loadedStamina = playerController != null ? playerController.StaminaNormalized : expectedStamina;
                     bool loadedFlashlight = visibilitySource != null && visibilitySource.FlashlightEnabled;
                     int loadedHealth = playerVitals != null ? playerVitals.CurrentHealth : expectedHealth;
+                    bool loadTransientResetPass = VerifyUnsavedTransientStateCleared(out string loadTransientDetail);
 
                     bool loadStagePass = loadPass && loadedStage == expectedStage;
                     bool loadStatePass = loadPass
@@ -903,6 +918,10 @@ namespace LostBreadcrumbs.Runtime.Managers
                         $"ReleaseSoak.I{runIndex}.LoadState",
                         loadStatePass,
                         $"stamina={loadedStamina:0.00}/{expectedStamina:0.00}, flash={loadedFlashlight}/{expectedFlashlight}, hp={loadedHealth}/{expectedHealth}");
+                    AddSoakResult(
+                        $"ReleaseSoak.I{runIndex}.LoadTransientReset",
+                        loadPass && loadTransientResetPass,
+                        loadTransientDetail);
 
                     if (releaseSoakRunDeathResetEachIteration)
                     {
@@ -910,16 +929,24 @@ namespace LostBreadcrumbs.Runtime.Managers
                     }
 
                     int totalRunsBefore = saveManager.TotalRuns;
-                    saveManager.BeginNewRun(incrementRunCounter: false, resetRuntimeStage: true, reason: $"ReleaseSoak.Iter{runIndex}.NewRun");
+                    PrimeUnsavedTransientStateForSaveLoadRegression();
+                    RunWithRegressionSaveMutationAllowed(
+                        () => saveManager.BeginNewRun(incrementRunCounter: false, resetRuntimeStage: true, reason: $"ReleaseSoak.Iter{runIndex}.NewRun"));
+                    yield return WaitSettle();
                     yield return WaitSettle();
 
                     bool checkpointClearedPass = !saveManager.HasCheckpoint;
                     bool stageResetPass = mapSystem.CurrentStage <= 1;
                     bool runCounterStablePass = saveManager.TotalRuns == totalRunsBefore;
+                    bool newRunTransientResetPass = VerifyUnsavedTransientStateCleared(out string newRunTransientDetail);
                     AddSoakResult(
                         $"ReleaseSoak.I{runIndex}.NewRun",
                         checkpointClearedPass && stageResetPass && runCounterStablePass,
                         $"checkpoint={saveManager.HasCheckpoint}, stage={mapSystem.CurrentStage}, runs={saveManager.TotalRuns}/{totalRunsBefore}");
+                    AddSoakResult(
+                        $"ReleaseSoak.I{runIndex}.NewRunTransientReset",
+                        newRunTransientResetPass,
+                        newRunTransientDetail);
 
                     if (releaseSoakRunMatrixEachIteration)
                     {
@@ -938,6 +965,10 @@ namespace LostBreadcrumbs.Runtime.Managers
                     "ReleaseSoak.RestoreSaveState",
                     saveRestorePass,
                     saveRestorePass ? "runtime save snapshot restored" : "runtime save snapshot restore failed");
+                if (saveRestorePass)
+                {
+                    shouldRestoreSaveSnapshot = false;
+                }
 
                 yield return RestoreRuntimeSnapshot(runtimeSnapshot);
 
@@ -945,6 +976,11 @@ namespace LostBreadcrumbs.Runtime.Managers
             }
             finally
             {
+                if (shouldRestoreSaveSnapshot && saveManager != null)
+                {
+                    saveManager.RestoreRuntimeSaveSnapshotForRuntime(saveSnapshot);
+                }
+
                 if (suppressionPushed)
                 {
                     suppressionScope.Dispose();
@@ -956,6 +992,35 @@ namespace LostBreadcrumbs.Runtime.Managers
                 }
 
                 isSoakRunning = false;
+                IsRegressionRunActive = wasRegressionRunActive;
+            }
+        }
+
+        private static bool RunWithRegressionSaveMutationAllowed(Func<bool> action)
+        {
+            bool wasRegressionRunActive = IsRegressionRunActive;
+            IsRegressionRunActive = false;
+            try
+            {
+                return action != null && action();
+            }
+            finally
+            {
+                IsRegressionRunActive = wasRegressionRunActive;
+            }
+        }
+
+        private static void RunWithRegressionSaveMutationAllowed(Action action)
+        {
+            bool wasRegressionRunActive = IsRegressionRunActive;
+            IsRegressionRunActive = false;
+            try
+            {
+                action?.Invoke();
+            }
+            finally
+            {
+                IsRegressionRunActive = wasRegressionRunActive;
             }
         }
 
@@ -1027,6 +1092,61 @@ namespace LostBreadcrumbs.Runtime.Managers
                 $"ReleaseSoak.I{runIndex}.DeathReset",
                 pass,
                 $"damaged={damaged}, deaths={deathBefore}->{playerVitals.DeathCount}, hp={playerVitals.CurrentHealth}/{playerVitals.MaxHealth}, flash={(visibilitySource != null ? visibilitySource.FlashlightEnabled.ToString() : "n/a")}, flashToggle={flashlightToggleAfterRespawn}, pulseFx={pulseTransientReset}");
+        }
+
+        private void PrimeUnsavedTransientStateForSaveLoadRegression()
+        {
+            playerController?.ApplyTemporaryNoiseDampeningForRuntime(0.25f, 0.25f, 3f);
+
+            if (concealmentState != null)
+            {
+                concealmentState.ResetConcealment();
+                concealmentState.EnterSafeHaven();
+            }
+
+            if (pulseAbility != null)
+            {
+                pulseAbility.ResetAbilityState(clearActiveVisuals: true);
+                pulseAbility.SetCooldownRemainingForRuntime(0f);
+                pulseAbility.TryCastPulse();
+                pulseAbility.SetCooldownRemainingForRuntime(2f);
+            }
+
+            if (decoyAbility != null)
+            {
+                decoyAbility.ResetAbilityState(clearActiveDecoys: true);
+                decoyAbility.SetCooldownRemainingForRuntime(0f);
+                decoyAbility.TryDeployDecoy();
+                decoyAbility.SetCooldownRemainingForRuntime(2f);
+            }
+
+            if (smokeAbility != null)
+            {
+                smokeAbility.ResetAbilityState(clearActiveSmokes: true);
+                smokeAbility.SetCooldownRemainingForRuntime(0f);
+                smokeAbility.TryDeploySmoke();
+                smokeAbility.SetCooldownRemainingForRuntime(2f);
+            }
+        }
+
+        private bool VerifyUnsavedTransientStateCleared(out string detail)
+        {
+            bool quietBreathReset = playerController == null || playerController.TemporaryNoiseDampeningRemaining <= 0.05f;
+            bool concealmentReset = concealmentState == null || !concealmentState.IsConcealedFromEnemies;
+            bool pulseReset = pulseAbility == null || (pulseAbility.CooldownRemaining <= 0.05f && !pulseAbility.HasActiveEchoRuntimeEffects);
+            bool decoyReset = decoyAbility == null || (decoyAbility.CooldownRemaining <= 0.05f && decoyAbility.ActiveDecoyCount == 0);
+            bool smokeReset = smokeAbility == null || (smokeAbility.CooldownRemaining <= 0.05f && smokeAbility.ActiveSmokeCount == 0);
+            string dreadDetail = visibilitySource != null
+                ? $"{visibilitySource.RuntimeDreadFlashlightRangeMultiplier:0.00}/{visibilitySource.RuntimeDreadFlashlightAngleMultiplier:0.00}"
+                : "n/a";
+
+            detail =
+                $"quiet={quietBreathReset}, concealed={concealmentReset}, dread={dreadDetail}, pulse={pulseReset}, decoy={decoyReset}, smoke={smokeReset}";
+            return quietBreathReset
+                   && concealmentReset
+                   && pulseReset
+                   && decoyReset
+                   && smokeReset;
         }
 
         private RuntimeSnapshot CaptureRuntimeSnapshot()
@@ -1450,6 +1570,18 @@ namespace LostBreadcrumbs.Runtime.Managers
                 "Objective.NextBreadcrumbTarget",
                 nextBreadcrumbPass,
                 $"required={required}, active={initialActive}, target={(nextTargetOk ? (nextTargetIsExit ? "exit" : "breadcrumb") : "none")}, nearest={nearestDistance:0.00}m, drift={(float.IsInfinity(targetDrift) ? "n/a" : targetDrift.ToString("0.00"))}");
+
+            Vector3 farOrigin = origin + new Vector3(999f, -997f, 0f);
+            bool farTargetOk = loop.TryGetNextObjectiveTarget(farOrigin, out _, out bool farTargetIsExit);
+            bool farTargetPass = required > 0
+                                 && initialActive > 0
+                                 && !loop.ExitUnlocked
+                                 && farTargetOk
+                                 && !farTargetIsExit;
+            AddResult(
+                "Objective.FarBreadcrumbTarget",
+                farTargetPass,
+                $"lockedExit={loop.ExitUnlocked}, target={(farTargetOk ? (farTargetIsExit ? "exit" : "breadcrumb") : "none")}, farOrigin={farOrigin.x:0.0}/{farOrigin.y:0.0}");
 
             bool echoScanStartPass = false;
             string echoScanStartDetail = "player missing";
@@ -1937,6 +2069,31 @@ namespace LostBreadcrumbs.Runtime.Managers
                 $"PresetStage {(matrixPass ? "PASS" : "FAIL")}: {passCount}/{sampleCount} | P {lastMatrixMinPressure:0.00}-{lastMatrixMaxPressure:0.00} | R {lastMatrixMinReadability:0.00}-{lastMatrixMaxReadability:0.00}";
 
             AddResult("Matrix.Overall", matrixPass, lastMatrixSummary);
+        }
+
+        private void RunRhythmDesignContractCheck()
+        {
+            ResolveReferences();
+            if (rhythmDirector == null)
+            {
+                AddResult("Rhythm.Ready", false, "missing rhythm director");
+                return;
+            }
+
+            float calm = rhythmDirector.GetPressureMultiplierForPhase(GameplayRhythmPhase.Calm);
+            float build = rhythmDirector.GetPressureMultiplierForPhase(GameplayRhythmPhase.Build);
+            float spike = rhythmDirector.GetPressureMultiplierForPhase(GameplayRhythmPhase.Spike);
+            float release = rhythmDirector.GetPressureMultiplierForPhase(GameplayRhythmPhase.Release);
+
+            bool enabledPass = rhythmDirector.RuntimeRhythmEnabled;
+            bool pressureShapePass = calm < build && build < spike && release < build && release <= calm + 0.05f;
+            bool telemetryPass = rhythmDirector.CurrentPhaseDuration >= 0.5f
+                && !string.IsNullOrWhiteSpace(rhythmDirector.CurrentPhaseLabel)
+                && !string.IsNullOrWhiteSpace(rhythmDirector.LastBeatLabel);
+
+            AddResult("Rhythm.Enabled", enabledPass, enabledPass ? "runtime rhythm enabled" : "runtime rhythm disabled");
+            AddResult("Rhythm.PressureShape", pressureShapePass, $"calm={calm:0.00}, build={build:0.00}, spike={spike:0.00}, release={release:0.00}");
+            AddResult("Rhythm.Telemetry", telemetryPass, $"phase={rhythmDirector.CurrentPhaseLabel}, beat={rhythmDirector.LastBeatLabel}, duration={rhythmDirector.CurrentPhaseDuration:0.0}s");
         }
 
         private List<int> BuildMatrixStages()
@@ -2927,6 +3084,11 @@ namespace LostBreadcrumbs.Runtime.Managers
             if (pressureDirector == null)
             {
                 pressureDirector = FindFirstObjectByType<StagePressureDirector>();
+            }
+
+            if (rhythmDirector == null)
+            {
+                rhythmDirector = FindFirstObjectByType<GameplayRhythmDirector>();
             }
 
             if (readabilityDirector == null)

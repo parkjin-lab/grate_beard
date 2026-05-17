@@ -161,7 +161,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 074524be6a843804daf9b9704f5dd1fd, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::LostBreadcrumbs.Runtime.Managers.StageManager
   logLifecycle: 0
 --- !u!1 &18103925
@@ -191,7 +191,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b06076fbe748f4d45a9e63df8ce1d48c, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::LostBreadcrumbs.Runtime.Systems.MapSystem
   isEnabledAtStart: 1
   config: {fileID: 11400000, guid: 22a3bd3008c10f945a57fcf2ba91fc61, type: 2}
@@ -1010,6 +1010,7 @@ MonoBehaviour:
   enemySpawnDirector: {fileID: 1124208772}
   runLoadoutDirector: {fileID: 2000786358}
   behaviorTelemetry: {fileID: 1105663980}
+  rhythmDirector: {fileID: 2123456702}
   applyOnStart: 1
   rebuildEnemiesOnApply: 1
   raiseRuntimeEventOnStageGenerate: 0
@@ -1025,6 +1026,7 @@ MonoBehaviour:
   lateStageBonusStartStage: 6
   lateStageBonusPeakStage: 12
   lateStagePressureBonusMax: 0.16
+  applyRhythmPressureModulation: 1
   minEnemyCountMultiplier: 1
   maxEnemyCountMultiplier: 1.62
   minRiskWeightMultiplier: 1
@@ -1049,6 +1051,71 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1276504027}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2123456700
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2123456701}
+  - component: {fileID: 2123456702}
+  m_Layer: 0
+  m_Name: GameplayRhythmDirector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2123456701
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2123456700}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1276504027}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2123456702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2123456700}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a51f4c2d7e4b4f0a9e3c1a9f7b2d6c18, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::LostBreadcrumbs.Runtime.Managers.GameplayRhythmDirector
+  mapSystem: {fileID: 18103926}
+  stagePressureDirector: {fileID: 202997919}
+  threatReadabilityDirector: {fileID: 32171233}
+  cameraFollow: {fileID: 1902111693}
+  enableRuntimeRhythm: 1
+  calmSeconds: 7.5
+  buildSeconds: 10.5
+  spikeSeconds: 3.4
+  releaseSeconds: 5.2
+  highPressureTempoBias: 0.32
+  calmPressureMultiplier: 0.78
+  buildPressureMultiplier: 1.02
+  spikePressureMultiplier: 1.2
+  releasePressureMultiplier: 0.72
+  spikePressureAdd: 0.06
+  releasePressureSubtract: 0.04
+  raiseRhythmEvents: 1
+  impulseOnSpike: 1
+  spikeCameraImpulse: 0.08
+  spikeImpulseDuration: 0.12
+  referenceResolveInterval: 0.8
 --- !u!1 &256336371
 GameObject:
   m_ObjectHideFlags: 0
@@ -2171,6 +2238,7 @@ MonoBehaviour:
   saveManager: {fileID: 0}
   noiseManager: {fileID: 0}
   pressureDirector: {fileID: 0}
+  rhythmDirector: {fileID: 0}
   readabilityDirector: {fileID: 0}
   enemySpawnDirector: {fileID: 0}
   runLoadoutDirector: {fileID: 0}
@@ -4005,6 +4073,7 @@ Transform:
   - {fileID: 1410667780}
   - {fileID: 2000786359}
   - {fileID: 202997920}
+  - {fileID: 2123456701}
   - {fileID: 32171234}
   - {fileID: 791869292}
   - {fileID: 641975591}
@@ -4163,7 +4232,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LostBreadcrumbs.Runtime.Managers.AudioDummyLoopRuntime
   audioManager: {fileID: 499996166}
-  threatReadabilityDirector: {fileID: 0}
+  threatReadabilityDirector: {fileID: 32171233}
+  gameplayRhythmDirector: {fileID: 2123456702}
   bgmSource: {fileID: 624808114}
   ambienceSource: {fileID: 1482664655}
   autoGenerateIfClipMissing: 1
@@ -4188,6 +4258,7 @@ MonoBehaviour:
   dreadLayerTensionFloor: 0.18
   dreadLayerReadabilityWeight: 0.72
   dreadLayerDuckWeight: 0.28
+  dreadLayerRhythmWeight: 0.22
   dreadLayerLowPitch: 0.78
   dreadLayerHighPitch: 0.94
   dreadLayerFadeInSpeed: 1.25

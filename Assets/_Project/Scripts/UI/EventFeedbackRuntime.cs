@@ -460,6 +460,7 @@ namespace LostBreadcrumbs.Runtime.UI
                 RuntimeEventSemantic.SafeHavenThin => new PriorityCuePayload("HAVEN THINS", new Color(0.42f, 0.08f, 0.12f, 0.9f), new Color(1f, 0.86f, 0.82f, 1f), stage),
                 RuntimeEventSemantic.PressureWave => new PriorityCuePayload("PRESSURE WAVE", new Color(0.5f, 0.04f, 0.08f, 0.9f), new Color(1f, 0.84f, 0.82f, 1f), stage),
                 RuntimeEventSemantic.SetPieceShift => new PriorityCuePayload("SET-PIECE SHIFT", new Color(0.38f, 0.22f, 0.08f, 0.9f), new Color(1f, 0.93f, 0.84f, 1f), stage),
+                RuntimeEventSemantic.RhythmShift => new PriorityCuePayload("RHYTHM SHIFT", new Color(0.28f, 0.1f, 0.18f, 0.9f), new Color(1f, 0.88f, 0.92f, 1f), stage),
                 RuntimeEventSemantic.HauntedRoom => new PriorityCuePayload("ROOM STIRS", new Color(0.22f, 0.08f, 0.1f, 0.82f), new Color(1f, 0.86f, 0.82f, 1f), stage),
                 _ => default
             };

@@ -98,6 +98,7 @@ namespace LostBreadcrumbs.EditorTools
             new("SpawnSystem", "LostBreadcrumbs.Runtime.Systems.SpawnSystem", parentNameHint: "Systems", aliasName: "Spawn System", hierarchyPathHint: "GameRoot/Systems/SpawnSystem"),
             new("ProximityManager", "LostBreadcrumbs.Runtime.Managers.ProximityManager", parentNameHint: "Managers", aliasName: "Proximity Manager", hierarchyPathHint: "GameRoot/Managers/ProximityManager"),
             new("GameManager", "LostBreadcrumbs.Runtime.Managers.GameManager", parentNameHint: "Managers", aliasName: "Game Manager", hierarchyPathHint: "GameRoot/Managers/GameManager"),
+            new("GameplayRhythmDirector", "LostBreadcrumbs.Runtime.Managers.GameplayRhythmDirector", parentNameHint: "Managers", aliasName: "StagePressureDirector", hierarchyPathHint: "GameRoot/Managers/GameplayRhythmDirector"),
             new("LearningSystem", "LostBreadcrumbs.Runtime.Systems.LearningSystem", parentNameHint: "Systems", aliasName: "Learning System", hierarchyPathHint: "GameRoot/Systems/LearningSystem"),
             new("UIFlowSystem", "LostBreadcrumbs.Runtime.Systems.UIFlowSystem", parentNameHint: "Systems", aliasName: "UI Flow System", hierarchyPathHint: "GameRoot/Systems/UIFlowSystem"),
             new("EchoSystem", "LostBreadcrumbs.Runtime.Systems.EchoSystem", parentNameHint: "Systems", aliasName: "Echo System", hierarchyPathHint: "GameRoot/Systems/EchoSystem"),
@@ -568,6 +569,7 @@ namespace LostBreadcrumbs.EditorTools
             AudioCombatDuckingDirector audioDuckingDirector = AddOrGet<AudioCombatDuckingDirector>(EnsureChild(managers, "AudioCombatDuckingDirector"));
             AudioDummyLoopRuntime audioDummyLoopRuntime = AddOrGet<AudioDummyLoopRuntime>(EnsureChild(managers, "AudioDummyLoopRuntime"));
             RunLoadoutDirector runLoadoutDirector = AddOrGet<RunLoadoutDirector>(EnsureChild(managers, "RunLoadoutDirector"));
+            GameplayRhythmDirector gameplayRhythmDirector = AddOrGet<GameplayRhythmDirector>(EnsureChild(managers, "GameplayRhythmDirector"));
             StagePressureDirector stagePressureDirector = AddOrGet<StagePressureDirector>(EnsureChild(managers, "StagePressureDirector"));
             ThreatReadabilityDirector threatReadabilityDirector = AddOrGet<ThreatReadabilityDirector>(EnsureChild(managers, "ThreatReadabilityDirector"));
             StageSetPieceDirector stageSetPieceDirector = AddOrGet<StageSetPieceDirector>(EnsureChild(managers, "StageSetPieceDirector"));
@@ -650,7 +652,7 @@ namespace LostBreadcrumbs.EditorTools
             enemySpawnDirector.SetMapSystemForEditor(mapSystem);
             enemySpawnDirector.SetRuntimeRootsForEditor(enemiesRoot.transform, playerDummy.transform);
             enemySpawnDirector.SetProfilePoolForEditor(defaultProfiles);
-            stagePressureDirector.SetReferencesForEditor(mapSystem, enemySpawnDirector, runLoadoutDirector, playerTelemetry);
+            stagePressureDirector.SetReferencesForEditor(mapSystem, enemySpawnDirector, runLoadoutDirector, playerTelemetry, gameplayRhythmDirector);
             stageSetPieceDirector.SetReferencesForEditor(mapSystem, enemySpawnDirector, setPiecesRoot.transform, stagePressureDirector, mapTuningDebug);
 
             EnsureChild(runtime, "Interactables");
@@ -696,7 +698,7 @@ namespace LostBreadcrumbs.EditorTools
             audioManager.SetDuckingSourcesForEditor(bgmDummySource, ambienceDummySource);
             audioDuckingDirector.SetAudioManagerForEditor(audioManager);
             audioDuckingDirector.SetPlayerForEditor(playerDummy.transform);
-            audioDummyLoopRuntime.SetSourcesForEditor(audioManager, bgmDummySource, ambienceDummySource);
+            audioDummyLoopRuntime.SetSourcesForEditor(audioManager, bgmDummySource, ambienceDummySource, gameplayRhythmDirector);
 
             GameObject tilemapRoot = EnsureChild(sceneRoot, "TilemapRoot");
             EnsureChild(tilemapRoot, "Ground");
@@ -710,6 +712,7 @@ namespace LostBreadcrumbs.EditorTools
             fogSystem.SetTargetForEditor(playerDummy.transform, playerVisibility);
             mapSystem.SetFogSystemForEditor(fogSystem);
             threatReadabilityDirector.SetReferencesForEditor(playerDummy.transform, playerVisibility, cameraComponent, cameraFollow, fogSystem, stagePressureDirector, mapTuningDebug, mapSystem);
+            gameplayRhythmDirector.SetReferencesForEditor(mapSystem, stagePressureDirector, threatReadabilityDirector, cameraFollow);
 
             GameObject lightingRoot = EnsureChild(sceneRoot, "LightingRoot");
             EnsureChild(lightingRoot, "GlobalLight2D");

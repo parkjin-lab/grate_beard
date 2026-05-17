@@ -187,7 +187,22 @@ namespace LostBreadcrumbs.Runtime.Map
 
         public bool TryGetNextObjectiveTarget(Vector3 origin, out Vector3 target, out bool targetIsExit)
         {
-            return TryFindBreadcrumbChainTarget(origin, ExitUnlocked, out target, out targetIsExit);
+            target = default;
+            targetIsExit = false;
+
+            if (ExitUnlocked && exitPortal != null)
+            {
+                target = exitPortal.transform.position;
+                targetIsExit = true;
+                return true;
+            }
+
+            if (TryFindNearestActiveBreadcrumbPickup(origin, out target))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         public bool TryGetNearestBreadcrumbTarget(Vector3 origin, out Vector3 target, out float distance)
@@ -1247,7 +1262,7 @@ namespace LostBreadcrumbs.Runtime.Map
                 return true;
             }
 
-            if (exitPortal != null)
+            if (ExitUnlocked && exitPortal != null)
             {
                 target = exitPortal.transform.position;
                 targetIsExit = true;

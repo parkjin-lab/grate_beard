@@ -8,12 +8,14 @@ namespace LostBreadcrumbs.Runtime.Managers
         [Header("References")]
         [SerializeField] private AudioManager audioManager;
         [SerializeField] private ThreatReadabilityDirector threatReadabilityDirector;
+        [SerializeField] private GameplayRhythmDirector gameplayRhythmDirector;
         [SerializeField] private AudioSource bgmSource;
         [SerializeField] private AudioSource ambienceSource;
 
         [Header("Behavior")]
         [SerializeField] private bool autoGenerateIfClipMissing = true;
         [SerializeField] private bool autoPlayOnStart = true;
+        [SerializeField] private bool autoPlayAssignedClips;
         [SerializeField] private bool adaptPitchWithDucking = true;
         [SerializeField] private bool forceDisableDummyLoops;
         [SerializeField, Min(0.1f)] private float missingReferenceResolveInterval = 0.8f;
@@ -40,6 +42,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Range(0f, 1f)] private float dreadLayerTensionFloor = 0.18f;
         [SerializeField, Range(0f, 1f)] private float dreadLayerReadabilityWeight = 0.72f;
         [SerializeField, Range(0f, 1f)] private float dreadLayerDuckWeight = 0.28f;
+        [SerializeField, Range(0f, 1f)] private float dreadLayerRhythmWeight = 0.22f;
         [SerializeField, Range(0.5f, 1.2f)] private float dreadLayerLowPitch = 0.78f;
         [SerializeField, Range(0.5f, 1.2f)] private float dreadLayerHighPitch = 0.94f;
         [SerializeField, Min(0.1f)] private float dreadLayerFadeInSpeed = 1.25f;
@@ -61,9 +64,10 @@ namespace LostBreadcrumbs.Runtime.Managers
         public bool IsBgmPlaying => bgmSource != null && bgmSource.isPlaying;
         public bool IsAmbiencePlaying => ambienceSource != null && ambienceSource.isPlaying;
         public bool IsDreadLayerPlaying => dreadLayerSource != null && dreadLayerSource.isPlaying;
-        public bool BgmUsingGeneratedClip => bgmSource != null && bgmSource.clip == generatedBgmClip;
-        public bool AmbienceUsingGeneratedClip => ambienceSource != null && ambienceSource.clip == generatedAmbienceClip;
+        public bool BgmUsingGeneratedClip => generatedBgmClip != null && bgmSource != null && bgmSource.clip == generatedBgmClip;
+        public bool AmbienceUsingGeneratedClip => generatedAmbienceClip != null && ambienceSource != null && ambienceSource.clip == generatedAmbienceClip;
         public float CurrentDreadLayerTension => currentDreadLayerTension;
+        public float CurrentRhythmTempo => gameplayRhythmDirector != null ? gameplayRhythmDirector.CurrentTempo01 : 0f;
         public bool ForceDisableDummyLoops => forceDisableDummyLoops;
 
         private void Awake()
@@ -97,8 +101,8 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             if (autoPlayOnStart)
             {
-                TryPlayLoop(bgmSource);
-                TryPlayLoop(ambienceSource);
+                TryPlayManagedLoop(bgmSource, generatedBgmClip);
+                TryPlayManagedLoop(ambienceSource, generatedAmbienceClip);
             }
 
             UpdateDreadLayer();
@@ -126,32 +130,41 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             if (autoPlayOnStart)
             {
-                TryPlayLoop(bgmSource);
-                TryPlayLoop(ambienceSource);
+                TryPlayManagedLoop(bgmSource, generatedBgmClip);
+                TryPlayManagedLoop(ambienceSource, generatedAmbienceClip);
             }
 
             if (adaptPitchWithDucking && audioManager != null)
             {
                 float duck = audioManager.EffectiveDuck;
+                float rhythmTempo = CurrentRhythmTempo;
                 if (bgmSource != null)
                 {
-                    bgmSource.pitch = Mathf.Lerp(1f, 1.06f, duck);
+                    bgmSource.pitch = Mathf.Lerp(1f, 1.06f, duck) * Mathf.Lerp(0.97f, 1.04f, rhythmTempo);
                 }
 
                 if (ambienceSource != null)
                 {
-                    ambienceSource.pitch = Mathf.Lerp(1f, 0.96f, duck);
+                    ambienceSource.pitch = Mathf.Lerp(1f, 0.96f, duck) * Mathf.Lerp(0.99f, 0.94f, rhythmTempo);
                 }
             }
 
             UpdateDreadLayer();
         }
 
-        public void SetSourcesForEditor(AudioManager manager, AudioSource bgm, AudioSource ambience)
+        public void SetSourcesForEditor(
+            AudioManager manager,
+            AudioSource bgm,
+            AudioSource ambience,
+            GameplayRhythmDirector rhythmDirector = null)
         {
             audioManager = manager;
             bgmSource = bgm;
             ambienceSource = ambience;
+            if (rhythmDirector != null)
+            {
+                gameplayRhythmDirector = rhythmDirector;
+            }
         }
 
         public void SetForceDisableDummyLoopsForEditor(bool forceDisable)
@@ -341,17 +354,23 @@ namespace LostBreadcrumbs.Runtime.Managers
                 ? threatReadabilityDirector.CurrentReadabilityPressure
                 : 0f;
             float duckPressure = audioManager != null ? audioManager.EffectiveDuck : 0f;
+            float rhythmPressure = gameplayRhythmDirector != null ? gameplayRhythmDirector.CurrentRhythmIntensity : 0f;
 
             float readabilityWeight = Mathf.Clamp01(dreadLayerReadabilityWeight);
             float duckWeight = Mathf.Clamp01(dreadLayerDuckWeight);
-            float totalWeight = readabilityWeight + duckWeight;
+            float rhythmWeight = Mathf.Clamp01(dreadLayerRhythmWeight);
+            float totalWeight = readabilityWeight + duckWeight + rhythmWeight;
 
             if (totalWeight <= 0.0001f)
             {
                 return 0f;
             }
 
-            return Mathf.Clamp01(((readabilityPressure * readabilityWeight) + (duckPressure * duckWeight)) / totalWeight);
+            return Mathf.Clamp01(
+                ((readabilityPressure * readabilityWeight)
+                    + (duckPressure * duckWeight)
+                    + (rhythmPressure * rhythmWeight))
+                / totalWeight);
         }
 
         private float EvaluateDreadLayerAudibility(float tension)
@@ -365,13 +384,19 @@ namespace LostBreadcrumbs.Runtime.Managers
             return Mathf.SmoothStep(0f, 1f, audibility);
         }
 
-        private static void TryPlayLoop(AudioSource source)
+        private void TryPlayManagedLoop(AudioSource source, AudioClip generatedClip)
         {
             if (source == null || source.clip == null || source.isPlaying)
             {
                 return;
             }
 
+            if (!autoPlayAssignedClips && source.clip != generatedClip)
+            {
+                return;
+            }
+
+            source.loop = true;
             source.Play();
         }
 
@@ -448,6 +473,11 @@ namespace LostBreadcrumbs.Runtime.Managers
                     : FindFirstObjectByType<AudioManager>();
             }
 
+            if (gameplayRhythmDirector == null)
+            {
+                gameplayRhythmDirector = FindFirstObjectByType<GameplayRhythmDirector>();
+            }
+
             if (bgmSource == null || ambienceSource == null)
             {
                 Transform root = FindAudioEmittersRoot();
@@ -496,7 +526,7 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         private void TryResolveDreadLayerRefs(bool force = false)
         {
-            if (!Application.isPlaying || threatReadabilityDirector != null)
+            if (!Application.isPlaying || (threatReadabilityDirector != null && gameplayRhythmDirector != null))
             {
                 return;
             }
@@ -511,7 +541,15 @@ namespace LostBreadcrumbs.Runtime.Managers
                 nextDreadLayerResolveTime = Time.unscaledTime + Mathf.Max(0.1f, missingReferenceResolveInterval);
             }
 
-            threatReadabilityDirector = FindFirstObjectByType<ThreatReadabilityDirector>();
+            if (threatReadabilityDirector == null)
+            {
+                threatReadabilityDirector = FindFirstObjectByType<ThreatReadabilityDirector>();
+            }
+
+            if (gameplayRhythmDirector == null)
+            {
+                gameplayRhythmDirector = FindFirstObjectByType<GameplayRhythmDirector>();
+            }
         }
 
         private bool HasAllReferences()

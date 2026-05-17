@@ -946,22 +946,22 @@ namespace LostBreadcrumbs.Runtime.AI
             float castDistance = safeDesiredDistance + safeSkin;
             bool useTriggers = !ignoreTriggerBlockers;
             int hitCount = 0;
+            ContactFilter2D filter = new()
+            {
+                useLayerMask = true,
+                layerMask = movementBlockerMask,
+                useTriggers = useTriggers
+            };
 
             if (movementBody2D != null && movementBody2D.simulated && movementBody2D.bodyType != RigidbodyType2D.Static)
             {
-                ContactFilter2D filter = new()
-                {
-                    useLayerMask = true,
-                    layerMask = movementBlockerMask,
-                    useTriggers = useTriggers
-                };
                 hitCount = movementBody2D.Cast(direction, filter, movementCastHits, castDistance);
             }
 
             if (hitCount <= 0)
             {
                 float radius = Mathf.Max(0.01f, movementCollisionRadius);
-                hitCount = Physics2D.CircleCastNonAlloc(current, radius, direction, movementCastHits, castDistance, movementBlockerMask);
+                hitCount = Physics2D.CircleCast(current, radius, direction, filter, movementCastHits, castDistance);
             }
 
             if (hitCount <= 0)

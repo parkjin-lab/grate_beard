@@ -412,6 +412,13 @@ namespace LostBreadcrumbs.Runtime.Managers
         {
             ApplyNow(Mathf.Max(0.08f, updateInterval));
         }
+
+        public void ResetTransientRuntimeStateForRuntime()
+        {
+            ResolveReferences(force: true);
+            ResetAppliedTuning();
+        }
+
         public void ApplySavedReadabilityStateForRuntime(
             float savedNearbyThreat01,
             float savedStagePressure01,

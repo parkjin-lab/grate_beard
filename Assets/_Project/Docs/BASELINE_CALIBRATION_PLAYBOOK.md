@@ -36,6 +36,8 @@ Updated: 2026-04-16
 - Hotkey: `F2` (same runner object).
 - Soak run checks repeated `Save -> mutate -> Load -> DeathReset -> NewRun -> MatrixGate`.
 - Disk write suppression is applied by default during soak, so persistent save JSON is not overwritten.
+- Runtime save mutations are temporarily allowed only inside the soak-owned save/load/new-run assertions; disk writes remain suppressed.
+- If the soak aborts early, the captured runtime save snapshot is restored from `finally`.
 - Validate in overlay: `Release Soak`, `Release Soak Detail`, `Soak Failures`.
 - In regression panel, toggle entry source with `BackQuote(\`)` to inspect `Soak` entries directly.
 - For console triage, use panel button `Soak Fail Log` (or context menu `Log Release Soak Failures`).

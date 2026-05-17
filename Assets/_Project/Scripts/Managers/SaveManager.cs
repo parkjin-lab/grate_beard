@@ -139,6 +139,10 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private PlayerVitalSystem playerVitals;
         [SerializeField] private PlayerDummyController playerController;
         [SerializeField] private PlayerVisibilitySource visibilitySource;
+        [SerializeField] private PlayerEchoPulseAbility pulseAbility;
+        [SerializeField] private PlayerDecoyAbility decoyAbility;
+        [SerializeField] private PlayerSmokeAbility smokeAbility;
+        [SerializeField] private PlayerConcealmentState concealmentState;
         [SerializeField] private PlayerBehaviorTelemetry telemetry;
         [SerializeField] private RunLoadoutDirector runLoadoutDirector;
         [SerializeField] private StagePressureDirector pressureDirector;
@@ -377,6 +381,7 @@ namespace LostBreadcrumbs.Runtime.Managers
                 }
             }
 
+            ClearUnsavedTransientRuntimeState(resetFlashlightState: true);
             pressureDirector?.ApplyPressureNow(rebuildEnemies: true, raiseEvent: false);
             readabilityDirector?.ApplyNowForEditor();
 
@@ -567,6 +572,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             }
 
             ApplySavedLoadoutToRuntime(checkpoint.selectedLoadoutId, checkpoint.unlockedLoadoutIds);
+            ClearUnsavedTransientRuntimeState(resetFlashlightState: false);
 
             bool restoredPressureSnapshot = false;
             if (checkpoint.hasPressureSnapshot)
@@ -669,6 +675,26 @@ namespace LostBreadcrumbs.Runtime.Managers
                 visibilitySource = FindFirstObjectByType<PlayerVisibilitySource>();
             }
 
+            if (pulseAbility == null)
+            {
+                pulseAbility = FindFirstObjectByType<PlayerEchoPulseAbility>();
+            }
+
+            if (decoyAbility == null)
+            {
+                decoyAbility = FindFirstObjectByType<PlayerDecoyAbility>();
+            }
+
+            if (smokeAbility == null)
+            {
+                smokeAbility = FindFirstObjectByType<PlayerSmokeAbility>();
+            }
+
+            if (concealmentState == null)
+            {
+                concealmentState = FindFirstObjectByType<PlayerConcealmentState>();
+            }
+
             if (telemetry == null)
             {
                 telemetry = FindFirstObjectByType<PlayerBehaviorTelemetry>();
@@ -709,6 +735,35 @@ namespace LostBreadcrumbs.Runtime.Managers
             }
 
             mapSystem.MapGenerated -= HandleMapGenerated;
+        }
+
+        private void ClearUnsavedTransientRuntimeState(bool resetFlashlightState)
+        {
+            ResolveReferences();
+
+            if (playerController != null)
+            {
+                playerController.ClearTemporaryNoiseDampeningForRuntime();
+            }
+
+            if (concealmentState != null)
+            {
+                concealmentState.ResetConcealment();
+            }
+
+            if (resetFlashlightState)
+            {
+                visibilitySource?.ResetFlashlightState(clearDreadModifiers: true);
+            }
+            else
+            {
+                visibilitySource?.ResetDreadRuntimeModifiersForEditor();
+            }
+
+            pulseAbility?.ResetAbilityState(clearActiveVisuals: true);
+            decoyAbility?.ResetAbilityState(clearActiveDecoys: true);
+            smokeAbility?.ResetAbilityState(clearActiveSmokes: true);
+            readabilityDirector?.ResetTransientRuntimeStateForRuntime();
         }
 
         private void ResetTelemetryForNewRun()

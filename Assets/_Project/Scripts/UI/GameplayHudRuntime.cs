@@ -720,6 +720,7 @@ namespace LostBreadcrumbs.Runtime.UI
                 RuntimeEventSemantic.SafeHavenThin => "HAVEN THINS",
                 RuntimeEventSemantic.PressureWave => "PRESSURE WAVE",
                 RuntimeEventSemantic.SetPieceShift => "SET-PIECE SHIFT",
+                RuntimeEventSemantic.RhythmShift => "RHYTHM SHIFT",
                 _ => string.Empty
             };
             if (!string.IsNullOrEmpty(message))

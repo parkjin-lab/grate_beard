@@ -13,6 +13,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private EnemySpawnDirector enemySpawnDirector;
         [SerializeField] private RunLoadoutDirector runLoadoutDirector;
         [SerializeField] private PlayerBehaviorTelemetry behaviorTelemetry;
+        [SerializeField] private GameplayRhythmDirector rhythmDirector;
 
         [Header("Flow")]
         [SerializeField] private bool applyOnStart = true;
@@ -34,6 +35,9 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Min(1)] private int lateStageBonusStartStage = 6;
         [SerializeField, Min(2)] private int lateStageBonusPeakStage = 12;
         [SerializeField, Range(0f, 0.45f)] private float lateStagePressureBonusMax = 0.16f;
+
+        [Header("Rhythm Modulation")]
+        [SerializeField] private bool applyRhythmPressureModulation = true;
 
         [Header("Enemy Pressure")]
         [SerializeField, Range(0.5f, 2.5f)] private float minEnemyCountMultiplier = 1f;
@@ -72,6 +76,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float AppliedPulseCooldownMultiplier => appliedPulseCooldownMultiplier;
         public float AppliedDecoyCooldownMultiplier => appliedDecoyCooldownMultiplier;
         public float AppliedSmokeCooldownMultiplier => appliedSmokeCooldownMultiplier;
+        public bool RhythmPressureModulationEnabled => applyRhythmPressureModulation;
         public bool RebuildsEnemiesOnMapGenerated => isActiveAndEnabled && rebuildEnemiesOnApply;
 
         private void OnEnable()
@@ -99,7 +104,8 @@ namespace LostBreadcrumbs.Runtime.Managers
             MapSystem targetMapSystem,
             EnemySpawnDirector targetEnemySpawn,
             RunLoadoutDirector targetLoadout,
-            PlayerBehaviorTelemetry targetTelemetry)
+            PlayerBehaviorTelemetry targetTelemetry,
+            GameplayRhythmDirector targetRhythm = null)
         {
             if (mapSystem != targetMapSystem)
             {
@@ -111,6 +117,10 @@ namespace LostBreadcrumbs.Runtime.Managers
             enemySpawnDirector = targetEnemySpawn;
             runLoadoutDirector = targetLoadout;
             behaviorTelemetry = targetTelemetry;
+            if (targetRhythm != null)
+            {
+                rhythmDirector = targetRhythm;
+            }
         }
 
         public void ApplyPressureNow(bool rebuildEnemies = true, bool raiseEvent = false)
@@ -135,6 +145,15 @@ namespace LostBreadcrumbs.Runtime.Managers
             if (enableLateStagePressureBonus && currentLateStageBonus01 > 0f)
             {
                 currentPressure01 = Mathf.Clamp01(currentPressure01 + currentLateStageBonus01 * lateStagePressureBonusMax);
+            }
+
+            if (applyRhythmPressureModulation && !RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                ResolveRhythmDirector();
+                if (rhythmDirector != null)
+                {
+                    currentPressure01 = rhythmDirector.ApplyPressureRhythmForRuntime(currentPressure01);
+                }
             }
 
             appliedEnemyCountMultiplier = Mathf.Lerp(minEnemyCountMultiplier, maxEnemyCountMultiplier, currentPressure01);
@@ -195,29 +214,61 @@ namespace LostBreadcrumbs.Runtime.Managers
             currentStagePressure01 = Mathf.Clamp01(savedStagePressure01);
             currentBehaviorPressure01 = Mathf.Clamp01(savedBehaviorPressure01);
             currentPressure01 = Mathf.Clamp01(savedTotalPressure01);
+            bool hasSavedBasePressure = currentStagePressure01 > 0.001f || currentBehaviorPressure01 > 0.001f;
 
-            if (currentPressure01 <= 0.001f && (currentStagePressure01 > 0.001f || currentBehaviorPressure01 > 0.001f))
+            if (hasSavedBasePressure)
             {
-                float weighted = currentStagePressure01 * stagePressureWeight + currentBehaviorPressure01 * behaviorPressureWeight;
-                currentPressure01 = Mathf.Clamp01(weighted);
+                currentPressure01 = Mathf.Clamp01(currentStagePressure01 * stagePressureWeight + currentBehaviorPressure01 * behaviorPressureWeight);
+
+                if (applyLowBehaviorCompensation && currentBehaviorPressure01 < lowBehaviorThreshold)
+                {
+                    float deficit = 1f - Mathf.Clamp01(currentBehaviorPressure01 / Mathf.Max(0.001f, lowBehaviorThreshold));
+                    float compensation = Mathf.Lerp(1f, lowBehaviorPressureMultiplier, deficit);
+                    currentPressure01 = Mathf.Clamp01(currentPressure01 * compensation);
+                }
             }
 
             int stage = Mathf.Max(1, mapSystem != null ? mapSystem.CurrentStage : 1);
             currentLateStageBonus01 = EvaluateLateStageBonus01(stage);
+            if (hasSavedBasePressure && enableLateStagePressureBonus && currentLateStageBonus01 > 0f)
+            {
+                currentPressure01 = Mathf.Clamp01(currentPressure01 + currentLateStageBonus01 * lateStagePressureBonusMax);
+            }
+
+            if (hasSavedBasePressure && applyRhythmPressureModulation && !RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                ResolveRhythmDirector();
+                if (rhythmDirector != null)
+                {
+                    currentPressure01 = rhythmDirector.ApplyPressureRhythmForRuntime(currentPressure01);
+                }
+            }
 
             float minEnemyMultiplier = Mathf.Min(minEnemyCountMultiplier, maxEnemyCountMultiplier);
             float maxEnemyMultiplier = Mathf.Max(minEnemyCountMultiplier, maxEnemyCountMultiplier);
             float minRiskMultiplier = Mathf.Min(minRiskWeightMultiplier, maxRiskWeightMultiplier);
             float maxRiskMultiplier = Mathf.Max(minRiskWeightMultiplier, maxRiskWeightMultiplier);
 
-            appliedEnemyCountMultiplier = Mathf.Clamp(savedEnemyCountMultiplier, minEnemyMultiplier, maxEnemyMultiplier);
-            appliedRiskWeightMultiplier = Mathf.Clamp(savedRiskWeightMultiplier, minRiskMultiplier, maxRiskMultiplier);
-            appliedSeekerExtraChance = Mathf.Clamp(savedSeekerExtraChance, 0f, Mathf.Max(0f, maxSeekerExtraChance));
-            appliedStartDistanceReduction = Mathf.Clamp(savedStartDistanceReduction, 0f, Mathf.Max(0f, maxStartDistanceReduction));
-
-            appliedPulseCooldownMultiplier = Mathf.Clamp(savedPulseCooldownMultiplier, 0.5f, 2.5f);
-            appliedDecoyCooldownMultiplier = Mathf.Clamp(savedDecoyCooldownMultiplier, 0.5f, 2.5f);
-            appliedSmokeCooldownMultiplier = Mathf.Clamp(savedSmokeCooldownMultiplier, 0.5f, 2.5f);
+            if (hasSavedBasePressure)
+            {
+                appliedEnemyCountMultiplier = Mathf.Lerp(minEnemyCountMultiplier, maxEnemyCountMultiplier, currentPressure01);
+                appliedRiskWeightMultiplier = Mathf.Lerp(minRiskWeightMultiplier, maxRiskWeightMultiplier, currentPressure01);
+                appliedSeekerExtraChance = Mathf.Lerp(0f, maxSeekerExtraChance, currentPressure01);
+                appliedStartDistanceReduction = Mathf.Lerp(0f, maxStartDistanceReduction, currentPressure01);
+                appliedPulseCooldownMultiplier = Mathf.Lerp(1f, pulseCooldownPressureMax, currentPressure01);
+                appliedDecoyCooldownMultiplier = Mathf.Lerp(1f, decoyCooldownPressureMax, currentPressure01);
+                appliedSmokeCooldownMultiplier = Mathf.Lerp(1f, smokeCooldownPressureMax, currentPressure01);
+            }
+            else
+            {
+                appliedEnemyCountMultiplier = Mathf.Clamp(savedEnemyCountMultiplier, minEnemyMultiplier, maxEnemyMultiplier);
+                appliedRiskWeightMultiplier = Mathf.Clamp(savedRiskWeightMultiplier, minRiskMultiplier, maxRiskMultiplier);
+                appliedSeekerExtraChance = Mathf.Clamp(savedSeekerExtraChance, 0f, Mathf.Max(0f, maxSeekerExtraChance));
+                appliedStartDistanceReduction = Mathf.Clamp(savedStartDistanceReduction, 0f, Mathf.Max(0f, maxStartDistanceReduction));
+                appliedPulseCooldownMultiplier = Mathf.Clamp(savedPulseCooldownMultiplier, 0.5f, 2.5f);
+                appliedDecoyCooldownMultiplier = Mathf.Clamp(savedDecoyCooldownMultiplier, 0.5f, 2.5f);
+                appliedSmokeCooldownMultiplier = Mathf.Clamp(savedSmokeCooldownMultiplier, 0.5f, 2.5f);
+            }
 
             enemySpawnDirector?.ApplyPressureForRuntime(
                 appliedEnemyCountMultiplier,
@@ -253,6 +304,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             if (mapSystem == null)
             {
                 mapSystem = FindFirstObjectByType<MapSystem>();
+                SubscribeMap();
             }
 
             if (enemySpawnDirector == null)
@@ -268,6 +320,16 @@ namespace LostBreadcrumbs.Runtime.Managers
             if (behaviorTelemetry == null)
             {
                 behaviorTelemetry = FindFirstObjectByType<PlayerBehaviorTelemetry>();
+            }
+
+            ResolveRhythmDirector();
+        }
+
+        private void ResolveRhythmDirector()
+        {
+            if (rhythmDirector == null)
+            {
+                rhythmDirector = FindFirstObjectByType<GameplayRhythmDirector>();
             }
         }
 

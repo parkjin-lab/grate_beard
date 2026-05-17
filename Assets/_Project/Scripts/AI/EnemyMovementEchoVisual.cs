@@ -48,7 +48,7 @@ namespace LostBreadcrumbs.Runtime.AI
         private int alivePulseCount;
         private Rigidbody2D body2D;
         private SpriteRenderer spriteRenderer;
-        private Collider2D collider2D;
+        private Collider2D echoCollider2D;
         private EnemyController ownerController;
         private FogOfWarSystem fogOfWarSystem;
         private float nextFogLookupTime;
@@ -197,7 +197,7 @@ namespace LostBreadcrumbs.Runtime.AI
 
             body2D = GetComponent<Rigidbody2D>();
             spriteRenderer = GetComponent<SpriteRenderer>();
-            collider2D = GetComponent<Collider2D>();
+            echoCollider2D = GetComponent<Collider2D>();
             lastPosition = body2D != null ? body2D.position : (Vector2)transform.position;
             smoothedSpeed = 0f;
             hasLastPulsePosition = false;
@@ -464,14 +464,14 @@ namespace LostBreadcrumbs.Runtime.AI
                 }
             }
 
-            if (collider2D == null)
+            if (echoCollider2D == null)
             {
-                collider2D = GetComponent<Collider2D>();
+                echoCollider2D = GetComponent<Collider2D>();
             }
 
-            if (collider2D != null)
+            if (echoCollider2D != null)
             {
-                bounds = collider2D.bounds;
+                bounds = echoCollider2D.bounds;
                 if (bounds.size.sqrMagnitude > 0.000001f)
                 {
                     return true;
@@ -502,7 +502,7 @@ namespace LostBreadcrumbs.Runtime.AI
             }
 
             nextFogLookupTime = Time.unscaledTime + Mathf.Max(0.2f, fogSystemLookupInterval);
-            fogOfWarSystem = Object.FindObjectOfType<FogOfWarSystem>();
+            fogOfWarSystem = Object.FindFirstObjectByType<FogOfWarSystem>();
         }
 
         private bool EvaluateShouldShowEchoAt(Vector2 worldPosition)

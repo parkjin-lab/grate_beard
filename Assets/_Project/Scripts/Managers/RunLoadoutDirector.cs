@@ -182,9 +182,24 @@ namespace LostBreadcrumbs.Runtime.Managers
                 return false;
             }
 
+            if (!TryGetActiveTuning(id, out RunLoadoutTuning tuning))
+            {
+                return false;
+            }
+
+            if (enforceCatalogUnlockState && !IsLoadoutUnlocked(tuning))
+            {
+                return false;
+            }
+
             TrySelectLoadout(id, userInitiated: false, raiseEvent: raiseEvent);
-            selectionLocked = lockAfterApply;
-            return true;
+            bool selected = selectedLoadout == id;
+            if (selected)
+            {
+                selectionLocked = lockAfterApply;
+            }
+
+            return selected;
         }
 
         public string[] GetUnlockedLoadoutIdsSnapshot()

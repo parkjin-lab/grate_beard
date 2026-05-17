@@ -43,6 +43,7 @@ namespace LostBreadcrumbs.Runtime.UI
         [SerializeField, Min(0.1f)] private float hookCacheRefreshInterval = 0.5f;
 
         private int enemyIndex;
+        private Vector2 mainScrollPosition;
         private Vector2 regressionScrollPosition;
         private readonly List<EnemyController> cachedEnemies = new(16);
         private readonly List<RoomArchetypeHookDummy> cachedHooks = new(16);
@@ -59,6 +60,7 @@ namespace LostBreadcrumbs.Runtime.UI
         private EnemySpawnDirector spawnDirector;
         private StageSetPieceDirector setPieceDirector;
         private StagePressureDirector pressureDirector;
+        private GameplayRhythmDirector rhythmDirector;
         private ThreatReadabilityDirector readabilityDirector;
         private PlayerVitalSystem playerVitals;
         private PlayerVisibilitySource visibilitySource;
@@ -123,7 +125,9 @@ namespace LostBreadcrumbs.Runtime.UI
                 target = cachedEnemies[Mathf.Abs(enemyIndex) % cachedEnemies.Count];
             }
 
-            GUILayout.BeginArea(new Rect(16f, 16f, 470f, 920f), GUI.skin.box);
+            Rect mainPanelRect = BuildClampedPanelRect(16f, 16f, 470f, 920f);
+            GUILayout.BeginArea(mainPanelRect, GUI.skin.box);
+            mainScrollPosition = GUILayout.BeginScrollView(mainScrollPosition, GUILayout.ExpandHeight(true));
             GUILayout.Label("Lost Breadcrumbs Debug Overlay");
             GUILayout.Label($"Enemies: {cachedEnemies.Count} (TAB to cycle)");
 
@@ -345,6 +349,7 @@ namespace LostBreadcrumbs.Runtime.UI
                 GUILayout.Label($"Dummy Loop BGM: {(dummyLoop.IsBgmPlaying ? "Playing" : "Stopped")} ({(dummyLoop.BgmUsingGeneratedClip ? "Generated" : "Assigned")})");
                 GUILayout.Label($"Dummy Loop Ambience: {(dummyLoop.IsAmbiencePlaying ? "Playing" : "Stopped")} ({(dummyLoop.AmbienceUsingGeneratedClip ? "Generated" : "Assigned")})");
                 GUILayout.Label($"Dummy Loop Forced Off: {(dummyLoop.ForceDisableDummyLoops ? "Yes" : "No")}");
+                GUILayout.Label($"Dummy Loop Rhythm Tempo: {dummyLoop.CurrentRhythmTempo:0.00}");
             }
             if (spawnDirector != null)
             {
@@ -366,6 +371,12 @@ namespace LostBreadcrumbs.Runtime.UI
                 GUILayout.Label($"Stage Pressure Total: {pressureDirector.CurrentPressure01:0.00}");
                 GUILayout.Label($"Stage Pressure(Stage/Behavior/Late): {pressureDirector.CurrentStagePressure01:0.00}/{pressureDirector.CurrentBehaviorPressure01:0.00}/{pressureDirector.CurrentLateStageBonus01:0.00}");
                 GUILayout.Label($"Cooldown Economy P/D/S: {pressureDirector.AppliedPulseCooldownMultiplier:0.00}/{pressureDirector.AppliedDecoyCooldownMultiplier:0.00}/{pressureDirector.AppliedSmokeCooldownMultiplier:0.00}");
+            }
+
+            if (rhythmDirector != null)
+            {
+                GUILayout.Label($"Rhythm: {rhythmDirector.CurrentPhaseLabel} {rhythmDirector.CurrentPhaseProgress:0.00} ({rhythmDirector.CurrentPhaseElapsed:0.0}/{rhythmDirector.CurrentPhaseDuration:0.0}s) cycle {rhythmDirector.CycleCount}");
+                GUILayout.Label($"Rhythm Tempo/Intensity/Pressure: {rhythmDirector.CurrentTempo01:0.00}/{rhythmDirector.CurrentRhythmIntensity:0.00}/{rhythmDirector.CurrentPressureMultiplier:0.00}");
             }
 
             if (readabilityDirector != null)
@@ -466,8 +477,9 @@ namespace LostBreadcrumbs.Runtime.UI
             if (target == null)
             {
                 GUILayout.Label("No enemy controllers in scene.");
+                GUILayout.EndScrollView();
                 GUILayout.EndArea();
-                DrawRegressionChecklistPanel();
+                DrawRegressionChecklistPanel(mainPanelRect);
                 return;
             }
 
@@ -507,18 +519,28 @@ namespace LostBreadcrumbs.Runtime.UI
                 GUILayout.Label($"Recent Noise Records: {noiseCount}");
             }
 
+            GUILayout.EndScrollView();
             GUILayout.EndArea();
-            DrawRegressionChecklistPanel();
+            DrawRegressionChecklistPanel(mainPanelRect);
         }
 
-        private void DrawRegressionChecklistPanel()
+        private void DrawRegressionChecklistPanel(Rect mainPanelRect)
         {
             if (!showRegressionChecklistPanel)
             {
                 return;
             }
 
-            Rect panelRect = new(regressionPanelX, regressionPanelY, regressionPanelWidth, regressionPanelHeight);
+            Rect panelRect = BuildClampedPanelRect(
+                regressionPanelX,
+                regressionPanelY,
+                regressionPanelWidth,
+                regressionPanelHeight);
+            if (panelRect.Overlaps(mainPanelRect))
+            {
+                return;
+            }
+
             GUILayout.BeginArea(panelRect, GUI.skin.box);
             GUILayout.Label("Regression Checklist Panel");
 
@@ -643,6 +665,20 @@ namespace LostBreadcrumbs.Runtime.UI
             GUILayout.EndArea();
         }
 
+        private static Rect BuildClampedPanelRect(float x, float y, float width, float height)
+        {
+            float padding = 8f;
+            float screenWidth = Mathf.Max(1f, Screen.width);
+            float screenHeight = Mathf.Max(1f, Screen.height);
+            float maxWidth = Mathf.Max(1f, screenWidth - padding * 2f);
+            float maxHeight = Mathf.Max(1f, screenHeight - padding * 2f);
+            float clampedWidth = Mathf.Min(Mathf.Max(1f, width), maxWidth);
+            float clampedHeight = Mathf.Min(Mathf.Max(1f, height), maxHeight);
+            float clampedX = Mathf.Clamp(x, padding, Mathf.Max(padding, screenWidth - clampedWidth - padding));
+            float clampedY = Mathf.Clamp(y, padding, Mathf.Max(padding, screenHeight - clampedHeight - padding));
+            return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
+        }
+
         private void TryResolveReferences(bool force = false)
         {
             if (!force && lastReferenceResolveFrame == Time.frameCount)
@@ -705,6 +741,11 @@ namespace LostBreadcrumbs.Runtime.UI
             if (pressureDirector == null)
             {
                 pressureDirector = FindFirstObjectByType<StagePressureDirector>();
+            }
+
+            if (rhythmDirector == null)
+            {
+                rhythmDirector = FindFirstObjectByType<GameplayRhythmDirector>();
             }
 
             if (readabilityDirector == null)

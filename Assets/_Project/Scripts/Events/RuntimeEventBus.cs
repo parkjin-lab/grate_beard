@@ -30,6 +30,7 @@ namespace LostBreadcrumbs.Runtime.Events
         SafeHavenThin,
         PressureWave,
         SetPieceShift,
+        RhythmShift,
         HauntedRoom
     }
 
