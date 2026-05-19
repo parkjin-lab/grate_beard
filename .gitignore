@@ -107,3 +107,7 @@ InitTestScene*.unity*
 
 # Local Codex recovery backups
 /.codex-backups/
+
+# Unity recovery scenes generated under Assets after editor crashes/recovery prompts
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta
