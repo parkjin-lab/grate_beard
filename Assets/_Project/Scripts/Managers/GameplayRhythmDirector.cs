@@ -41,6 +41,7 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         [Header("Feedback")]
         [SerializeField] private bool raiseRhythmEvents = true;
+        [SerializeField] private bool grantReliefOnRelease = true;
         [SerializeField] private bool impulseOnSpike = true;
         [SerializeField, Range(0f, 0.18f)] private float spikeCameraImpulse = 0.08f;
         [SerializeField, Min(0.05f)] private float spikeImpulseDuration = 0.12f;
@@ -182,6 +183,12 @@ namespace LostBreadcrumbs.Runtime.Managers
             if (phase == GameplayRhythmPhase.Spike && impulseOnSpike && cameraFollow != null)
             {
                 cameraFollow.AddImpulse(spikeCameraImpulse, spikeImpulseDuration);
+            }
+            else if (phase == GameplayRhythmPhase.Release && grantReliefOnRelease)
+            {
+                threatReadabilityDirector?.TryGrantRhythmReleaseRelief(
+                    lastContextPressure,
+                    mapSystem != null ? mapSystem.CurrentStage : 0);
             }
 
             if (!raiseEvent || !raiseRhythmEvents || RegressionChecklistRunner.IsRegressionRunActive)

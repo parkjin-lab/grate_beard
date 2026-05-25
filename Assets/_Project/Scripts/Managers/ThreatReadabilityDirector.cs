@@ -218,6 +218,15 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private Color escapeReliefExitWhisperColor = new(0.28f, 1f, 0.56f, 0.52f);
         [SerializeField] private int escapeReliefObjectiveWhisperSortingOrder = 39;
 
+        [Header("Rhythm Release Relief")]
+        [SerializeField] private bool enableRhythmReleaseRelief = true;
+        [SerializeField, Min(0.5f)] private float rhythmReleaseReliefCooldownSeconds = 2.5f;
+        [SerializeField, Min(0f)] private float rhythmReleaseStaminaRecover = 0.28f;
+        [SerializeField, Range(0f, 1f)] private float rhythmReleaseReliefIntensityFloor = 0.42f;
+        [SerializeField, Range(0f, 1f)] private float rhythmReleaseReliefPressureBonus = 0.24f;
+        [SerializeField, Range(0.2f, 1.5f)] private float rhythmReleaseFogRadiusMultiplier = 0.85f;
+        [SerializeField, Range(0.2f, 1.5f)] private float rhythmReleaseQuietBreathMultiplier = 1.08f;
+
         [Header("Flashlight Dread")]
         [SerializeField] private bool enableFlashlightDread = true;
         [SerializeField, Range(0f, 1f)] private float flashlightDreadPressureThreshold = 0.36f;
@@ -314,6 +323,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         private int activeChaseEventCount;
         private float activeChaseStartRealtime = -1f;
         private float nextEscapeReliefRewardRealtime;
+        private float nextRhythmReleaseReliefRealtime;
         private float escapeReliefCalmStartedRealtime;
         private float escapeReliefCalmUntilRealtime;
         private float escapeReliefCalmDuration;
@@ -337,6 +347,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float CurrentThreatTunnelVision => currentThreatTunnelVision;
         public float CurrentCameraTargetOrthoSize => currentCameraTargetOrthoSize;
         public float EscapeReliefCooldownRemaining => Mathf.Max(0f, nextEscapeReliefRewardRealtime - Time.realtimeSinceStartup);
+        public float RhythmReleaseReliefCooldownRemaining => Mathf.Max(0f, nextRhythmReleaseReliefRealtime - Time.realtimeSinceStartup);
         public float CurrentEscapeReliefCalm => EvaluateEscapeReliefCalm01();
         public float CurrentQuietBreathStrain => Mathf.Clamp01(quietBreathStrainElapsed / Mathf.Max(0.05f, escapeReliefBreathSnapStrainSeconds));
         public float BreathSnapCooldownRemaining => Mathf.Max(0f, nextEscapeReliefBreathSnapRealtime - Time.realtimeSinceStartup);
@@ -1259,6 +1270,59 @@ namespace LostBreadcrumbs.Runtime.Managers
                 semantic: RuntimeEventSemantic.EscapeRelief);
         }
 
+        public bool TryGrantRhythmReleaseRelief(float pressure01, int stage)
+        {
+            if (!Application.isPlaying
+                || RegressionChecklistRunner.IsRegressionRunActive
+                || !enableEscapeReliefReward
+                || !enableRhythmReleaseRelief)
+            {
+                return false;
+            }
+
+            float now = Time.realtimeSinceStartup;
+            if (now < nextRhythmReleaseReliefRealtime)
+            {
+                return false;
+            }
+
+            PlayerDummyController controller = ResolvePlayerController();
+            if (controller == null)
+            {
+                return false;
+            }
+
+            float safePressure = Mathf.Clamp01(pressure01 >= 0f ? pressure01 : currentReadabilityPressure);
+            float intensity = Mathf.Clamp01(Mathf.Max(rhythmReleaseReliefIntensityFloor, 0.36f + safePressure * rhythmReleaseReliefPressureBonus));
+            float recovered = controller.RecoverStamina(rhythmReleaseStaminaRecover * Mathf.Lerp(0.75f, 1.25f, intensity));
+            Vector2 rewardPosition = controller.transform.position;
+
+            if (escapeReliefRevealFog && fogOfWar != null)
+            {
+                fogOfWar.ApplyEchoRevealPulse(
+                    rewardPosition,
+                    escapeReliefRevealRadius * rhythmReleaseFogRadiusMultiplier * Mathf.Lerp(0.9f, 1.18f, intensity),
+                    escapeReliefRevealSoftnessBoost * Mathf.Lerp(0.75f, 1.05f, intensity));
+            }
+
+            SpawnEscapeReliefPulse(rewardPosition, intensity);
+            TrySpawnEscapeReliefObjectiveWhisper(rewardPosition, intensity);
+            PlayEscapeReliefAudio(rewardPosition, intensity * 0.82f);
+            StartEscapeReliefCalmWindow(intensity);
+            ApplyRhythmReleaseQuietBreath(controller, intensity);
+
+            nextRhythmReleaseReliefRealtime = now + Mathf.Max(0.5f, rhythmReleaseReliefCooldownSeconds);
+
+            RuntimeEventBus.Raise(
+                RuntimeEventType.Ability,
+                $"Release relief recovered {recovered:0.0} stamina",
+                this,
+                Mathf.Max(0, stage),
+                semantic: RuntimeEventSemantic.EscapeRelief);
+
+            return true;
+        }
+
         private void SpawnEscapeReliefPulse(Vector2 position, float intensity)
         {
             GameObject visualObject = new($"EscapeReliefPulse_{Time.frameCount}");
@@ -1703,6 +1767,26 @@ namespace LostBreadcrumbs.Runtime.Managers
             float duration = Mathf.Max(
                 0.1f,
                 escapeReliefQuietBreathSeconds * Mathf.Lerp(0.85f, 1.2f, Mathf.Clamp01(intensity)));
+            controller.ApplyTemporaryNoiseDampeningForRuntime(
+                escapeReliefFootstepNoiseMultiplier,
+                escapeReliefSprintNoiseMultiplier,
+                duration);
+        }
+
+        private void ApplyRhythmReleaseQuietBreath(PlayerDummyController controller, float intensity)
+        {
+            if (!enableEscapeReliefQuietBreath || controller == null)
+            {
+                return;
+            }
+
+            float safeIntensity = Mathf.Clamp01(intensity);
+            float duration = Mathf.Max(
+                0.1f,
+                escapeReliefQuietBreathSeconds
+                * rhythmReleaseQuietBreathMultiplier
+                * Mathf.Lerp(0.9f, 1.18f, safeIntensity));
+
             controller.ApplyTemporaryNoiseDampeningForRuntime(
                 escapeReliefFootstepNoiseMultiplier,
                 escapeReliefSprintNoiseMultiplier,
@@ -2235,6 +2319,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             activeChaseEventCount = 0;
             activeChaseStartRealtime = -1f;
             nextEscapeReliefRewardRealtime = 0f;
+            nextRhythmReleaseReliefRealtime = 0f;
             escapeReliefCalmStartedRealtime = 0f;
             escapeReliefCalmUntilRealtime = 0f;
             escapeReliefCalmDuration = 0f;
