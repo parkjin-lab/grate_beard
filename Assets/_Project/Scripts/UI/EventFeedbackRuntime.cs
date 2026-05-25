@@ -448,20 +448,20 @@ namespace LostBreadcrumbs.Runtime.UI
             int stage = ResolveEventStage(record);
             payload = record.Semantic switch
             {
-                RuntimeEventSemantic.ExitUnlocked => new PriorityCuePayload("EXIT OPEN - EXTRACT NOW", new Color(0.08f, 0.4f, 0.22f, 0.9f), new Color(0.92f, 1f, 0.92f, 1f), stage),
-                RuntimeEventSemantic.LockOnWarning => new PriorityCuePayload("LOCK-ON WARNING", new Color(0.62f, 0.28f, 0.05f, 0.9f), new Color(1f, 0.93f, 0.84f, 1f), stage),
-                RuntimeEventSemantic.ChaseStarted => new PriorityCuePayload("CHASE STARTED", new Color(0.62f, 0.1f, 0.1f, 0.92f), new Color(1f, 0.88f, 0.88f, 1f), stage),
-                RuntimeEventSemantic.ChaseDisengaged => new PriorityCuePayload("CHASE DISENGAGED", new Color(0.2f, 0.28f, 0.52f, 0.9f), new Color(0.9f, 0.94f, 1f, 1f), stage),
-                RuntimeEventSemantic.EscapeRelief => new PriorityCuePayload("BREATH FOUND", new Color(0.08f, 0.28f, 0.24f, 0.9f), new Color(0.84f, 1f, 0.94f, 1f), stage),
-                RuntimeEventSemantic.QuietBreathBroken => new PriorityCuePayload("BREATH BROKE", new Color(0.58f, 0.16f, 0.08f, 0.92f), new Color(1f, 0.9f, 0.82f, 1f), stage),
-                RuntimeEventSemantic.EchoReturn => new PriorityCuePayload("ECHO RETURN", new Color(0.5f, 0.08f, 0.08f, 0.9f), new Color(1f, 0.86f, 0.82f, 1f), stage),
-                RuntimeEventSemantic.EchoChoiceScan => new PriorityCuePayload("ECHO CHOICES", new Color(0.18f, 0.22f, 0.34f, 0.9f), new Color(0.9f, 0.96f, 1f, 1f), stage),
-                RuntimeEventSemantic.RiskReward => new PriorityCuePayload("RISK CACHE TAKEN", new Color(0.58f, 0.18f, 0.06f, 0.92f), new Color(1f, 0.9f, 0.78f, 1f), stage),
-                RuntimeEventSemantic.SafeHavenThin => new PriorityCuePayload("HAVEN THINS", new Color(0.42f, 0.08f, 0.12f, 0.9f), new Color(1f, 0.86f, 0.82f, 1f), stage),
-                RuntimeEventSemantic.PressureWave => new PriorityCuePayload("PRESSURE WAVE", new Color(0.5f, 0.04f, 0.08f, 0.9f), new Color(1f, 0.84f, 0.82f, 1f), stage),
-                RuntimeEventSemantic.SetPieceShift => new PriorityCuePayload("SET-PIECE SHIFT", new Color(0.38f, 0.22f, 0.08f, 0.9f), new Color(1f, 0.93f, 0.84f, 1f), stage),
-                RuntimeEventSemantic.RhythmShift => new PriorityCuePayload("RHYTHM SHIFT", new Color(0.28f, 0.1f, 0.18f, 0.9f), new Color(1f, 0.88f, 0.92f, 1f), stage),
-                RuntimeEventSemantic.HauntedRoom => new PriorityCuePayload("ROOM STIRS", new Color(0.22f, 0.08f, 0.1f, 0.82f), new Color(1f, 0.86f, 0.82f, 1f), stage),
+                RuntimeEventSemantic.ExitUnlocked => new PriorityCuePayload("출구 열림 - 지금 나가", new Color(0.08f, 0.4f, 0.22f, 0.9f), new Color(0.92f, 1f, 0.92f, 1f), stage),
+                RuntimeEventSemantic.LockOnWarning => new PriorityCuePayload("곧 덮쳐온다", new Color(0.62f, 0.28f, 0.05f, 0.9f), new Color(1f, 0.93f, 0.84f, 1f), stage),
+                RuntimeEventSemantic.ChaseStarted => new PriorityCuePayload("쫓긴다", new Color(0.62f, 0.1f, 0.1f, 0.92f), new Color(1f, 0.88f, 0.88f, 1f), stage),
+                RuntimeEventSemantic.ChaseDisengaged => new PriorityCuePayload("따돌렸다", new Color(0.2f, 0.28f, 0.52f, 0.9f), new Color(0.9f, 0.94f, 1f, 1f), stage),
+                RuntimeEventSemantic.EscapeRelief => new PriorityCuePayload("숨 돌릴 틈", new Color(0.08f, 0.28f, 0.24f, 0.9f), new Color(0.84f, 1f, 0.94f, 1f), stage),
+                RuntimeEventSemantic.QuietBreathBroken => new PriorityCuePayload("숨이 흐트러졌다", new Color(0.58f, 0.16f, 0.08f, 0.92f), new Color(1f, 0.9f, 0.82f, 1f), stage),
+                RuntimeEventSemantic.EchoReturn => new PriorityCuePayload("메아리가 돌아온다", new Color(0.5f, 0.08f, 0.08f, 0.9f), new Color(1f, 0.86f, 0.82f, 1f), stage),
+                RuntimeEventSemantic.EchoChoiceScan => new PriorityCuePayload("갈림길이 보인다", new Color(0.18f, 0.22f, 0.34f, 0.9f), new Color(0.9f, 0.96f, 1f, 1f), stage),
+                RuntimeEventSemantic.RiskReward => new PriorityCuePayload("위험 보상 획득", new Color(0.58f, 0.18f, 0.06f, 0.92f), new Color(1f, 0.9f, 0.78f, 1f), stage),
+                RuntimeEventSemantic.SafeHavenThin => new PriorityCuePayload("안식처가 흔들린다", new Color(0.42f, 0.08f, 0.12f, 0.9f), new Color(1f, 0.86f, 0.82f, 1f), stage),
+                RuntimeEventSemantic.PressureWave => new PriorityCuePayload("기척이 번진다", new Color(0.5f, 0.04f, 0.08f, 0.9f), new Color(1f, 0.84f, 0.82f, 1f), stage),
+                RuntimeEventSemantic.SetPieceShift => new PriorityCuePayload("공간이 바뀐다", new Color(0.38f, 0.22f, 0.08f, 0.9f), new Color(1f, 0.93f, 0.84f, 1f), stage),
+                RuntimeEventSemantic.RhythmShift => new PriorityCuePayload("박자가 바뀐다", new Color(0.28f, 0.1f, 0.18f, 0.9f), new Color(1f, 0.88f, 0.92f, 1f), stage),
+                RuntimeEventSemantic.HauntedRoom => new PriorityCuePayload("방이 깨어난다", new Color(0.22f, 0.08f, 0.1f, 0.82f), new Color(1f, 0.86f, 0.82f, 1f), stage),
                 _ => default
             };
             if (!string.IsNullOrWhiteSpace(payload.Text))
@@ -473,25 +473,25 @@ namespace LostBreadcrumbs.Runtime.UI
             switch (record.Type)
             {
                 case RuntimeEventType.Death:
-                    payload = new PriorityCuePayload("RUN FAILED - RESET TENSION", new Color(0.55f, 0.08f, 0.1f, 0.9f), new Color(1f, 0.92f, 0.9f, 1f), stage);
+                    payload = new PriorityCuePayload("쓰러졌다 - 다시 숨을 골라", new Color(0.55f, 0.08f, 0.1f, 0.9f), new Color(1f, 0.92f, 0.9f, 1f), stage);
                     return true;
                 case RuntimeEventType.Objective when ContainsKeyword(message, "exit unlocked"):
-                    payload = new PriorityCuePayload("EXIT OPEN - EXTRACT NOW", new Color(0.08f, 0.4f, 0.22f, 0.9f), new Color(0.92f, 1f, 0.92f, 1f), stage);
+                    payload = new PriorityCuePayload("출구 열림 - 지금 나가", new Color(0.08f, 0.4f, 0.22f, 0.9f), new Color(0.92f, 1f, 0.92f, 1f), stage);
                     return true;
                 case RuntimeEventType.System when ContainsKeyword(message, "lock-on warning"):
-                    payload = new PriorityCuePayload("LOCK-ON WARNING", new Color(0.62f, 0.28f, 0.05f, 0.9f), new Color(1f, 0.93f, 0.84f, 1f), stage);
+                    payload = new PriorityCuePayload("곧 덮쳐온다", new Color(0.62f, 0.28f, 0.05f, 0.9f), new Color(1f, 0.93f, 0.84f, 1f), stage);
                     return true;
                 case RuntimeEventType.System when ContainsKeyword(message, "chase started"):
-                    payload = new PriorityCuePayload("CHASE STARTED", new Color(0.62f, 0.1f, 0.1f, 0.92f), new Color(1f, 0.88f, 0.88f, 1f), stage);
+                    payload = new PriorityCuePayload("쫓긴다", new Color(0.62f, 0.1f, 0.1f, 0.92f), new Color(1f, 0.88f, 0.88f, 1f), stage);
                     return true;
                 case RuntimeEventType.System when ContainsKeyword(message, "chase disengaged"):
-                    payload = new PriorityCuePayload("CHASE DISENGAGED", new Color(0.2f, 0.28f, 0.52f, 0.9f), new Color(0.9f, 0.94f, 1f, 1f), stage);
+                    payload = new PriorityCuePayload("따돌렸다", new Color(0.2f, 0.28f, 0.52f, 0.9f), new Color(0.9f, 0.94f, 1f, 1f), stage);
                     return true;
                 case RuntimeEventType.Stage when ContainsKeyword(message, "setpiece"):
-                    payload = new PriorityCuePayload("SET-PIECE SHIFT", new Color(0.38f, 0.22f, 0.08f, 0.9f), new Color(1f, 0.93f, 0.84f, 1f), stage);
+                    payload = new PriorityCuePayload("공간이 바뀐다", new Color(0.38f, 0.22f, 0.08f, 0.9f), new Color(1f, 0.93f, 0.84f, 1f), stage);
                     return true;
                 case RuntimeEventType.System when ContainsKeyword(message, "haunted room"):
-                    payload = new PriorityCuePayload("ROOM STIRS", new Color(0.22f, 0.08f, 0.1f, 0.82f), new Color(1f, 0.86f, 0.82f, 1f), stage);
+                    payload = new PriorityCuePayload("방이 깨어난다", new Color(0.22f, 0.08f, 0.1f, 0.82f), new Color(1f, 0.86f, 0.82f, 1f), stage);
                     return true;
                 default:
                     return false;

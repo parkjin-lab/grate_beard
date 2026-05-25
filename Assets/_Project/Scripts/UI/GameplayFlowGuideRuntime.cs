@@ -247,18 +247,15 @@ namespace LostBreadcrumbs.Runtime.UI
             int safeHavenCount = stageLoop != null ? stageLoop.ActiveSafeHavenCount : 0;
 
             float totalPressure = stagePressure != null ? stagePressure.CurrentPressure01 : 0f;
-            float stagePressureValue = stagePressure != null ? stagePressure.CurrentStagePressure01 : 0f;
-            float readabilityPressure = threatReadability != null ? threatReadability.CurrentReadabilityPressure : totalPressure;
-
             string phase = EvaluatePhaseLabel(collected, required, exitUnlocked, totalPressure);
-            phaseText.text = "Flow Step: " + phase;
+            phaseText.text = phase;
             phaseText.color = EvaluatePhaseColor(totalPressure, exitUnlocked);
 
-            objectiveText.text = $"Objective: Breadcrumb {collected}/{Mathf.Max(0, required)} | Stage {stage} | Exit {(exitUnlocked ? "OPEN" : "LOCKED")}";
-            cooldownText.text = $"Cooldowns: Echo {FormatSeconds(pulseAbility != null ? pulseAbility.CooldownRemaining : -1f)} | Decoy {FormatSeconds(decoyAbility != null ? decoyAbility.CooldownRemaining : -1f)} | Smoke {FormatSeconds(smokeAbility != null ? smokeAbility.CooldownRemaining : -1f)}";
-            controlsText.text = "Controls: Move WASD | Sprint Shift | Echo Q | Decoy E | Smoke R | Flashlight F";
-            pressureText.text = $"Danger: StageP {stagePressureValue:0.00} | ThreatP {readabilityPressure:0.00} | TotalP {totalPressure:0.00}";
-            contextText.text = $"Map Cues: Hook Sigils {hookCount} (spin/blink = pre-noise warning), Safe Havens {safeHavenCount}";
+            objectiveText.text = $"흔적 {collected}/{Mathf.Max(0, required)} | {stage}층 | 출구 {(exitUnlocked ? "열림" : "잠김")}";
+            cooldownText.text = $"재사용: 메아리 {FormatSeconds(pulseAbility != null ? pulseAbility.CooldownRemaining : -1f)} | 미끼 {FormatSeconds(decoyAbility != null ? decoyAbility.CooldownRemaining : -1f)} | 연막 {FormatSeconds(smokeAbility != null ? smokeAbility.CooldownRemaining : -1f)}";
+            controlsText.text = "이동 WASD | 달리기 Shift | 메아리 Q | 미끼 E | 연막 R | 손전등 F";
+            pressureText.text = $"위험도: {EvaluateDangerLabel(totalPressure)}";
+            contextText.text = $"공간 단서: 불길한 표식 {hookCount}, 안식처 {safeHavenCount}";
 
             if (force)
             {
@@ -270,12 +267,12 @@ namespace LostBreadcrumbs.Runtime.UI
         {
             if (seconds < 0f)
             {
-                return "N/A";
+                return "-";
             }
 
             if (seconds <= 0.05f)
             {
-                return "Ready";
+                return "준비";
             }
 
             return seconds.ToString("0.0") + "s";
@@ -285,25 +282,45 @@ namespace LostBreadcrumbs.Runtime.UI
         {
             if (required <= 0)
             {
-                return "Stage Init";
+                return "길이 만들어지는 중";
             }
 
             if (exitUnlocked)
             {
-                return totalPressure >= 0.72f ? "Escape Under Chase" : "Escape Route";
+                return totalPressure >= 0.72f ? "쫓기며 탈출" : "출구로 이동";
             }
 
             if (collected <= 0)
             {
-                return "Explore And Scan";
+                return "살피고 길 찾기";
             }
 
             if (collected < required)
             {
-                return totalPressure >= 0.68f ? "Collect While Evading" : "Collect Breadcrumbs";
+                return totalPressure >= 0.68f ? "피하면서 흔적 모으기" : "흔적 모으기";
             }
 
-            return "Unlock Exit";
+            return "출구 열기";
+        }
+
+        private static string EvaluateDangerLabel(float totalPressure)
+        {
+            if (totalPressure >= 0.82f)
+            {
+                return "매우 위험";
+            }
+
+            if (totalPressure >= 0.58f)
+            {
+                return "고조";
+            }
+
+            if (totalPressure >= 0.32f)
+            {
+                return "불안";
+            }
+
+            return "낮음";
         }
 
         private static Color EvaluatePhaseColor(float totalPressure, bool exitUnlocked)

@@ -338,7 +338,8 @@ namespace LostBreadcrumbs.Runtime.UI
                 riskCache = "  |  위험보상";
             }
 
-            objectiveText.text = $"목표: Breadcrumb {stageLoop.CollectedBreadcrumbs}/{stageLoop.RequiredBreadcrumbs}  |  스테이지 {stageLoop.CurrentStage}  |  출구 {(stageLoop.ExitUnlocked ? "OPEN" : "LOCKED")}{momentum}{exitCache}{riskCache}";
+            string exitState = stageLoop.ExitUnlocked ? "열림" : "잠김";
+            objectiveText.text = $"목표: 흔적 {stageLoop.CollectedBreadcrumbs}/{stageLoop.RequiredBreadcrumbs}  |  {stageLoop.CurrentStage}층  |  출구 {exitState}{momentum}{exitCache}{riskCache}";
         }
 
         private void UpdateAbilityLine()
@@ -378,10 +379,10 @@ namespace LostBreadcrumbs.Runtime.UI
             int choices = Mathf.Max(0, playerController.LastEchoObjectiveChoiceScanCount);
             if (choices <= 0)
             {
-                return $"Space Echo: {primary} 경로 {playerController.EchoObjectiveScanStatusRemaining:0.0}s";
+                return $"공간 메아리: {primary} 경로 {playerController.EchoObjectiveScanStatusRemaining:0.0}s";
             }
 
-            return $"Space Echo: {primary} + 선택 {choices}개 {playerController.EchoObjectiveScanStatusRemaining:0.0}s";
+            return $"공간 메아리: {primary} + 선택 {choices}개 {playerController.EchoObjectiveScanStatusRemaining:0.0}s";
         }
 
         private void UpdateLearningLine()
@@ -702,25 +703,25 @@ namespace LostBreadcrumbs.Runtime.UI
 
             if (record.Type == RuntimeEventType.Death)
             {
-                message = "RUN FAILED";
+                message = "쓰러졌다";
                 return true;
             }
 
             message = record.Semantic switch
             {
-                RuntimeEventSemantic.ExitUnlocked => "EXIT OPEN",
-                RuntimeEventSemantic.LockOnWarning => "LOCK-ON WARNING",
-                RuntimeEventSemantic.ChaseStarted => "CHASE STARTED",
-                RuntimeEventSemantic.ChaseDisengaged => "CHASE DISENGAGED",
-                RuntimeEventSemantic.EscapeRelief => "BREATH FOUND",
-                RuntimeEventSemantic.QuietBreathBroken => "BREATH BROKE",
-                RuntimeEventSemantic.EchoReturn => "ECHO RETURN",
-                RuntimeEventSemantic.EchoChoiceScan => "ECHO CHOICES",
-                RuntimeEventSemantic.RiskReward => "RISK CACHE TAKEN",
-                RuntimeEventSemantic.SafeHavenThin => "HAVEN THINS",
-                RuntimeEventSemantic.PressureWave => "PRESSURE WAVE",
-                RuntimeEventSemantic.SetPieceShift => "SET-PIECE SHIFT",
-                RuntimeEventSemantic.RhythmShift => "RHYTHM SHIFT",
+                RuntimeEventSemantic.ExitUnlocked => "출구 열림",
+                RuntimeEventSemantic.LockOnWarning => "곧 덮쳐온다",
+                RuntimeEventSemantic.ChaseStarted => "쫓긴다",
+                RuntimeEventSemantic.ChaseDisengaged => "따돌렸다",
+                RuntimeEventSemantic.EscapeRelief => "숨 돌릴 틈",
+                RuntimeEventSemantic.QuietBreathBroken => "숨이 흐트러졌다",
+                RuntimeEventSemantic.EchoReturn => "메아리 응답",
+                RuntimeEventSemantic.EchoChoiceScan => "갈림길 확인",
+                RuntimeEventSemantic.RiskReward => "위험 보상",
+                RuntimeEventSemantic.SafeHavenThin => "안식처 흔들림",
+                RuntimeEventSemantic.PressureWave => "기척 번짐",
+                RuntimeEventSemantic.SetPieceShift => "공간 변화",
+                RuntimeEventSemantic.RhythmShift => "박자 변화",
                 _ => string.Empty
             };
             if (!string.IsNullOrEmpty(message))
@@ -730,31 +731,31 @@ namespace LostBreadcrumbs.Runtime.UI
 
             if (record.Type == RuntimeEventType.Objective && ContainsKeyword(source, "exit unlocked"))
             {
-                message = "EXIT OPEN";
+                message = "출구 열림";
                 return true;
             }
 
             if (record.Type == RuntimeEventType.System && ContainsKeyword(source, "lock-on warning"))
             {
-                message = "LOCK-ON WARNING";
+                message = "곧 덮쳐온다";
                 return true;
             }
 
             if (record.Type == RuntimeEventType.System && ContainsKeyword(source, "chase started"))
             {
-                message = "CHASE STARTED";
+                message = "쫓긴다";
                 return true;
             }
 
             if (record.Type == RuntimeEventType.System && ContainsKeyword(source, "chase disengaged"))
             {
-                message = "CHASE DISENGAGED";
+                message = "따돌렸다";
                 return true;
             }
 
             if (record.Type == RuntimeEventType.Stage && ContainsKeyword(source, "setpiece"))
             {
-                message = "SET-PIECE SHIFT";
+                message = "공간 변화";
                 return true;
             }
 
