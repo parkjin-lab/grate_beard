@@ -101,6 +101,11 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField, Min(0.1f)] private float exitChoiceCacheBeaconDuration = 1.45f;
         [SerializeField] private int exitChoiceCacheSortingOrder = 36;
 
+        [Header("Exit Choice Carryover")]
+        [SerializeField] private bool enableExitChoiceCarryover = true;
+        [SerializeField, Min(0.05f)] private float exitChoiceCarryoverEchoDelay = 0.35f;
+        [SerializeField, Range(2, 6)] private int exitChoiceCarryoverMomentumLevel = 3;
+
         [Header("Safe Haven")]
         [SerializeField] private bool spawnSafeHavens = true;
         [SerializeField, Min(0)] private int baseSafeHavenCount = 1;
@@ -183,6 +188,9 @@ namespace LostBreadcrumbs.Runtime.Map
         private float lastBreadcrumbCollectRealtime = -999f;
         private StaminaPickup exitChoiceCachePickup;
         private Vector3 exitChoiceCachePosition;
+        private bool exitChoiceCacheTakenThisStage;
+        private bool pendingExitChoiceCarryover;
+        private Coroutine exitChoiceCarryoverRoutine;
         private Coroutine riskCacheAftershockRoutine;
 
         public int CurrentStage { get; private set; } = 1;
@@ -1018,6 +1026,7 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             UpdateExitState();
+            TryStartExitChoiceCarryover();
         }
 
         private int UpdateBreadcrumbMomentumLevel()
@@ -1873,6 +1882,8 @@ namespace LostBreadcrumbs.Runtime.Map
             Vector3 position = pickup.transform.position;
             exitChoiceCachePosition = position;
             exitChoiceCachePickup = null;
+            exitChoiceCacheTakenThisStage = true;
+            pendingExitChoiceCarryover = true;
 
             SpawnExitChoiceCacheBeacon(position, 1f);
             if (NoiseManager.Instance != null)
@@ -1887,9 +1898,10 @@ namespace LostBreadcrumbs.Runtime.Map
 
             RuntimeEventBus.Raise(
                 RuntimeEventType.Objective,
-                $"Exit cache taken (+{exitChoiceCacheRecoverAmount:0.0} stamina)",
+                $"Exit cache taken (+{exitChoiceCacheRecoverAmount:0.0} stamina, next route hint)",
                 this,
-                CurrentStage);
+                CurrentStage,
+                semantic: RuntimeEventSemantic.EchoChoiceScan);
         }
 
         private void SpawnExitChoiceCacheBeacon(Vector3 position, float alphaScale)
@@ -1936,6 +1948,60 @@ namespace LostBreadcrumbs.Runtime.Map
                 exitUnlockBeaconSortingOrder);
         }
 
+        private void TryStartExitChoiceCarryover()
+        {
+            if (!enableExitChoiceCarryover
+                || !pendingExitChoiceCarryover
+                || RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                pendingExitChoiceCarryover = false;
+                return;
+            }
+
+            if (exitChoiceCarryoverRoutine != null)
+            {
+                StopCoroutine(exitChoiceCarryoverRoutine);
+            }
+
+            exitChoiceCarryoverRoutine = StartCoroutine(ExitChoiceCarryoverRoutine());
+        }
+
+        private IEnumerator ExitChoiceCarryoverRoutine()
+        {
+            float delay = Mathf.Max(0.05f, exitChoiceCarryoverEchoDelay);
+            yield return new WaitForSeconds(delay);
+
+            pendingExitChoiceCarryover = false;
+
+            if (momentumPlayer == null)
+            {
+                momentumPlayer = FindFirstObjectByType<PlayerDummyController>();
+            }
+
+            if (momentumPlayer == null)
+            {
+                exitChoiceCarryoverRoutine = null;
+                yield break;
+            }
+
+            Vector3 origin = momentumPlayer.transform.position;
+            if (TryGetNextObjectiveTarget(origin, out Vector3 target, out bool targetIsExit))
+            {
+                int carryoverMomentum = Mathf.Clamp(exitChoiceCarryoverMomentumLevel, 2, Mathf.Max(2, breadcrumbMomentumMaxLevel));
+                SpawnBreadcrumbChainEcho(origin, target, targetIsExit, carryoverMomentum);
+                SpawnBreadcrumbMomentumPulse(origin, carryoverMomentum);
+
+                RuntimeEventBus.Raise(
+                    RuntimeEventType.Objective,
+                    "Exit cache revealed the next route",
+                    this,
+                    CurrentStage,
+                    semantic: RuntimeEventSemantic.EchoChoiceScan);
+            }
+
+            exitChoiceCarryoverRoutine = null;
+        }
+
         private void HandleExitEntered()
         {
             if (mapSystem == null)
@@ -1943,7 +2009,37 @@ namespace LostBreadcrumbs.Runtime.Map
                 return;
             }
 
+            RaiseExitDecisionEvent();
             mapSystem.GenerateNextStage();
+        }
+
+        private void RaiseExitDecisionEvent()
+        {
+            if (RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                return;
+            }
+
+            if (exitChoiceCachePickup != null)
+            {
+                RuntimeEventBus.Raise(
+                    RuntimeEventType.Objective,
+                    "Exit taken - cache left behind",
+                    this,
+                    CurrentStage,
+                    semantic: RuntimeEventSemantic.RiskReward);
+                return;
+            }
+
+            if (exitChoiceCacheTakenThisStage)
+            {
+                RuntimeEventBus.Raise(
+                    RuntimeEventType.Objective,
+                    "Exit taken - route hint carried forward",
+                    this,
+                    CurrentStage,
+                    semantic: RuntimeEventSemantic.EchoChoiceScan);
+            }
         }
 
         private void ClearExistingObjects()
@@ -1960,8 +2056,15 @@ namespace LostBreadcrumbs.Runtime.Map
                 riskCacheAftershockRoutine = null;
             }
 
+            if (exitChoiceCarryoverRoutine != null)
+            {
+                StopCoroutine(exitChoiceCarryoverRoutine);
+                exitChoiceCarryoverRoutine = null;
+            }
+
             ResetBreadcrumbMomentum();
             exitChoiceCachePickup = null;
+            exitChoiceCacheTakenThisStage = false;
             exitChoiceCachePosition = Vector3.zero;
             nextCorruptedBreadcrumbEchoTime = 0f;
 
