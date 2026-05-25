@@ -111,3 +111,11 @@ InitTestScene*.unity*
 # Unity recovery scenes generated under Assets after editor crashes/recovery prompts
 /[Aa]ssets/_Recovery/
 /[Aa]ssets/_Recovery.meta
+
+# Pending Asset Store import review. Keep large licensed vendor drops local until
+# license, scope, and repository size are approved.
+/[Aa]ssets/Feel/
+/[Aa]ssets/Feel.meta
+/[Aa]ssets/Layer Lab/
+/[Aa]ssets/Layer Lab.meta
+/[Aa]ssets/ThirdParty.meta

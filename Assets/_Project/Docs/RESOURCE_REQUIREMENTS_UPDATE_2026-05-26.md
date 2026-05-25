@@ -9,6 +9,7 @@
 - `DreadScreenOverlayRuntime` now supports a subtle procedural edge-scratch motif inside the dread vignette texture.
 - The motif is generated once with the runtime texture, so it adds horror identity without per-frame allocations or extra art dependencies.
 - Tunable fields were added for scratch enablement, strength, edge bias, and count.
+- Vendor asset folders were classified and protected from accidental commits while license, size, and scope are reviewed.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |
@@ -16,7 +17,7 @@
 | Visual motif kit | 6-10 authored references for enemy tell shapes, route echo, corruption, relief, death overlay, and exit lure | Runtime systems now have readable states, but they need a consistent horror identity | Every high-priority cue can be recognized in a screenshot without relying only on text |
 | Semantic SFX pack | Authored clips for lock-on warning, chase start, escape relief, quiet breath break, echo return, risk reward, rhythm shift, set-piece shift, exit unlock, and death | The audio manager has semantic roles; placeholder tones should become intentional horror rhythm | Each semantic event has a distinct attack, tail length, and mix priority |
 | Playtest validation set | Stage 1-3 observation sheet, 10-minute release soak script, death-respawn flashlight check, monster spawn/stuck checklist | Recent fixes touched pacing, respawn, camera depth, and enemy readability | A tester can report where tension rises, where it breaks, and whether recovery feels fair |
-| Vendor asset decision | License/source/size review for `Assets/Feel`, `Assets/Layer Lab`, and `Assets/ThirdParty.meta` | These folders are present but not yet committed; they may affect repository weight and license posture | Each folder is either approved for commit, moved to ignore, or replaced with a smaller scoped import |
+| Vendor asset decision | License/source/size review for `Assets/Feel`, `Assets/Layer Lab`, and `Assets/ThirdParty.meta` | These folders are present but intentionally ignored until approved; they may affect repository weight and license posture | Each folder is either approved for a scoped commit, kept local only, or replaced with smaller authored resources |
 
 ## P1 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |
@@ -34,7 +35,7 @@
 
 ## Immediate Next Work Without Planner Input
 1. Run Unity compile/static checks after the dread motif change.
-2. Classify the untracked vendor folders before staging any imported asset.
+2. Decide whether the ignored vendor folders should stay local-only or be re-imported as smaller scoped packages.
 3. Add a small in-game debug screenshot checklist for quiet/build/spike/release if Play Mode automation is available.
 4. Replace one placeholder semantic SFX group at a time, starting with `ChaseStarted`, `LockOnWarning`, and `EscapeRelief`.
 
