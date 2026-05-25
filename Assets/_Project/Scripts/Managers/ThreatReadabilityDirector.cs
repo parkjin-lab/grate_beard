@@ -156,6 +156,12 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Min(0f)] private float closeStalkerCueImpulseAmplitude = 0.045f;
         [SerializeField, Min(0.05f)] private float closeStalkerCueImpulseDuration = 0.16f;
 
+        [Header("Threat Cue Budget")]
+        [SerializeField] private bool enableThreatCueBudget = true;
+        [SerializeField, Min(0.25f)] private float majorThreatCueCooldownSeconds = 3f;
+        [SerializeField, Min(0.05f)] private float minorThreatCueCooldownSeconds = 0.45f;
+        [SerializeField, Min(0.05f)] private float deniedThreatCueRetrySeconds = 0.45f;
+
         [Header("Escape Relief Reward")]
         [SerializeField] private bool enableEscapeReliefReward = true;
         [SerializeField, Min(0.1f)] private float minEscapeReliefChaseSeconds = 2.4f;
@@ -299,6 +305,9 @@ namespace LostBreadcrumbs.Runtime.Managers
         private float nextDreadBeatTime;
         private float nextPhantomCueTime;
         private float nextCloseStalkerCueTime;
+        private float nextMajorThreatCueTime;
+        private float nextMinorThreatCueTime;
+        private int suppressedThreatCueCount;
         private float nextReferenceResolveTime;
         private AudioSource phantomCueAudioSource;
         private AudioClip phantomCueClip;
@@ -351,6 +360,15 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float CurrentEscapeReliefCalm => EvaluateEscapeReliefCalm01();
         public float CurrentQuietBreathStrain => Mathf.Clamp01(quietBreathStrainElapsed / Mathf.Max(0.05f, escapeReliefBreathSnapStrainSeconds));
         public float BreathSnapCooldownRemaining => Mathf.Max(0f, nextEscapeReliefBreathSnapRealtime - Time.realtimeSinceStartup);
+        public float MajorThreatCueCooldownRemaining => Mathf.Max(0f, nextMajorThreatCueTime - Time.time);
+        public float MinorThreatCueCooldownRemaining => Mathf.Max(0f, nextMinorThreatCueTime - Time.time);
+        public int SuppressedThreatCueCount => Mathf.Max(0, suppressedThreatCueCount);
+
+        private enum ThreatCueBudgetTier
+        {
+            Minor,
+            Major
+        }
 
         private void OnEnable()
         {
@@ -719,6 +737,12 @@ namespace LostBreadcrumbs.Runtime.Managers
                 return;
             }
 
+            if (!TryReserveThreatCueBudget(ThreatCueBudgetTier.Minor))
+            {
+                nextDreadBeatTime = Time.time + Mathf.Max(0.05f, deniedThreatCueRetrySeconds);
+                return;
+            }
+
             float amplitude = Mathf.Lerp(minDreadBeatImpulse, maxDreadBeatImpulse, dread);
             if (amplitude > 0f)
             {
@@ -752,6 +776,12 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             if (Time.time < nextPhantomCueTime)
             {
+                return;
+            }
+
+            if (!TryReserveThreatCueBudget(ThreatCueBudgetTier.Major))
+            {
+                nextPhantomCueTime = Time.time + Mathf.Max(0.05f, deniedThreatCueRetrySeconds);
                 return;
             }
 
@@ -969,12 +999,19 @@ namespace LostBreadcrumbs.Runtime.Managers
                 return;
             }
 
-            ScheduleNextCloseStalkerCue(intensity);
             if (Random.value > Mathf.Clamp01(closeStalkerCueChance + intensity * 0.12f))
             {
+                ScheduleNextCloseStalkerCue(intensity);
                 return;
             }
 
+            if (!TryReserveThreatCueBudget(ThreatCueBudgetTier.Major))
+            {
+                nextCloseStalkerCueTime = Time.time + Mathf.Max(0.05f, deniedThreatCueRetrySeconds);
+                return;
+            }
+
+            ScheduleNextCloseStalkerCue(intensity);
             Vector2 cuePosition = PickCloseStalkerCuePosition(enemy, distance, intensity);
             SpawnCloseStalkerCueVisual(cuePosition, intensity);
             PlayCloseStalkerCueAudio(cuePosition, intensity);
@@ -2034,6 +2071,30 @@ namespace LostBreadcrumbs.Runtime.Managers
                    && EvaluateEscapeReliefCalm01() * escapeReliefCueSuppression >= 0.12f;
         }
 
+        private bool TryReserveThreatCueBudget(ThreatCueBudgetTier tier)
+        {
+            if (!enableThreatCueBudget)
+            {
+                return true;
+            }
+
+            float now = Time.time;
+            bool isMajor = tier == ThreatCueBudgetTier.Major;
+            if (now < nextMinorThreatCueTime || (isMajor && now < nextMajorThreatCueTime))
+            {
+                suppressedThreatCueCount++;
+                return false;
+            }
+
+            nextMinorThreatCueTime = now + Mathf.Max(0.05f, minorThreatCueCooldownSeconds);
+            if (isMajor)
+            {
+                nextMajorThreatCueTime = now + Mathf.Max(0.25f, majorThreatCueCooldownSeconds);
+            }
+
+            return true;
+        }
+
         private void TryApplyThreatPulse(float pressure)
         {
             float delta = hasPreviousReadabilityPressure ? pressure - previousReadabilityPressure : 0f;
@@ -2043,6 +2104,12 @@ namespace LostBreadcrumbs.Runtime.Managers
             bool spikeDetected = pressure >= pulsePressureThreshold && delta >= pulsePressureDeltaThreshold;
             if (!spikeDetected || Time.time < nextAllowedPulseTime)
             {
+                return;
+            }
+
+            if (!TryReserveThreatCueBudget(ThreatCueBudgetTier.Major))
+            {
+                nextAllowedPulseTime = Time.time + Mathf.Max(0.05f, deniedThreatCueRetrySeconds);
                 return;
             }
 
@@ -2291,6 +2358,9 @@ namespace LostBreadcrumbs.Runtime.Managers
             nextDreadBeatTime = 0f;
             nextPhantomCueTime = 0f;
             nextCloseStalkerCueTime = 0f;
+            nextMajorThreatCueTime = 0f;
+            nextMinorThreatCueTime = 0f;
+            suppressedThreatCueCount = 0;
             currentFlashlightDread = 0f;
             currentCloseThreatDistance = float.PositiveInfinity;
             currentThreatTunnelVision = 0f;
