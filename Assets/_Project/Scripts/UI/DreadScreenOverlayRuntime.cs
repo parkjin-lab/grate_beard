@@ -37,6 +37,12 @@ namespace LostBreadcrumbs.Runtime.UI
         [SerializeField] private Color lowPressureEdgeColor = new(0.006f, 0.007f, 0.012f, 1f);
         [SerializeField] private Color highPressureEdgeColor = new(0.13f, 0.004f, 0.016f, 1f);
 
+        [Header("Motif Texture")]
+        [SerializeField] private bool enableMotifScratches = true;
+        [SerializeField, Range(0f, 1f)] private float motifScratchStrength = 0.18f;
+        [SerializeField, Range(0f, 1f)] private float motifScratchEdgeBias = 0.72f;
+        [SerializeField, Range(1, 12)] private int motifScratchCount = 5;
+
         private const string CanvasName = "DreadOverlay_Canvas";
         private const string ImageName = "DreadOverlay_Vignette";
 
@@ -310,7 +316,7 @@ namespace LostBreadcrumbs.Runtime.UI
             }
         }
 
-        private static Texture2D CreateVignetteTexture(int size)
+        private Texture2D CreateVignetteTexture(int size)
         {
             Texture2D texture = new(size, size, TextureFormat.RGBA32, false)
             {
@@ -331,7 +337,8 @@ namespace LostBreadcrumbs.Runtime.UI
                     float radial = Mathf.Sqrt(nx * nx + ny * ny);
                     float edge = Smooth01(0.42f, 1.05f, radial);
                     float side = Mathf.Max(Mathf.Pow(Mathf.Abs(nx), 3.6f), Mathf.Pow(Mathf.Abs(ny), 3.6f));
-                    float alpha = Mathf.Clamp01(Mathf.Max(edge, side * 0.74f));
+                    float motif = enableMotifScratches ? EvaluateMotifScratchAlpha(nx, ny, radial) : 0f;
+                    float alpha = Mathf.Clamp01(Mathf.Max(edge, side * 0.74f) + motif * motifScratchStrength);
                     byte a = (byte)Mathf.RoundToInt(alpha * 255f);
                     pixels[y * size + x] = new Color32(255, 255, 255, a);
                 }
@@ -340,6 +347,43 @@ namespace LostBreadcrumbs.Runtime.UI
             texture.SetPixels32(pixels);
             texture.Apply(false, true);
             return texture;
+        }
+
+        private float EvaluateMotifScratchAlpha(float nx, float ny, float radial)
+        {
+            float edgeMask = Smooth01(motifScratchEdgeBias, 1.12f, radial);
+            if (edgeMask <= 0f)
+            {
+                return 0f;
+            }
+
+            float scratch = 0f;
+            int count = Mathf.Clamp(motifScratchCount, 1, 12);
+            for (int i = 0; i < count; i++)
+            {
+                float angle = 0.37f + i * 2.399963f;
+                float normalX = Mathf.Cos(angle);
+                float normalY = Mathf.Sin(angle);
+                float offset = Mathf.Lerp(-0.88f, 0.88f, Hash01(i * 47 + 13));
+                float lineDistance = Mathf.Abs(nx * normalX + ny * normalY - offset);
+                float band = 1f - Smooth01(0.006f, 0.026f, lineDistance);
+                if (band <= 0f)
+                {
+                    continue;
+                }
+
+                float grain = Mathf.PerlinNoise((nx + i * 0.41f) * 8.3f, (ny - i * 0.29f) * 6.7f);
+                float dash = Smooth01(0.44f, 0.86f, grain);
+                scratch = Mathf.Max(scratch, band * dash);
+            }
+
+            return Mathf.Clamp01(scratch * edgeMask);
+        }
+
+        private static float Hash01(int seed)
+        {
+            float value = Mathf.Sin(seed * 12.9898f + 78.233f) * 43758.5453f;
+            return value - Mathf.Floor(value);
         }
 
         private static float Smooth01(float min, float max, float value)

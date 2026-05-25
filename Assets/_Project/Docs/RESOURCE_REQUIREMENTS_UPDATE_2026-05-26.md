@@ -1,0 +1,45 @@
+# Resource Requirements Update - 2026-05-26
+
+## Current Context
+- Recent gameplay work added release relief, risk-reward temptation, spike tells, phase-aware exit carryover, semantic stingers, and Korean-first player-facing UI copy.
+- The next design need is a stronger horror rhythm: readable quiet, controlled pressure rise, authored spike, and believable relief.
+- The previous resource requirements document remains in the project, but this update is the current clean checklist for production decisions.
+
+## Implemented This Pass
+- `DreadScreenOverlayRuntime` now supports a subtle procedural edge-scratch motif inside the dread vignette texture.
+- The motif is generated once with the runtime texture, so it adds horror identity without per-frame allocations or extra art dependencies.
+- Tunable fields were added for scratch enablement, strength, edge bias, and count.
+
+## P0 Resource Needs
+| Area | Needed Resources | Why It Matters | Acceptance Criteria |
+| --- | --- | --- | --- |
+| Visual motif kit | 6-10 authored references for enemy tell shapes, route echo, corruption, relief, death overlay, and exit lure | Runtime systems now have readable states, but they need a consistent horror identity | Every high-priority cue can be recognized in a screenshot without relying only on text |
+| Semantic SFX pack | Authored clips for lock-on warning, chase start, escape relief, quiet breath break, echo return, risk reward, rhythm shift, set-piece shift, exit unlock, and death | The audio manager has semantic roles; placeholder tones should become intentional horror rhythm | Each semantic event has a distinct attack, tail length, and mix priority |
+| Playtest validation set | Stage 1-3 observation sheet, 10-minute release soak script, death-respawn flashlight check, monster spawn/stuck checklist | Recent fixes touched pacing, respawn, camera depth, and enemy readability | A tester can report where tension rises, where it breaks, and whether recovery feels fair |
+| Vendor asset decision | License/source/size review for `Assets/Feel`, `Assets/Layer Lab`, and `Assets/ThirdParty.meta` | These folders are present but not yet committed; they may affect repository weight and license posture | Each folder is either approved for commit, moved to ignore, or replaced with a smaller scoped import |
+
+## P1 Resource Needs
+| Area | Needed Resources | Why It Matters | Acceptance Criteria |
+| --- | --- | --- | --- |
+| Character and monster sprite polish | Player idle/walk/panic frames, monster idle/search/chase/stun frames | Readability is improving mechanically; animation should now express state rhythm | Player and monster state changes are visible at gameplay zoom |
+| Korean HUD icon set | Small icons for stamina, objective, danger, echo, decoy, smoke, flashlight, exit, and breadcrumb | Korean copy is now player-facing; icons can reduce text density during high pressure | Icons remain legible at 1080p and do not compete with threat cues |
+| Map prop silhouettes | Narrow passage blockers, broken lights, exit frame, safe haven anchor, hook/bait prop | Core loop needs spaces that imply choices before text explains them | Props communicate risk, relief, or temptation by silhouette |
+| Steam/store capture pass | 5-8 screenshots after visual motif and SFX pass | External presentation should wait until the game has a recognizable look | Captures show quiet, build, spike, chase, relief, and exit choice moments |
+
+## Authoring Direction
+- Quiet phase resources should be sparse, low-contrast, and slow. They should make the player listen and scan.
+- Build phase resources should add directional hints and uncertain temptation: a visible reward should also imply exposure.
+- Spike phase resources should be short, bright, and unmistakable. The cue should feel sudden, but the player must understand what happened.
+- Release phase resources should briefly clear visual/audio pressure so the player can feel the rhythm reset.
+
+## Immediate Next Work Without Planner Input
+1. Run Unity compile/static checks after the dread motif change.
+2. Classify the untracked vendor folders before staging any imported asset.
+3. Add a small in-game debug screenshot checklist for quiet/build/spike/release if Play Mode automation is available.
+4. Replace one placeholder semantic SFX group at a time, starting with `ChaseStarted`, `LockOnWarning`, and `EscapeRelief`.
+
+## Definition Of Done For This Resource Slice
+- The resource list is visible in source control as the current production checklist.
+- Runtime horror identity has one concrete visual improvement that does not require new art.
+- No unreviewed vendor asset folder is accidentally committed.
+- The next content pass can proceed asset-by-asset instead of reopening the whole design discussion.
