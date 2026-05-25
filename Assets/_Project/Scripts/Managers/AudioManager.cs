@@ -46,7 +46,16 @@ namespace LostBreadcrumbs.Runtime.Managers
         {
             None,
             ExitUnlocked,
-            ChaseSpike
+            ChaseSpike,
+            LockOnWarning,
+            EscapeRelief,
+            QuietBreathBroken,
+            EchoReturn,
+            RiskReward,
+            RhythmShift,
+            SetPieceShift,
+            PressureWave,
+            Death
         }
 
         public static AudioManager Instance { get; private set; }
@@ -88,6 +97,8 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Range(0f, 2f)] private float chaseSpikeStingerVolume = 1f;
         [SerializeField, Min(0f)] private float exitUnlockedStingerCooldown = 0.8f;
         [SerializeField, Min(0f)] private float chaseSpikeStingerCooldown = 0.7f;
+        [SerializeField, Min(0f)] private float semanticStingerCooldown = 1.6f;
+        [SerializeField, Min(0f)] private float majorStingerBudgetCooldown = 3f;
         [SerializeField] private bool logStingerAudio;
 
         [Header("Stinger Stage Scaling")]
@@ -143,6 +154,9 @@ namespace LostBreadcrumbs.Runtime.Managers
         private float lastPlayTime;
         private float nextExitUnlockedStingerTime;
         private float nextChaseSpikeStingerTime;
+        private float nextSemanticStingerTime;
+        private float nextMajorStingerTime;
+        private int suppressedRuntimeStingerCount;
         private float burstLevelNormalized;
         private RuntimeEventType lastPlayedEventType;
         private string lastPlaySource = "-";
@@ -164,6 +178,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float EffectiveDuck => Mathf.Clamp01(combatDuckCurrent + eventDuckBoost);
         public bool RuntimeDuckingEnabled => enableRuntimeDucking;
         public float LastStingerStageIntensity => lastStingerStageIntensity;
+        public int SuppressedRuntimeStingerCount => Mathf.Max(0, suppressedRuntimeStingerCount);
 
         protected override void Awake()
         {
@@ -498,8 +513,10 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             stageIntensity01 = EvaluateStingerStageIntensity(record.Stage);
 
-            if (IsStingerOnCooldown(kind, Time.unscaledTime))
+            float now = Time.unscaledTime;
+            if (IsStingerOnCooldown(kind, now) || IsMajorStingerBudgetBlocked(kind, now))
             {
+                suppressedRuntimeStingerCount++;
                 return false;
             }
 
@@ -508,7 +525,8 @@ namespace LostBreadcrumbs.Runtime.Managers
                 return false;
             }
 
-            MarkStingerCooldown(kind, Time.unscaledTime, stageIntensity01);
+            MarkStingerCooldown(kind, now, stageIntensity01);
+            MarkMajorStingerBudget(kind, now);
             PushStingerDuckBoost(kind, stageIntensity01);
             lastStingerStageIntensity = stageIntensity01;
             playedKind = kind;
@@ -520,12 +538,25 @@ namespace LostBreadcrumbs.Runtime.Managers
             RuntimeStingerKind semanticKind = record.Semantic switch
             {
                 RuntimeEventSemantic.ExitUnlocked => RuntimeStingerKind.ExitUnlocked,
+                RuntimeEventSemantic.LockOnWarning => RuntimeStingerKind.LockOnWarning,
                 RuntimeEventSemantic.ChaseStarted => RuntimeStingerKind.ChaseSpike,
+                RuntimeEventSemantic.EscapeRelief => RuntimeStingerKind.EscapeRelief,
+                RuntimeEventSemantic.QuietBreathBroken => RuntimeStingerKind.QuietBreathBroken,
+                RuntimeEventSemantic.EchoReturn => RuntimeStingerKind.EchoReturn,
+                RuntimeEventSemantic.RiskReward => RuntimeStingerKind.RiskReward,
+                RuntimeEventSemantic.PressureWave => RuntimeStingerKind.PressureWave,
+                RuntimeEventSemantic.SetPieceShift => RuntimeStingerKind.SetPieceShift,
+                RuntimeEventSemantic.RhythmShift => RuntimeStingerKind.RhythmShift,
                 _ => RuntimeStingerKind.None
             };
             if (semanticKind != RuntimeStingerKind.None)
             {
                 return semanticKind;
+            }
+
+            if (record.Type == RuntimeEventType.Death)
+            {
+                return RuntimeStingerKind.Death;
             }
 
             if (record.Type == RuntimeEventType.Objective && ContainsEventKeyword(record.Message, "exit unlocked"))
@@ -557,7 +588,24 @@ namespace LostBreadcrumbs.Runtime.Managers
             {
                 RuntimeStingerKind.ExitUnlocked => now < nextExitUnlockedStingerTime,
                 RuntimeStingerKind.ChaseSpike => now < nextChaseSpikeStingerTime,
-                _ => false
+                RuntimeStingerKind.None => false,
+                _ => now < nextSemanticStingerTime
+            };
+        }
+
+        private bool IsMajorStingerBudgetBlocked(RuntimeStingerKind kind, float now)
+        {
+            return IsMajorRuntimeStinger(kind) && now < nextMajorStingerTime;
+        }
+
+        private static bool IsMajorRuntimeStinger(RuntimeStingerKind kind)
+        {
+            return kind switch
+            {
+                RuntimeStingerKind.EscapeRelief => false,
+                RuntimeStingerKind.RhythmShift => false,
+                RuntimeStingerKind.None => false,
+                _ => true
             };
         }
 
@@ -572,7 +620,22 @@ namespace LostBreadcrumbs.Runtime.Managers
                 case RuntimeStingerKind.ChaseSpike:
                     nextChaseSpikeStingerTime = now + Mathf.Max(0f, chaseSpikeStingerCooldown * stageCooldownMultiplier);
                     break;
+                case RuntimeStingerKind.None:
+                    break;
+                default:
+                    nextSemanticStingerTime = now + Mathf.Max(0f, semanticStingerCooldown * stageCooldownMultiplier);
+                    break;
             }
+        }
+
+        private void MarkMajorStingerBudget(RuntimeStingerKind kind, float now)
+        {
+            if (!IsMajorRuntimeStinger(kind))
+            {
+                return;
+            }
+
+            nextMajorStingerTime = now + Mathf.Max(0f, majorStingerBudgetCooldown);
         }
 
         private bool TryPlayStinger(RuntimeStingerKind kind, bool bypassCooldown, float stageIntensity01)
@@ -608,6 +671,15 @@ namespace LostBreadcrumbs.Runtime.Managers
             {
                 RuntimeStingerKind.ExitUnlocked => exitUnlockedStingerVolume,
                 RuntimeStingerKind.ChaseSpike => chaseSpikeStingerVolume,
+                RuntimeStingerKind.LockOnWarning => 0.82f,
+                RuntimeStingerKind.EscapeRelief => 0.72f,
+                RuntimeStingerKind.QuietBreathBroken => 0.92f,
+                RuntimeStingerKind.EchoReturn => 0.78f,
+                RuntimeStingerKind.RiskReward => 0.86f,
+                RuntimeStingerKind.RhythmShift => 0.7f,
+                RuntimeStingerKind.SetPieceShift => 0.92f,
+                RuntimeStingerKind.PressureWave => 0.82f,
+                RuntimeStingerKind.Death => 1.18f,
                 _ => 1f
             };
 
@@ -641,7 +713,10 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             if (logStingerAudio)
             {
-                string source = clip == exitUnlockedStingerClip || clip == chaseSpikeStingerClip ? "clip" : "tone";
+                string source = (clip == exitUnlockedStingerClip && exitUnlockedStingerClip != null)
+                                || (clip == chaseSpikeStingerClip && chaseSpikeStingerClip != null)
+                    ? "clip"
+                    : "tone";
                 Debug.Log($"[AudioManager] Stinger {kind} ({source}, volume={finalVolume:0.00}, pitch={stagePitch:0.00}, stageIntensity={stageIntensity01:0.00})", this);
             }
 
@@ -654,6 +729,14 @@ namespace LostBreadcrumbs.Runtime.Managers
             {
                 RuntimeStingerKind.ExitUnlocked => 0.24f,
                 RuntimeStingerKind.ChaseSpike => 0.34f,
+                RuntimeStingerKind.LockOnWarning => 0.22f,
+                RuntimeStingerKind.EscapeRelief => 0.18f,
+                RuntimeStingerKind.QuietBreathBroken => 0.28f,
+                RuntimeStingerKind.EchoReturn => 0.2f,
+                RuntimeStingerKind.RiskReward => 0.24f,
+                RuntimeStingerKind.SetPieceShift => 0.3f,
+                RuntimeStingerKind.PressureWave => 0.26f,
+                RuntimeStingerKind.Death => 0.45f,
                 _ => 0.1f
             };
 
@@ -733,6 +816,8 @@ namespace LostBreadcrumbs.Runtime.Managers
             chaseSpikeStingerVolume = Mathf.Clamp(chaseSpikeStingerVolume, 0f, 2f);
             exitUnlockedStingerCooldown = Mathf.Max(0f, exitUnlockedStingerCooldown);
             chaseSpikeStingerCooldown = Mathf.Max(0f, chaseSpikeStingerCooldown);
+            semanticStingerCooldown = Mathf.Max(0f, semanticStingerCooldown);
+            majorStingerBudgetCooldown = Mathf.Max(0f, majorStingerBudgetCooldown);
 
             stingerRampStartStage = Mathf.Max(1, stingerRampStartStage);
             stingerRampPeakStage = Mathf.Max(stingerRampStartStage + 1, stingerRampPeakStage);
@@ -833,6 +918,14 @@ namespace LostBreadcrumbs.Runtime.Managers
             {
                 basePitch += 0.015f;
             }
+            else if (kind == RuntimeStingerKind.EscapeRelief)
+            {
+                basePitch -= 0.035f;
+            }
+            else if (kind == RuntimeStingerKind.Death)
+            {
+                basePitch -= 0.08f;
+            }
 
             return Mathf.Clamp(basePitch, 0.8f, 1.3f);
         }
@@ -907,6 +1000,51 @@ namespace LostBreadcrumbs.Runtime.Managers
                     new[] { 300f, 360f, 440f, 320f },
                     new[] { 0.05f, 0.05f, 0.07f, 0.09f },
                     0.012f),
+                RuntimeStingerKind.LockOnWarning => CreatePatternToneClip(
+                    "Stinger_LockOnWarning",
+                    new[] { 220f, 220f, 320f },
+                    new[] { 0.045f, 0.045f, 0.12f },
+                    0.04f),
+                RuntimeStingerKind.EscapeRelief => CreatePatternToneClip(
+                    "Stinger_EscapeRelief",
+                    new[] { 280f, 420f, 560f },
+                    new[] { 0.12f, 0.14f, 0.18f },
+                    0.028f),
+                RuntimeStingerKind.QuietBreathBroken => CreatePatternToneClip(
+                    "Stinger_QuietBreathBroken",
+                    new[] { 620f, 260f },
+                    new[] { 0.04f, 0.18f },
+                    0.018f),
+                RuntimeStingerKind.EchoReturn => CreatePatternToneClip(
+                    "Stinger_EchoReturn",
+                    new[] { 720f, 520f, 380f },
+                    new[] { 0.055f, 0.075f, 0.12f },
+                    0.026f),
+                RuntimeStingerKind.RiskReward => CreatePatternToneClip(
+                    "Stinger_RiskReward",
+                    new[] { 420f, 580f, 310f },
+                    new[] { 0.055f, 0.08f, 0.12f },
+                    0.018f),
+                RuntimeStingerKind.RhythmShift => CreatePatternToneClip(
+                    "Stinger_RhythmShift",
+                    new[] { 360f, 450f },
+                    new[] { 0.07f, 0.11f },
+                    0.04f),
+                RuntimeStingerKind.SetPieceShift => CreatePatternToneClip(
+                    "Stinger_SetPieceShift",
+                    new[] { 180f, 260f, 380f, 240f },
+                    new[] { 0.06f, 0.06f, 0.09f, 0.16f },
+                    0.016f),
+                RuntimeStingerKind.PressureWave => CreatePatternToneClip(
+                    "Stinger_PressureWave",
+                    new[] { 160f, 230f },
+                    new[] { 0.08f, 0.16f },
+                    0.012f),
+                RuntimeStingerKind.Death => CreatePatternToneClip(
+                    "Stinger_Death",
+                    new[] { 210f, 130f, 82f },
+                    new[] { 0.12f, 0.18f, 0.32f },
+                    0.02f),
                 _ => null
             };
         }
