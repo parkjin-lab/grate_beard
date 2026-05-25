@@ -15,6 +15,7 @@ namespace LostBreadcrumbs.Runtime.Map
 
         [Header("References")]
         [SerializeField] private MapSystem mapSystem;
+        [SerializeField] private GameplayRhythmDirector gameplayRhythmDirector;
         [SerializeField] private Transform pickupsRoot;
         [SerializeField] private Transform interactablesRoot;
 
@@ -140,6 +141,22 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField] private Color riskCacheColor = new(1f, 0.38f, 0.22f, 0.96f);
         [SerializeField, Min(0.1f)] private float riskCacheScale = 0.72f;
         [SerializeField] private int riskCacheSortingOrder = 36;
+
+        [Header("Risk Cache Rhythm Wager")]
+        [SerializeField, Range(0.25f, 2.5f)] private float riskCacheCalmRewardMultiplier = 0.92f;
+        [SerializeField, Range(0.25f, 2.5f)] private float riskCacheBuildRewardMultiplier = 1.32f;
+        [SerializeField, Range(0.25f, 2.5f)] private float riskCacheSpikeRewardMultiplier = 1.55f;
+        [SerializeField, Range(0.25f, 2.5f)] private float riskCacheReleaseRewardMultiplier = 0.78f;
+        [SerializeField, Range(0.25f, 2.5f)] private float riskCacheCalmNoiseMultiplier = 0.82f;
+        [SerializeField, Range(0.25f, 2.5f)] private float riskCacheBuildNoiseMultiplier = 1.08f;
+        [SerializeField, Range(0.25f, 2.5f)] private float riskCacheSpikeNoiseMultiplier = 1.48f;
+        [SerializeField, Range(0.25f, 2.5f)] private float riskCacheReleaseNoiseMultiplier = 0.68f;
+
+        [Header("Breadcrumb Rhythm Momentum")]
+        [SerializeField, Range(0.25f, 2.5f)] private float breadcrumbCalmRewardMultiplier = 0.9f;
+        [SerializeField, Range(0.25f, 2.5f)] private float breadcrumbBuildRewardMultiplier = 1.18f;
+        [SerializeField, Range(0.25f, 2.5f)] private float breadcrumbSpikeRewardMultiplier = 1.34f;
+        [SerializeField, Range(0.25f, 2.5f)] private float breadcrumbReleaseRewardMultiplier = 0.82f;
 
         [Header("Late Stage Pressure")]
         [SerializeField, Min(1)] private int latePressureStartStage = 5;
@@ -356,6 +373,11 @@ namespace LostBreadcrumbs.Runtime.Map
             if (mapSystem == null)
             {
                 mapSystem = FindFirstObjectByType<MapSystem>();
+            }
+
+            if (gameplayRhythmDirector == null)
+            {
+                gameplayRhythmDirector = FindFirstObjectByType<GameplayRhythmDirector>();
             }
 
             if (pickupsRoot == null)
@@ -930,6 +952,16 @@ namespace LostBreadcrumbs.Runtime.Map
                 Mathf.Max(0f, riskCachePulseCooldownRefundSeconds),
                 Mathf.Max(0f, riskCacheNoiseLoudness),
                 Mathf.Max(0.1f, riskCacheNoiseRadius));
+            pickup.ConfigureRhythmWager(
+                gameplayRhythmDirector,
+                riskCacheCalmRewardMultiplier,
+                riskCacheBuildRewardMultiplier,
+                riskCacheSpikeRewardMultiplier,
+                riskCacheReleaseRewardMultiplier,
+                riskCacheCalmNoiseMultiplier,
+                riskCacheBuildNoiseMultiplier,
+                riskCacheSpikeNoiseMultiplier,
+                riskCacheReleaseNoiseMultiplier);
             pickup.Collected += HandleRiskCacheCollected;
             activeRiskCaches.Add(pickup);
         }
@@ -1046,6 +1078,20 @@ namespace LostBreadcrumbs.Runtime.Map
             return count;
         }
 
+        private float EvaluateBreadcrumbMomentumRewardMultiplier()
+        {
+            GameplayRhythmPhase phase = gameplayRhythmDirector != null
+                ? gameplayRhythmDirector.CurrentPhase
+                : GameplayRhythmPhase.Calm;
+            return phase switch
+            {
+                GameplayRhythmPhase.Build => breadcrumbBuildRewardMultiplier,
+                GameplayRhythmPhase.Spike => breadcrumbSpikeRewardMultiplier,
+                GameplayRhythmPhase.Release => breadcrumbReleaseRewardMultiplier,
+                _ => breadcrumbCalmRewardMultiplier
+            };
+        }
+
         private void ApplyBreadcrumbMomentumReward(Vector3 origin, int momentumLevel)
         {
             if (!enableBreadcrumbMomentum || momentumLevel <= 1 || RegressionChecklistRunner.IsRegressionRunActive)
@@ -1060,13 +1106,16 @@ namespace LostBreadcrumbs.Runtime.Map
 
             float reward = Mathf.Max(0f, breadcrumbMomentumStaminaReward)
                            + Mathf.Max(0, momentumLevel - 2) * Mathf.Max(0f, breadcrumbMomentumStaminaRewardPerLevel);
+            float phaseRewardMultiplier = EvaluateBreadcrumbMomentumRewardMultiplier();
+            reward *= phaseRewardMultiplier;
             float recovered = momentumPlayer != null ? momentumPlayer.RecoverStamina(reward) : 0f;
+            string phaseLabel = gameplayRhythmDirector != null ? gameplayRhythmDirector.CurrentPhaseLabel : "None";
 
             RuntimeEventBus.Raise(
                 RuntimeEventType.Objective,
                 recovered > 0.01f
-                    ? $"Breadcrumb chain x{momentumLevel} (+{recovered:0.0} stamina)"
-                    : $"Breadcrumb chain x{momentumLevel}",
+                    ? $"Breadcrumb chain x{momentumLevel} {phaseLabel} (+{recovered:0.0} stamina)"
+                    : $"Breadcrumb chain x{momentumLevel} {phaseLabel}",
                 this,
                 CurrentStage);
 
@@ -1511,15 +1560,18 @@ namespace LostBreadcrumbs.Runtime.Map
             string pulseRefund = pickup.LastPulseCooldownRefund > 0.05f
                 ? $", Q -{pickup.LastPulseCooldownRefund:0.0}s"
                 : string.Empty;
+            string phaseLabel = string.IsNullOrWhiteSpace(pickup.LastRhythmPhaseLabel)
+                ? "None"
+                : pickup.LastRhythmPhaseLabel;
             RuntimeEventBus.Raise(
                 RuntimeEventType.Objective,
-                $"Risk cache opened (+{pickup.LastRecoveredStamina:0.0} stamina{pulseRefund})",
+                $"Risk cache opened {phaseLabel} x{pickup.LastRewardMultiplier:0.00} (+{pickup.LastRecoveredStamina:0.0} stamina{pulseRefund})",
                 this,
                 CurrentStage,
                 semantic: RuntimeEventSemantic.RiskReward);
 
             SpawnRiskCacheRewardPulse(pickup.transform.position);
-            TriggerRiskCacheAftershock(pickup.transform.position);
+            TriggerRiskCacheAftershock(pickup.transform.position, pickup.LastNoiseMultiplier);
         }
 
         private void SpawnRiskCacheRewardPulse(Vector3 position)
@@ -1544,7 +1596,7 @@ namespace LostBreadcrumbs.Runtime.Map
                 riskCacheSortingOrder);
         }
 
-        private void TriggerRiskCacheAftershock(Vector3 position)
+        private void TriggerRiskCacheAftershock(Vector3 position, float noiseMultiplier)
         {
             if (riskCacheAftershockNoiseScale <= 0f || riskCacheAftershockNoiseDelay <= 0f)
             {
@@ -1556,10 +1608,10 @@ namespace LostBreadcrumbs.Runtime.Map
                 StopCoroutine(riskCacheAftershockRoutine);
             }
 
-            riskCacheAftershockRoutine = StartCoroutine(RiskCacheAftershockRoutine(position));
+            riskCacheAftershockRoutine = StartCoroutine(RiskCacheAftershockRoutine(position, noiseMultiplier));
         }
 
-        private IEnumerator RiskCacheAftershockRoutine(Vector3 position)
+        private IEnumerator RiskCacheAftershockRoutine(Vector3 position, float noiseMultiplier)
         {
             yield return new WaitForSeconds(Mathf.Max(0f, riskCacheAftershockNoiseDelay));
 
@@ -1568,8 +1620,8 @@ namespace LostBreadcrumbs.Runtime.Map
             {
                 NoiseManager.Instance.EmitNoise(
                     position,
-                    Mathf.Max(0f, riskCacheNoiseLoudness) * Mathf.Clamp01(riskCacheAftershockNoiseScale),
-                    Mathf.Max(0.1f, riskCacheNoiseRadius) * Mathf.Lerp(0.5f, 1f, Mathf.Clamp01(riskCacheAftershockNoiseScale)),
+                    Mathf.Max(0f, riskCacheNoiseLoudness) * Mathf.Clamp01(riskCacheAftershockNoiseScale) * Mathf.Max(0.25f, noiseMultiplier),
+                    Mathf.Max(0.1f, riskCacheNoiseRadius) * Mathf.Lerp(0.5f, 1f, Mathf.Clamp01(riskCacheAftershockNoiseScale)) * Mathf.Lerp(0.84f, 1.2f, Mathf.Clamp01(noiseMultiplier - 0.25f)),
                     NoiseKind.ItemUse,
                     gameObject);
             }
