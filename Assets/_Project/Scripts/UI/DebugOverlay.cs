@@ -42,6 +42,11 @@ namespace LostBreadcrumbs.Runtime.UI
         [SerializeField, Min(0.1f)] private float missingReferenceResolveInterval = 0.8f;
         [SerializeField, Min(0.1f)] private float hookCacheRefreshInterval = 0.5f;
 
+        [Header("Rhythm Validation")]
+        [SerializeField] private bool showRhythmValidation = true;
+        [SerializeField] private KeyCode resetRhythmValidationKey = KeyCode.F9;
+        [SerializeField, Min(0.1f)] private float rhythmPhaseObservedSeconds = 0.75f;
+
         private int enemyIndex;
         private Vector2 mainScrollPosition;
         private Vector2 regressionScrollPosition;
@@ -71,6 +76,12 @@ namespace LostBreadcrumbs.Runtime.UI
         private PlayerEchoPulseAbility pulseAbility;
         private PlayerDecoyAbility decoyAbility;
         private PlayerSmokeAbility smokeAbility;
+        private GameplayRhythmPhase lastObservedRhythmPhase = GameplayRhythmPhase.Calm;
+        private float rhythmPhaseObservationElapsed;
+        private bool rhythmCalmObserved;
+        private bool rhythmBuildObserved;
+        private bool rhythmSpikeObserved;
+        private bool rhythmReleaseObserved;
 
         private void OnEnable()
         {
@@ -87,6 +98,7 @@ namespace LostBreadcrumbs.Runtime.UI
         private void Update()
         {
             TryResolveReferences();
+            ObserveRhythmValidation();
 
             if (RuntimeInputAdapter.GetKeyDown(cycleEnemyKey))
             {
@@ -101,6 +113,11 @@ namespace LostBreadcrumbs.Runtime.UI
             if (RuntimeInputAdapter.GetKeyDown(cycleRegressionEntrySourceKey))
             {
                 CycleRegressionEntrySource();
+            }
+
+            if (RuntimeInputAdapter.GetKeyDown(resetRhythmValidationKey))
+            {
+                ResetRhythmValidation();
             }
         }
 
@@ -377,6 +394,7 @@ namespace LostBreadcrumbs.Runtime.UI
             {
                 GUILayout.Label($"Rhythm: {rhythmDirector.CurrentPhaseLabel} {rhythmDirector.CurrentPhaseProgress:0.00} ({rhythmDirector.CurrentPhaseElapsed:0.0}/{rhythmDirector.CurrentPhaseDuration:0.0}s) cycle {rhythmDirector.CycleCount}");
                 GUILayout.Label($"Rhythm Tempo/Intensity/Pressure: {rhythmDirector.CurrentTempo01:0.00}/{rhythmDirector.CurrentRhythmIntensity:0.00}/{rhythmDirector.CurrentPressureMultiplier:0.00}");
+                DrawRhythmValidation();
             }
 
             if (readabilityDirector != null)
@@ -677,6 +695,79 @@ namespace LostBreadcrumbs.Runtime.UI
             float clampedX = Mathf.Clamp(x, padding, Mathf.Max(padding, screenWidth - clampedWidth - padding));
             float clampedY = Mathf.Clamp(y, padding, Mathf.Max(padding, screenHeight - clampedHeight - padding));
             return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
+        }
+
+        private void ObserveRhythmValidation()
+        {
+            if (!Application.isPlaying || !showRhythmValidation || rhythmDirector == null)
+            {
+                return;
+            }
+
+            GameplayRhythmPhase phase = rhythmDirector.CurrentPhase;
+            if (phase != lastObservedRhythmPhase)
+            {
+                lastObservedRhythmPhase = phase;
+                rhythmPhaseObservationElapsed = 0f;
+            }
+
+            rhythmPhaseObservationElapsed += Time.unscaledDeltaTime;
+            if (rhythmPhaseObservationElapsed < rhythmPhaseObservedSeconds)
+            {
+                return;
+            }
+
+            MarkRhythmPhaseObserved(phase);
+        }
+
+        private void DrawRhythmValidation()
+        {
+            if (!showRhythmValidation)
+            {
+                return;
+            }
+
+            string summary = rhythmCalmObserved && rhythmBuildObserved && rhythmSpikeObserved && rhythmReleaseObserved
+                ? "PASS"
+                : "Watching";
+            GUILayout.Label($"Rhythm Validation: {summary} ({resetRhythmValidationKey} reset)");
+            GUILayout.Label(
+                $"Rhythm Phases Seen C/B/S/R: {FormatObserved(rhythmCalmObserved)}/{FormatObserved(rhythmBuildObserved)}/{FormatObserved(rhythmSpikeObserved)}/{FormatObserved(rhythmReleaseObserved)}");
+            GUILayout.Label($"Rhythm Current Gate: {lastObservedRhythmPhase} {rhythmPhaseObservationElapsed:0.0}/{rhythmPhaseObservedSeconds:0.0}s");
+        }
+
+        private void ResetRhythmValidation()
+        {
+            rhythmCalmObserved = false;
+            rhythmBuildObserved = false;
+            rhythmSpikeObserved = false;
+            rhythmReleaseObserved = false;
+            rhythmPhaseObservationElapsed = 0f;
+            lastObservedRhythmPhase = rhythmDirector != null ? rhythmDirector.CurrentPhase : GameplayRhythmPhase.Calm;
+        }
+
+        private void MarkRhythmPhaseObserved(GameplayRhythmPhase phase)
+        {
+            switch (phase)
+            {
+                case GameplayRhythmPhase.Calm:
+                    rhythmCalmObserved = true;
+                    break;
+                case GameplayRhythmPhase.Build:
+                    rhythmBuildObserved = true;
+                    break;
+                case GameplayRhythmPhase.Spike:
+                    rhythmSpikeObserved = true;
+                    break;
+                case GameplayRhythmPhase.Release:
+                    rhythmReleaseObserved = true;
+                    break;
+            }
+        }
+
+        private static string FormatObserved(bool observed)
+        {
+            return observed ? "Y" : "-";
         }
 
         private void TryResolveReferences(bool force = false)
