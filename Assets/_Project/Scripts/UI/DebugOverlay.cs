@@ -356,6 +356,8 @@ namespace LostBreadcrumbs.Runtime.UI
                 GUILayout.Label($"Event Audio Assigned Clips: {audioManager.AssignedClipCount}");
                 GUILayout.Label($"Event Audio Burst: {audioManager.RecentBurstCount} ({audioManager.BurstLevelNormalized:0.00})");
                 GUILayout.Label($"Event Audio Last: {audioManager.LastPlayedEventType} via {audioManager.LastPlaySource}");
+                GUILayout.Label($"Event Audio Stinger Last: {audioManager.LastRuntimeStingerLabel} via {audioManager.LastRuntimeStingerSource} age {audioManager.LastRuntimeStingerAge:0.0}s");
+                GUILayout.Label($"Event Audio Stinger Mix: vol {audioManager.LastRuntimeStingerVolume:0.00} pitch {audioManager.LastRuntimeStingerPitch:0.00} suppressed {audioManager.SuppressedRuntimeStingerCount}");
                 GUILayout.Label($"Event Audio Stinger StageIntensity: {audioManager.LastStingerStageIntensity:0.00}");
                 GUILayout.Label($"Event Audio Duck: {audioManager.CombatDuckCurrent:0.00} -> {audioManager.CombatDuckTarget:0.00} (eff {audioManager.EffectiveDuck:0.00})");
                 GUILayout.Label($"Event Audio Ducking Enabled: {(audioManager.RuntimeDuckingEnabled ? "Yes" : "No")}");

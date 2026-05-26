@@ -11,6 +11,7 @@
 - Tunable fields were added for scratch enablement, strength, edge bias, and count.
 - Vendor asset folders were classified and protected from accidental commits while license, size, and scope are reviewed.
 - `DebugOverlay` now includes a lightweight rhythm validation gate for Calm/Build/Spike/Release observation.
+- `DebugOverlay` now exposes the last semantic stinger, source, age, volume, pitch, and suppression count for audio rhythm validation.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

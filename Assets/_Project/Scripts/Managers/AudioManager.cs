@@ -164,6 +164,11 @@ namespace LostBreadcrumbs.Runtime.Managers
         private float combatDuckCurrent;
         private float eventDuckBoost;
         private float lastStingerStageIntensity;
+        private string lastRuntimeStingerLabel = "-";
+        private string lastRuntimeStingerSource = "-";
+        private float lastRuntimeStingerVolume;
+        private float lastRuntimeStingerPitch = 1f;
+        private float lastRuntimeStingerPlayedAt = -1f;
 
         public bool Muted => muted;
         public float MasterVolume => masterVolume;
@@ -178,6 +183,11 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float EffectiveDuck => Mathf.Clamp01(combatDuckCurrent + eventDuckBoost);
         public bool RuntimeDuckingEnabled => enableRuntimeDucking;
         public float LastStingerStageIntensity => lastStingerStageIntensity;
+        public string LastRuntimeStingerLabel => string.IsNullOrWhiteSpace(lastRuntimeStingerLabel) ? "-" : lastRuntimeStingerLabel;
+        public string LastRuntimeStingerSource => string.IsNullOrWhiteSpace(lastRuntimeStingerSource) ? "-" : lastRuntimeStingerSource;
+        public float LastRuntimeStingerVolume => lastRuntimeStingerVolume;
+        public float LastRuntimeStingerPitch => lastRuntimeStingerPitch;
+        public float LastRuntimeStingerAge => lastRuntimeStingerPlayedAt < 0f ? -1f : Mathf.Max(0f, Time.unscaledTime - lastRuntimeStingerPlayedAt);
         public int SuppressedRuntimeStingerCount => Mathf.Max(0, suppressedRuntimeStingerCount);
 
         protected override void Awake()
@@ -706,6 +716,15 @@ namespace LostBreadcrumbs.Runtime.Managers
             stingerSource.priority = 48;
             stingerSource.PlayOneShot(clip, finalVolume);
 
+            lastRuntimeStingerLabel = kind.ToString();
+            lastRuntimeStingerSource = (clip == exitUnlockedStingerClip && exitUnlockedStingerClip != null)
+                                       || (clip == chaseSpikeStingerClip && chaseSpikeStingerClip != null)
+                ? "clip"
+                : "tone";
+            lastRuntimeStingerVolume = finalVolume;
+            lastRuntimeStingerPitch = stagePitch;
+            lastRuntimeStingerPlayedAt = now;
+
             if (!bypassCooldown)
             {
                 MarkStingerCooldown(kind, now, stageIntensity01);
@@ -713,11 +732,7 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             if (logStingerAudio)
             {
-                string source = (clip == exitUnlockedStingerClip && exitUnlockedStingerClip != null)
-                                || (clip == chaseSpikeStingerClip && chaseSpikeStingerClip != null)
-                    ? "clip"
-                    : "tone";
-                Debug.Log($"[AudioManager] Stinger {kind} ({source}, volume={finalVolume:0.00}, pitch={stagePitch:0.00}, stageIntensity={stageIntensity01:0.00})", this);
+                Debug.Log($"[AudioManager] Stinger {kind} ({lastRuntimeStingerSource}, volume={finalVolume:0.00}, pitch={stagePitch:0.00}, stageIntensity={stageIntensity01:0.00})", this);
             }
 
             return true;

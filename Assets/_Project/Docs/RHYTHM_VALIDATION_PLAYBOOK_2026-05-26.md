@@ -25,6 +25,18 @@ Capture one still or short clip for each state:
 - Spike: strongest threat cue, no text dependency.
 - Release: pressure drop, recovery cue, or safe route reveal.
 
+## Semantic Audio Spot Check
+During the same pass, watch `Event Audio Stinger Last` in `DebugOverlay`.
+
+| Moment | Expected Semantic Stinger | What To Confirm |
+| --- | --- | --- |
+| Exit opens | `ExitUnlocked` | It cuts through without hiding other danger cues |
+| Chase starts or spike lands | `ChaseSpike` or `LockOnWarning` | It feels urgent and short |
+| Echo draws danger back | `EchoReturn` | It reads as consequence, not reward |
+| Risk cache is collected | `RiskReward` | It sounds tempting but unsafe |
+| Release begins | `EscapeRelief` or `RhythmShift` | It briefly lowers tension without feeling like full safety |
+| Quiet breath breaks | `QuietBreathBroken` | It clearly tells the player they spent their relief window |
+
 ## Notes Template
 Use this compact format while testing:
 
