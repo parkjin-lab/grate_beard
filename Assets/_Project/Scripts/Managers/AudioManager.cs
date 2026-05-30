@@ -183,6 +183,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float EffectiveDuck => Mathf.Clamp01(combatDuckCurrent + eventDuckBoost);
         public bool RuntimeDuckingEnabled => enableRuntimeDucking;
         public float LastStingerStageIntensity => lastStingerStageIntensity;
+        public bool HasRuntimeStingerTelemetry => lastRuntimeStingerPlayedAt >= 0f;
         public string LastRuntimeStingerLabel => string.IsNullOrWhiteSpace(lastRuntimeStingerLabel) ? "-" : lastRuntimeStingerLabel;
         public string LastRuntimeStingerSource => string.IsNullOrWhiteSpace(lastRuntimeStingerSource) ? "-" : lastRuntimeStingerSource;
         public float LastRuntimeStingerVolume => lastRuntimeStingerVolume;
