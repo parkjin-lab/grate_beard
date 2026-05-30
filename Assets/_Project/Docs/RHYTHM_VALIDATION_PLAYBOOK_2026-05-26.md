@@ -27,6 +27,7 @@ Capture one still or short clip for each state:
 
 ## Semantic Audio Spot Check
 During the same pass, watch `Event Audio Stinger Last` in `DebugOverlay`.
+Before the pass, use the `AudioManager` context menu to audition the main stingers without waiting for every gameplay event.
 
 | Moment | Expected Semantic Stinger | What To Confirm |
 | --- | --- | --- |

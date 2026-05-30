@@ -275,6 +275,48 @@ namespace LostBreadcrumbs.Runtime.Managers
             TryPlayStinger(RuntimeStingerKind.ChaseSpike, bypassCooldown: true, stageIntensity01: 1f);
         }
 
+        [ContextMenu("Debug/Test Lock On Warning Stinger")]
+        private void DebugTestLockOnWarningStinger()
+        {
+            TryPlayStinger(RuntimeStingerKind.LockOnWarning, bypassCooldown: true, stageIntensity01: 1f);
+        }
+
+        [ContextMenu("Debug/Test Escape Relief Stinger")]
+        private void DebugTestEscapeReliefStinger()
+        {
+            TryPlayStinger(RuntimeStingerKind.EscapeRelief, bypassCooldown: true, stageIntensity01: 0.55f);
+        }
+
+        [ContextMenu("Debug/Test Quiet Breath Broken Stinger")]
+        private void DebugTestQuietBreathBrokenStinger()
+        {
+            TryPlayStinger(RuntimeStingerKind.QuietBreathBroken, bypassCooldown: true, stageIntensity01: 0.8f);
+        }
+
+        [ContextMenu("Debug/Test Echo Return Stinger")]
+        private void DebugTestEchoReturnStinger()
+        {
+            TryPlayStinger(RuntimeStingerKind.EchoReturn, bypassCooldown: true, stageIntensity01: 0.7f);
+        }
+
+        [ContextMenu("Debug/Test Risk Reward Stinger")]
+        private void DebugTestRiskRewardStinger()
+        {
+            TryPlayStinger(RuntimeStingerKind.RiskReward, bypassCooldown: true, stageIntensity01: 0.65f);
+        }
+
+        [ContextMenu("Debug/Test Rhythm Shift Stinger")]
+        private void DebugTestRhythmShiftStinger()
+        {
+            TryPlayStinger(RuntimeStingerKind.RhythmShift, bypassCooldown: true, stageIntensity01: 0.45f);
+        }
+
+        [ContextMenu("Debug/Test Death Stinger")]
+        private void DebugTestDeathStinger()
+        {
+            TryPlayStinger(RuntimeStingerKind.Death, bypassCooldown: true, stageIntensity01: 1f);
+        }
+
         public void SetMuted(bool isMuted)
         {
             muted = isMuted;

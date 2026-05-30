@@ -13,6 +13,7 @@
 | Semantic stinger telemetry | Before the first stinger, age could be displayed as a negative debug value | Fixed by adding `HasRuntimeStingerTelemetry` and a `none` display path |
 | Semantic stinger authoring | Only a small subset of stingers had authored clip slots | Expanded optional stinger clip slots so semantic tones can be replaced one by one |
 | Placeholder stinger rhythm | Several generated tones were functional but too similar in emotional shape | Tuned warning/chase/relief/breath/rhythm placeholders to make each cue easier to distinguish |
+| Stinger validation access | Only exit and chase stingers had direct context-menu test hooks | Added context-menu test hooks for the main semantic stinger set |
 | Performance | Stinger telemetry stores primitive fields only when a stinger plays | No per-frame allocation concern |
 | Risk | Full Unity Play Mode validation is still needed for actual feel and audio mix | Prioritize a 10-minute rhythm pass when editor access is available |
 
@@ -28,6 +29,7 @@ The next best autonomous task is to tighten validation around the 10-minute rhyt
 - Make sure the debug overlay reports what the tester needs without opening extra panels.
 - Keep manual validation focused on whether each rhythm phase changes player decisions.
 - Use authored SFX/art only after resource ownership is confirmed.
+- Use `AudioManager` context-menu stinger tests before Play Mode rhythm passes to confirm cue contrast.
 
 ## Longer-Term Quality Ideas
 - Author a small bespoke horror motif kit before relying on large UI/vendor packages.
