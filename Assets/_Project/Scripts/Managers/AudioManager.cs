@@ -93,6 +93,15 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private AudioMixerGroup stingerMixerGroup;
         [SerializeField] private AudioClip exitUnlockedStingerClip;
         [SerializeField] private AudioClip chaseSpikeStingerClip;
+        [SerializeField] private AudioClip lockOnWarningStingerClip;
+        [SerializeField] private AudioClip escapeReliefStingerClip;
+        [SerializeField] private AudioClip quietBreathBrokenStingerClip;
+        [SerializeField] private AudioClip echoReturnStingerClip;
+        [SerializeField] private AudioClip riskRewardStingerClip;
+        [SerializeField] private AudioClip rhythmShiftStingerClip;
+        [SerializeField] private AudioClip setPieceShiftStingerClip;
+        [SerializeField] private AudioClip pressureWaveStingerClip;
+        [SerializeField] private AudioClip deathStingerClip;
         [SerializeField, Range(0f, 2f)] private float exitUnlockedStingerVolume = 1f;
         [SerializeField, Range(0f, 2f)] private float chaseSpikeStingerVolume = 1f;
         [SerializeField, Min(0f)] private float exitUnlockedStingerCooldown = 0.8f;
@@ -174,6 +183,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float MasterVolume => masterVolume;
         public bool PreferAssignedClips => preferAssignedClips;
         public int AssignedClipCount => CountAssignedClips();
+        public int AssignedStingerClipCount => CountAssignedStingerClips();
         public float BurstLevelNormalized => burstLevelNormalized;
         public int RecentBurstCount => recentPlayTimes.Count;
         public RuntimeEventType LastPlayedEventType => lastPlayedEventType;
@@ -671,12 +681,7 @@ namespace LostBreadcrumbs.Runtime.Managers
                 return false;
             }
 
-            AudioClip clip = kind switch
-            {
-                RuntimeStingerKind.ExitUnlocked => exitUnlockedStingerClip,
-                RuntimeStingerKind.ChaseSpike => chaseSpikeStingerClip,
-                _ => null
-            };
+            AudioClip clip = GetAssignedStingerClip(kind);
 
             float volumeScale = kind switch
             {
@@ -718,10 +723,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             stingerSource.PlayOneShot(clip, finalVolume);
 
             lastRuntimeStingerLabel = kind.ToString();
-            lastRuntimeStingerSource = (clip == exitUnlockedStingerClip && exitUnlockedStingerClip != null)
-                                       || (clip == chaseSpikeStingerClip && chaseSpikeStingerClip != null)
-                ? "clip"
-                : "tone";
+            lastRuntimeStingerSource = IsAssignedStingerClip(kind, clip) ? "clip" : "tone";
             lastRuntimeStingerVolume = finalVolume;
             lastRuntimeStingerPitch = stagePitch;
             lastRuntimeStingerPlayedAt = now;
@@ -1162,6 +1164,30 @@ namespace LostBreadcrumbs.Runtime.Managers
             };
         }
 
+        private AudioClip GetAssignedStingerClip(RuntimeStingerKind kind)
+        {
+            return kind switch
+            {
+                RuntimeStingerKind.ExitUnlocked => exitUnlockedStingerClip,
+                RuntimeStingerKind.ChaseSpike => chaseSpikeStingerClip,
+                RuntimeStingerKind.LockOnWarning => lockOnWarningStingerClip,
+                RuntimeStingerKind.EscapeRelief => escapeReliefStingerClip,
+                RuntimeStingerKind.QuietBreathBroken => quietBreathBrokenStingerClip,
+                RuntimeStingerKind.EchoReturn => echoReturnStingerClip,
+                RuntimeStingerKind.RiskReward => riskRewardStingerClip,
+                RuntimeStingerKind.RhythmShift => rhythmShiftStingerClip,
+                RuntimeStingerKind.SetPieceShift => setPieceShiftStingerClip,
+                RuntimeStingerKind.PressureWave => pressureWaveStingerClip,
+                RuntimeStingerKind.Death => deathStingerClip,
+                _ => null
+            };
+        }
+
+        private bool IsAssignedStingerClip(RuntimeStingerKind kind, AudioClip clip)
+        {
+            return clip != null && GetAssignedStingerClip(kind) == clip;
+        }
+
         private int CountAssignedClips()
         {
             int count = 0;
@@ -1172,6 +1198,23 @@ namespace LostBreadcrumbs.Runtime.Managers
             if (objectiveClip != null) count++;
             if (abilityClip != null) count++;
             if (deathClip != null) count++;
+            return count;
+        }
+
+        private int CountAssignedStingerClips()
+        {
+            int count = 0;
+            if (exitUnlockedStingerClip != null) count++;
+            if (chaseSpikeStingerClip != null) count++;
+            if (lockOnWarningStingerClip != null) count++;
+            if (escapeReliefStingerClip != null) count++;
+            if (quietBreathBrokenStingerClip != null) count++;
+            if (echoReturnStingerClip != null) count++;
+            if (riskRewardStingerClip != null) count++;
+            if (rhythmShiftStingerClip != null) count++;
+            if (setPieceShiftStingerClip != null) count++;
+            if (pressureWaveStingerClip != null) count++;
+            if (deathStingerClip != null) count++;
             return count;
         }
 

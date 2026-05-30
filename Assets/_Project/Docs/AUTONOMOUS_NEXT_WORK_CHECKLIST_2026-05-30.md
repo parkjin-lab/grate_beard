@@ -11,13 +11,14 @@
 | --- | --- | --- |
 | Rhythm validation | Phase observation is intentionally lightweight and non-persistent | Keep as debug-only; use manual notes for feel quality |
 | Semantic stinger telemetry | Before the first stinger, age could be displayed as a negative debug value | Fixed by adding `HasRuntimeStingerTelemetry` and a `none` display path |
+| Semantic stinger authoring | Only a small subset of stingers had authored clip slots | Expanded optional stinger clip slots so semantic tones can be replaced one by one |
 | Performance | Stinger telemetry stores primitive fields only when a stinger plays | No per-frame allocation concern |
 | Risk | Full Unity Play Mode validation is still needed for actual feel and audio mix | Prioritize a 10-minute rhythm pass when editor access is available |
 
 ## Human-Free Implementation Queue
 1. Keep debug/validation displays readable and non-invasive.
 2. Add or refine documents that convert design goals into testable acceptance criteria.
-3. Improve generated placeholder feedback only when it does not require new licensed assets.
+3. Improve generated placeholder feedback only when it does not require new licensed assets. `[in progress: semantic stinger clip slots expanded]`
 4. Keep vendor assets ignored until explicitly approved.
 5. Run static preflight after each code change and commit only scoped files.
 

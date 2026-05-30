@@ -354,6 +354,7 @@ namespace LostBreadcrumbs.Runtime.UI
                 GUILayout.Label($"Event Audio Master Volume: {audioManager.MasterVolume:0.00}");
                 GUILayout.Label($"Event Audio Mode: {(audioManager.PreferAssignedClips ? "AssignedClipFirst" : "ToneOnly")}");
                 GUILayout.Label($"Event Audio Assigned Clips: {audioManager.AssignedClipCount}");
+                GUILayout.Label($"Event Audio Assigned Stingers: {audioManager.AssignedStingerClipCount}");
                 GUILayout.Label($"Event Audio Burst: {audioManager.RecentBurstCount} ({audioManager.BurstLevelNormalized:0.00})");
                 GUILayout.Label($"Event Audio Last: {audioManager.LastPlayedEventType} via {audioManager.LastPlaySource}");
                 if (audioManager.HasRuntimeStingerTelemetry)
