@@ -37,6 +37,13 @@ During the same pass, watch `Event Audio Stinger Last` in `DebugOverlay`.
 | Release begins | `EscapeRelief` or `RhythmShift` | It briefly lowers tension without feeling like full safety |
 | Quiet breath breaks | `QuietBreathBroken` | It clearly tells the player they spent their relief window |
 
+Generated placeholder tones now have stronger cue shapes:
+- `LockOnWarning`: repeated low warning knocks before the threat arrives.
+- `ChaseSpike`: short broken burst with a heavier tail.
+- `EscapeRelief`: slower rising phrase that should feel like an exhale, not a victory.
+- `QuietBreathBroken`: sharp snap into a low falloff.
+- `RhythmShift`: small pulse pattern for phase change awareness.
+
 ## Notes Template
 Use this compact format while testing:
 
