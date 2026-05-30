@@ -6,7 +6,10 @@ using LostBreadcrumbs.Runtime.Managers;
 using LostBreadcrumbs.Runtime.Map;
 using LostBreadcrumbs.Runtime.Systems;
 using LostBreadcrumbs.Runtime.Player;
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using UnityEngine;
 
 namespace LostBreadcrumbs.Runtime.UI
@@ -82,6 +85,7 @@ namespace LostBreadcrumbs.Runtime.UI
         private bool rhythmBuildObserved;
         private bool rhythmSpikeObserved;
         private bool rhythmReleaseObserved;
+        private string lastRhythmSnapshotPath = "-";
 
         private void OnEnable()
         {
@@ -744,6 +748,113 @@ namespace LostBreadcrumbs.Runtime.UI
             GUILayout.Label(
                 $"Rhythm Phases Seen C/B/S/R: {FormatObserved(rhythmCalmObserved)}/{FormatObserved(rhythmBuildObserved)}/{FormatObserved(rhythmSpikeObserved)}/{FormatObserved(rhythmReleaseObserved)}");
             GUILayout.Label($"Rhythm Current Gate: {lastObservedRhythmPhase} {rhythmPhaseObservationElapsed:0.0}/{rhythmPhaseObservedSeconds:0.0}s");
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Write Rhythm Snapshot"))
+            {
+                WriteRhythmValidationSnapshot();
+            }
+
+            GUILayout.Label($"Snapshot: {GetRhythmSnapshotDisplayLabel()}");
+            GUILayout.EndHorizontal();
+        }
+
+        private void WriteRhythmValidationSnapshot()
+        {
+            try
+            {
+                string projectRoot = Directory.GetParent(Application.dataPath)?.FullName ?? Application.dataPath;
+                string directory = Path.Combine(projectRoot, "Logs", "RhythmValidation");
+                Directory.CreateDirectory(directory);
+
+                string stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string path = Path.Combine(directory, $"rhythm_snapshot_{stamp}.txt");
+                File.WriteAllText(path, BuildRhythmValidationSnapshotText(), Encoding.UTF8);
+                lastRhythmSnapshotPath = path;
+                Debug.Log($"Rhythm validation snapshot written: {path}", this);
+            }
+            catch (Exception ex)
+            {
+                lastRhythmSnapshotPath = $"Failed: {ex.Message}";
+                Debug.LogWarning($"Failed to write rhythm validation snapshot: {ex.Message}", this);
+            }
+        }
+
+        private string BuildRhythmValidationSnapshotText()
+        {
+            StringBuilder builder = new(1024);
+            builder.AppendLine("Lost Breadcrumbs Rhythm Validation Snapshot");
+            builder.AppendLine($"CapturedAt: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            builder.AppendLine($"Frame: {Time.frameCount}");
+            builder.AppendLine();
+
+            StageLoopDirector stageLoop = StageLoopDirector.Instance;
+            if (stageLoop != null)
+            {
+                builder.AppendLine($"Stage: {stageLoop.CurrentStage}");
+                builder.AppendLine($"Breadcrumbs: {stageLoop.CollectedBreadcrumbs}/{stageLoop.RequiredBreadcrumbs}");
+                builder.AppendLine($"ExitUnlocked: {stageLoop.ExitUnlocked}");
+                builder.AppendLine($"SafeHavens: {stageLoop.ActiveSafeHavenCount}");
+            }
+
+            if (rhythmDirector != null)
+            {
+                builder.AppendLine($"RhythmPhase: {rhythmDirector.CurrentPhaseLabel}");
+                builder.AppendLine($"RhythmProgress: {rhythmDirector.CurrentPhaseProgress:0.000}");
+                builder.AppendLine($"RhythmElapsedDuration: {rhythmDirector.CurrentPhaseElapsed:0.00}/{rhythmDirector.CurrentPhaseDuration:0.00}");
+                builder.AppendLine($"RhythmTempoIntensityPressure: {rhythmDirector.CurrentTempo01:0.000}/{rhythmDirector.CurrentRhythmIntensity:0.000}/{rhythmDirector.CurrentPressureMultiplier:0.000}");
+                builder.AppendLine($"RhythmCycle: {rhythmDirector.CycleCount}");
+            }
+
+            builder.AppendLine($"ObservedPhases_CalmBuildSpikeRelease: {FormatObserved(rhythmCalmObserved)}/{FormatObserved(rhythmBuildObserved)}/{FormatObserved(rhythmSpikeObserved)}/{FormatObserved(rhythmReleaseObserved)}");
+
+            if (pressureDirector != null)
+            {
+                builder.AppendLine($"StagePressureTotal: {pressureDirector.CurrentPressure01:0.000}");
+                builder.AppendLine($"StagePressureParts: {pressureDirector.CurrentStagePressure01:0.000}/{pressureDirector.CurrentBehaviorPressure01:0.000}/{pressureDirector.CurrentLateStageBonus01:0.000}");
+            }
+
+            if (readabilityDirector != null)
+            {
+                builder.AppendLine($"ReadabilityPressure_NearStageFinal: {readabilityDirector.CurrentNearbyThreat:0.000}/{readabilityDirector.CurrentStagePressure:0.000}/{readabilityDirector.CurrentReadabilityPressure:0.000}");
+                builder.AppendLine($"ReadabilityTunnelClose: {readabilityDirector.CurrentThreatTunnelVision:0.000}/{readabilityDirector.CurrentCloseThreatDistance:0.00}");
+                builder.AppendLine($"QuietBreathStrain: {readabilityDirector.CurrentQuietBreathStrain:0.000}");
+            }
+
+            AudioManager audioManager = AudioManager.Instance;
+            if (audioManager != null)
+            {
+                builder.AppendLine($"AudioLastEvent: {audioManager.LastPlayedEventType} via {audioManager.LastPlaySource}");
+                builder.AppendLine($"AudioLastStinger: {(audioManager.HasRuntimeStingerTelemetry ? audioManager.LastRuntimeStingerLabel : "none")} via {audioManager.LastRuntimeStingerSource}");
+                builder.AppendLine($"AudioStingerMix: volume={audioManager.LastRuntimeStingerVolume:0.000}, pitch={audioManager.LastRuntimeStingerPitch:0.000}, suppressed={audioManager.SuppressedRuntimeStingerCount}");
+                builder.AppendLine($"AudioDuck: {audioManager.CombatDuckCurrent:0.000}->{audioManager.CombatDuckTarget:0.000}, effective={audioManager.EffectiveDuck:0.000}");
+            }
+
+            if (playerController != null)
+            {
+                builder.AppendLine($"PlayerStamina: {playerController.CurrentStamina:0.00}/{playerController.MaxStamina:0.00}");
+                builder.AppendLine($"PlayerMoveSpeed: {playerController.CurrentMoveSpeed:0.00}");
+                builder.AppendLine($"QuietBreathRemaining: {playerController.TemporaryNoiseDampeningRemaining:0.00}");
+            }
+
+            if (playerVitals != null)
+            {
+                builder.AppendLine($"PlayerHealth: {playerVitals.CurrentHealth}/{playerVitals.MaxHealth}");
+                builder.AppendLine($"PlayerDeaths: {playerVitals.DeathCount}");
+            }
+
+            return builder.ToString();
+        }
+
+        private string GetRhythmSnapshotDisplayLabel()
+        {
+            if (string.IsNullOrWhiteSpace(lastRhythmSnapshotPath) || lastRhythmSnapshotPath == "-")
+            {
+                return "-";
+            }
+
+            return lastRhythmSnapshotPath.StartsWith("Failed:", StringComparison.Ordinal)
+                ? lastRhythmSnapshotPath
+                : Path.GetFileName(lastRhythmSnapshotPath);
         }
 
         private void ResetRhythmValidation()

@@ -13,6 +13,7 @@
 - `DebugOverlay` now includes a lightweight rhythm validation gate for Calm/Build/Spike/Release observation.
 - `DebugOverlay` now exposes the last semantic stinger, source, age, volume, pitch, and suppression count for audio rhythm validation.
 - `AudioManager` now has optional authored clip slots for the semantic stinger set, so placeholder tones can be replaced one cue at a time.
+- `DebugOverlay` can now write rhythm validation snapshots to `Logs/RhythmValidation/` during Play Mode checks.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |
