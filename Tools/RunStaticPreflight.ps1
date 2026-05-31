@@ -59,6 +59,8 @@ $setupPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Editor/LostBreadcru
 $regressionPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/RegressionChecklistRunner.cs'
 $debugOverlayPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/DebugOverlay.cs'
 $audioManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioManager.cs'
+$playerControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDummyController.cs'
+$enemySpawnDirectorPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/EnemySpawnDirector.cs'
 $handoffPattern = Join-Path $ProjectRoot 'HANDOFF_*.md'
 $releaseSoakDir = Join-Path $ProjectRoot 'Logs/ReleaseSoak'
 $summaryPath = Join-Path $releaseSoakDir 'local_static_preflight_last_summary.txt'
@@ -281,6 +283,47 @@ if (Test-Path $audioManagerPath) {
 } else {
     $results.Add((Add-Result 'code.semanticStingerValidationHooks' 'FAIL' 'AudioManager.cs is missing.'))
 }
+
+$spawnSafetyMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $playerControllerPath) {
+    $playerControllerText = Get-Content $playerControllerPath -Raw
+    $playerSafetyHooks = @(
+        'autoRecoverUnsafePosition',
+        'ScheduleUnsafePositionRecoveryProbe',
+        'TryRecoverUnsafePositionNowForRuntime',
+        'TryRecoverUnsafePositionNow',
+        'TryResolveSafePlayerPosition',
+        'UnsafePositionRecoveryCount'
+    )
+    foreach ($hook in $playerSafetyHooks) {
+        if (-not $playerControllerText.Contains($hook)) {
+            $spawnSafetyMissing.Add("PlayerDummyController:$hook")
+        }
+    }
+} else {
+    $spawnSafetyMissing.Add('PlayerDummyController.cs missing')
+}
+
+if (Test-Path $enemySpawnDirectorPath) {
+    $enemySpawnText = Get-Content $enemySpawnDirectorPath -Raw
+    $enemySpawnSafetyHooks = @(
+        'avoidNarrowSpawnCells',
+        'PreferOpenSpawnCandidates',
+        'CountSpawnCandidateSafety',
+        'LastSelectedNarrowSpawnCount',
+        'LastNarrowSpawnsWereFallbackOnly',
+        'spawnStabilizationSeconds'
+    )
+    foreach ($hook in $enemySpawnSafetyHooks) {
+        if (-not $enemySpawnText.Contains($hook)) {
+            $spawnSafetyMissing.Add("EnemySpawnDirector:$hook")
+        }
+    }
+} else {
+    $spawnSafetyMissing.Add('EnemySpawnDirector.cs missing')
+}
+
+$results.Add((Add-Result 'code.spawnSafetyHooks' ($(if ($spawnSafetyMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($spawnSafetyMissing -join ', ')"))
 
 $results.Add((Add-LogArtifactResult 'logs.unityPreflightSummary' $unityPreflightSummaryPath))
 $results.Add((Add-LogArtifactResult 'logs.autoSoakTrace' $tracePath))
