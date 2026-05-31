@@ -15,6 +15,7 @@
 | Placeholder stinger rhythm | Several generated tones were functional but too similar in emotional shape | Tuned warning/chase/relief/breath/rhythm placeholders to make each cue easier to distinguish |
 | Stinger validation access | Only exit and chase stingers had direct context-menu test hooks | Added context-menu test hooks for the main semantic stinger set |
 | Rhythm test evidence | Manual rhythm tests needed an easy way to preserve current telemetry | Added `F8`/`Write Rhythm Snapshot` to DebugOverlay, saving phase/pressure/audio/player state under `Logs/RhythmValidation/` |
+| Rhythm phase coverage | Testers still had to infer which phases were missing from C/B/S/R flags | Added explicit missing-phase labels to the overlay and snapshot file |
 | Performance | Stinger telemetry stores primitive fields only when a stinger plays | No per-frame allocation concern |
 | Risk | Full Unity Play Mode validation is still needed for actual feel and audio mix | Prioritize a 10-minute rhythm pass when editor access is available |
 

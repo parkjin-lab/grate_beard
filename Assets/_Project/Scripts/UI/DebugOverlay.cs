@@ -747,12 +747,10 @@ namespace LostBreadcrumbs.Runtime.UI
                 return;
             }
 
-            string summary = rhythmCalmObserved && rhythmBuildObserved && rhythmSpikeObserved && rhythmReleaseObserved
-                ? "PASS"
-                : "Watching";
-            GUILayout.Label($"Rhythm Validation: {summary} ({resetRhythmValidationKey} reset)");
+            GUILayout.Label($"Rhythm Validation: {GetRhythmValidationStatusLabel()} ({resetRhythmValidationKey} reset)");
             GUILayout.Label(
                 $"Rhythm Phases Seen C/B/S/R: {FormatObserved(rhythmCalmObserved)}/{FormatObserved(rhythmBuildObserved)}/{FormatObserved(rhythmSpikeObserved)}/{FormatObserved(rhythmReleaseObserved)}");
+            GUILayout.Label($"Rhythm Missing: {GetMissingRhythmPhaseLabel()}");
             GUILayout.Label($"Rhythm Current Gate: {lastObservedRhythmPhase} {rhythmPhaseObservationElapsed:0.0}/{rhythmPhaseObservedSeconds:0.0}s");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button($"Write Rhythm Snapshot ({writeRhythmSnapshotKey})"))
@@ -812,6 +810,8 @@ namespace LostBreadcrumbs.Runtime.UI
             }
 
             builder.AppendLine($"ObservedPhases_CalmBuildSpikeRelease: {FormatObserved(rhythmCalmObserved)}/{FormatObserved(rhythmBuildObserved)}/{FormatObserved(rhythmSpikeObserved)}/{FormatObserved(rhythmReleaseObserved)}");
+            builder.AppendLine($"ObservedPhaseStatus: {GetRhythmValidationStatusLabel()}");
+            builder.AppendLine($"MissingPhases: {GetMissingRhythmPhaseLabel()}");
 
             if (pressureDirector != null)
             {
@@ -861,6 +861,38 @@ namespace LostBreadcrumbs.Runtime.UI
             return lastRhythmSnapshotPath.StartsWith("Failed:", StringComparison.Ordinal)
                 ? lastRhythmSnapshotPath
                 : Path.GetFileName(lastRhythmSnapshotPath);
+        }
+
+        private string GetRhythmValidationStatusLabel()
+        {
+            return rhythmCalmObserved && rhythmBuildObserved && rhythmSpikeObserved && rhythmReleaseObserved
+                ? "PASS"
+                : "Watching";
+        }
+
+        private string GetMissingRhythmPhaseLabel()
+        {
+            StringBuilder builder = new(48);
+            AppendMissingRhythmPhase(builder, rhythmCalmObserved, "Calm");
+            AppendMissingRhythmPhase(builder, rhythmBuildObserved, "Build");
+            AppendMissingRhythmPhase(builder, rhythmSpikeObserved, "Spike");
+            AppendMissingRhythmPhase(builder, rhythmReleaseObserved, "Release");
+            return builder.Length > 0 ? builder.ToString() : "none";
+        }
+
+        private static void AppendMissingRhythmPhase(StringBuilder builder, bool observed, string label)
+        {
+            if (observed)
+            {
+                return;
+            }
+
+            if (builder.Length > 0)
+            {
+                builder.Append(", ");
+            }
+
+            builder.Append(label);
         }
 
         private void ResetRhythmValidation()
