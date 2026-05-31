@@ -7,7 +7,7 @@ Validate that the game is not only harder or darker, but rhythmically readable: 
 - `DebugOverlay` now shows `Rhythm Validation` when a `GameplayRhythmDirector` is present.
 - The gate marks Calm, Build, Spike, and Release after each phase remains active for at least 0.75 seconds.
 - Press `F9` to reset the phase observation gate during a fresh test run.
-- Use `Write Rhythm Snapshot` in the overlay to save the current phase, pressure, stinger, and player state to `Logs/RhythmValidation/`.
+- Press `F8` or use `Write Rhythm Snapshot` in the overlay to save the current phase, pressure, stinger, and player state to `Logs/RhythmValidation/`.
 - A pass only proves that all phases occurred; it does not prove they felt good. Use the manual notes below for that.
 
 ## 10-Minute Manual Pass

@@ -48,6 +48,7 @@ namespace LostBreadcrumbs.Runtime.UI
         [Header("Rhythm Validation")]
         [SerializeField] private bool showRhythmValidation = true;
         [SerializeField] private KeyCode resetRhythmValidationKey = KeyCode.F9;
+        [SerializeField] private KeyCode writeRhythmSnapshotKey = KeyCode.F8;
         [SerializeField, Min(0.1f)] private float rhythmPhaseObservedSeconds = 0.75f;
 
         private int enemyIndex;
@@ -122,6 +123,11 @@ namespace LostBreadcrumbs.Runtime.UI
             if (RuntimeInputAdapter.GetKeyDown(resetRhythmValidationKey))
             {
                 ResetRhythmValidation();
+            }
+
+            if (showRhythmValidation && RuntimeInputAdapter.GetKeyDown(writeRhythmSnapshotKey))
+            {
+                WriteRhythmValidationSnapshot();
             }
         }
 
@@ -749,7 +755,7 @@ namespace LostBreadcrumbs.Runtime.UI
                 $"Rhythm Phases Seen C/B/S/R: {FormatObserved(rhythmCalmObserved)}/{FormatObserved(rhythmBuildObserved)}/{FormatObserved(rhythmSpikeObserved)}/{FormatObserved(rhythmReleaseObserved)}");
             GUILayout.Label($"Rhythm Current Gate: {lastObservedRhythmPhase} {rhythmPhaseObservationElapsed:0.0}/{rhythmPhaseObservedSeconds:0.0}s");
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Write Rhythm Snapshot"))
+            if (GUILayout.Button($"Write Rhythm Snapshot ({writeRhythmSnapshotKey})"))
             {
                 WriteRhythmValidationSnapshot();
             }
