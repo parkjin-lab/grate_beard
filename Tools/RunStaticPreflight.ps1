@@ -57,6 +57,8 @@ $sceneMetaPath = "$scenePath.meta"
 $buildSettingsPath = Join-Path $ProjectRoot 'ProjectSettings/EditorBuildSettings.asset'
 $setupPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Editor/LostBreadcrumbsProjectSetup.cs'
 $regressionPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/RegressionChecklistRunner.cs'
+$debugOverlayPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/DebugOverlay.cs'
+$audioManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioManager.cs'
 $handoffPattern = Join-Path $ProjectRoot 'HANDOFF_*.md'
 $releaseSoakDir = Join-Path $ProjectRoot 'Logs/ReleaseSoak'
 $summaryPath = Join-Path $releaseSoakDir 'local_static_preflight_last_summary.txt'
@@ -248,6 +250,36 @@ if (Test-Path $regressionPath) {
     $results.Add((Add-Result 'code.regressionReportHooks' ($(if ($missingRegressionHooks.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($missingRegressionHooks -join ', ')"))
 } else {
     $results.Add((Add-Result 'code.regressionReportHooks' 'FAIL' 'RegressionChecklistRunner.cs is missing.'))
+}
+
+if (Test-Path $debugOverlayPath) {
+    $debugOverlayText = Get-Content $debugOverlayPath -Raw
+    $debugOverlayHooks = @(
+        'writeRhythmSnapshotKey',
+        'WriteRhythmValidationSnapshot',
+        'BuildRhythmValidationSnapshotText',
+        'GetMissingRhythmPhaseLabel',
+        'MissingPhases'
+    )
+    $missingDebugOverlayHooks = @($debugOverlayHooks | Where-Object { -not $debugOverlayText.Contains($_) })
+    $results.Add((Add-Result 'code.lowTouchRhythmValidationHooks' ($(if ($missingDebugOverlayHooks.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($missingDebugOverlayHooks -join ', ')"))
+} else {
+    $results.Add((Add-Result 'code.lowTouchRhythmValidationHooks' 'FAIL' 'DebugOverlay.cs is missing.'))
+}
+
+if (Test-Path $audioManagerPath) {
+    $audioManagerText = Get-Content $audioManagerPath -Raw
+    $audioManagerHooks = @(
+        'AssignedStingerClipCount',
+        'DebugTestLockOnWarningStinger',
+        'DebugTestEscapeReliefStinger',
+        'DebugTestQuietBreathBrokenStinger',
+        'DebugTestRhythmShiftStinger'
+    )
+    $missingAudioManagerHooks = @($audioManagerHooks | Where-Object { -not $audioManagerText.Contains($_) })
+    $results.Add((Add-Result 'code.semanticStingerValidationHooks' ($(if ($missingAudioManagerHooks.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($missingAudioManagerHooks -join ', ')"))
+} else {
+    $results.Add((Add-Result 'code.semanticStingerValidationHooks' 'FAIL' 'AudioManager.cs is missing.'))
 }
 
 $results.Add((Add-LogArtifactResult 'logs.unityPreflightSummary' $unityPreflightSummaryPath))
