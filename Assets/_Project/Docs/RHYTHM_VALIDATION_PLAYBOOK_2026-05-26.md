@@ -1,4 +1,4 @@
-# Rhythm Validation Playbook - 2026-05-26
+# Low-Touch Rhythm Validation Playbook - 2026-05-26
 
 ## Purpose
 Validate that the game is not only harder or darker, but rhythmically readable: Calm -> Build -> Spike -> Release should be visible, playable, and emotionally different.
@@ -11,7 +11,9 @@ Validate that the game is not only harder or darker, but rhythmically readable: 
 - The overlay and snapshot report missing rhythm phases, so a test run can quickly show whether Calm, Build, Spike, or Release still needs observation.
 - A pass only proves that all phases occurred; it does not prove they felt good. Use the manual notes below for that.
 
-## 10-Minute Manual Pass
+## Minimal Human Pass
+Use this only when automated/static checks are not enough or when a final spot check is needed.
+
 | Timebox | What To Watch | Pass Signal | Fail Signal |
 | --- | --- | --- | --- |
 | 0-2 min | Calm entry and first scan | Player has space to read the room and choose a direction | Player is pressured before understanding the room |
@@ -48,7 +50,7 @@ Generated placeholder tones now have stronger cue shapes:
 - `RhythmShift`: small pulse pattern for phase change awareness.
 
 ## Notes Template
-Use this compact format while testing:
+Use this compact format only when a human check finds something worth preserving:
 
 ```text
 Stage:

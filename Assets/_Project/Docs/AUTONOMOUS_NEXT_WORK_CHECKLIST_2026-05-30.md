@@ -9,15 +9,15 @@
 ## Latest Code Review Notes
 | Area | Finding | Action |
 | --- | --- | --- |
-| Rhythm validation | Phase observation is intentionally lightweight and non-persistent | Keep as debug-only; use manual notes for feel quality |
+| Rhythm validation | Phase observation is intentionally lightweight and non-persistent | Keep as debug-only; minimize human play validation and rely on snapshot/static evidence first |
 | Semantic stinger telemetry | Before the first stinger, age could be displayed as a negative debug value | Fixed by adding `HasRuntimeStingerTelemetry` and a `none` display path |
 | Semantic stinger authoring | Only a small subset of stingers had authored clip slots | Expanded optional stinger clip slots so semantic tones can be replaced one by one |
 | Placeholder stinger rhythm | Several generated tones were functional but too similar in emotional shape | Tuned warning/chase/relief/breath/rhythm placeholders to make each cue easier to distinguish |
 | Stinger validation access | Only exit and chase stingers had direct context-menu test hooks | Added context-menu test hooks for the main semantic stinger set |
-| Rhythm test evidence | Manual rhythm tests needed an easy way to preserve current telemetry | Added `F8`/`Write Rhythm Snapshot` to DebugOverlay, saving phase/pressure/audio/player state under `Logs/RhythmValidation/` |
+| Rhythm test evidence | Human play checks should be minimized | Added `F8`/`Write Rhythm Snapshot` to DebugOverlay so rare checks produce reusable telemetry under `Logs/RhythmValidation/` |
 | Rhythm phase coverage | Testers still had to infer which phases were missing from C/B/S/R flags | Added explicit missing-phase labels to the overlay and snapshot file |
 | Performance | Stinger telemetry stores primitive fields only when a stinger plays | No per-frame allocation concern |
-| Risk | Full Unity Play Mode validation is still needed for actual feel and audio mix | Prioritize a 10-minute rhythm pass when editor access is available |
+| Risk | Some feel/audio judgment still needs a human eventually | Defer broad play validation; prioritize automated/static guards and tiny evidence captures |
 
 ## Human-Free Implementation Queue
 1. Keep debug/validation displays readable and non-invasive.
@@ -27,12 +27,11 @@
 5. Run static preflight after each code change and commit only scoped files.
 
 ## Next Priority
-The next best autonomous task is to tighten validation around the 10-minute rhythm pass:
-- Make sure the debug overlay reports what the tester needs without opening extra panels.
-- Keep manual validation focused on whether each rhythm phase changes player decisions.
+The next best autonomous task is to reduce the need for human play validation:
+- Prefer static/preflight checks, deterministic runtime counters, and debug snapshots over repeated manual runs.
+- Add small guardrails that catch missing rhythm phases, missing stinger assignments, spawn safety regressions, and invalid state transitions.
 - Use authored SFX/art only after resource ownership is confirmed.
-- Use `AudioManager` context-menu stinger tests before Play Mode rhythm passes to confirm cue contrast.
-- Capture at least one rhythm snapshot per Calm/Build/Spike/Release pass.
+- Keep any human pass short and evidence-producing: one snapshot per meaningful anomaly is enough.
 
 ## Longer-Term Quality Ideas
 - Author a small bespoke horror motif kit before relying on large UI/vendor packages.

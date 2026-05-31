@@ -13,14 +13,14 @@
 - `DebugOverlay` now includes a lightweight rhythm validation gate for Calm/Build/Spike/Release observation.
 - `DebugOverlay` now exposes the last semantic stinger, source, age, volume, pitch, and suppression count for audio rhythm validation.
 - `AudioManager` now has optional authored clip slots for the semantic stinger set, so placeholder tones can be replaced one cue at a time.
-- `DebugOverlay` can now write rhythm validation snapshots to `Logs/RhythmValidation/` during Play Mode checks.
+- `DebugOverlay` can now write rhythm validation snapshots to `Logs/RhythmValidation/` for rare, low-touch Play Mode checks.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |
 | --- | --- | --- | --- |
 | Visual motif kit | 6-10 authored references for enemy tell shapes, route echo, corruption, relief, death overlay, and exit lure | Runtime systems now have readable states, but they need a consistent horror identity | Every high-priority cue can be recognized in a screenshot without relying only on text |
 | Semantic SFX pack | Authored clips for lock-on warning, chase start, escape relief, quiet breath break, echo return, risk reward, rhythm shift, set-piece shift, exit unlock, and death | The audio manager has semantic roles; placeholder tones should become intentional horror rhythm | Each semantic event has a distinct attack, tail length, and mix priority |
-| Playtest validation set | Stage 1-3 observation sheet, 10-minute release soak script, death-respawn flashlight check, monster spawn/stuck checklist, rhythm phase capture notes | Recent fixes touched pacing, respawn, camera depth, and enemy readability | A tester can report where tension rises, where it breaks, whether recovery feels fair, and whether all rhythm phases are observed |
+| Low-touch validation set | Static/preflight reports, 10-minute release soak script, death-respawn flashlight check, monster spawn/stuck checklist, rhythm snapshot notes | Recent fixes touched pacing, respawn, camera depth, and enemy readability | Human play checks are minimized; when used, they produce reusable snapshots instead of subjective-only notes |
 | Vendor asset decision | License/source/size review for `Assets/Feel`, `Assets/Layer Lab`, and `Assets/ThirdParty.meta` | These folders are present but intentionally ignored until approved; they may affect repository weight and license posture | Each folder is either approved for a scoped commit, kept local only, or replaced with smaller authored resources |
 
 ## P1 Resource Needs
@@ -40,7 +40,7 @@
 ## Immediate Next Work Without Planner Input
 1. Run Unity compile/static checks after the dread motif change.
 2. Decide whether the ignored vendor folders should stay local-only or be re-imported as smaller scoped packages.
-3. Use the debug rhythm validation gate during Play Mode and capture notes for quiet/build/spike/release.
+3. Minimize human Play Mode validation; use debug rhythm snapshots only for anomalies or final spot checks.
 4. Replace one placeholder semantic SFX group at a time, starting with `ChaseStarted`, `LockOnWarning`, and `EscapeRelief`.
 
 ## Definition Of Done For This Resource Slice
