@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$preflightStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
 function Add-Result {
     param(
@@ -266,6 +267,7 @@ $machineSummaryHooks = @(
     'ConvertTo-Json',
     'ConvertFrom-Json',
     'jsonSummary',
+    'durationMilliseconds',
     'results',
     'summary'
 )
@@ -500,6 +502,7 @@ $hasFailures = $failCount -gt 0
 $hasWarnings = $warnCount -gt 0
 $exitCode = $(if ($hasFailures) { 1 } else { 0 })
 $generatedAt = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss 'KST'")
+$durationMilliseconds = [int64]$preflightStopwatch.ElapsedMilliseconds
 $gitContext = [ordered]@{
     available = $false
     branch = ''
@@ -526,6 +529,7 @@ $lines = New-Object System.Collections.Generic.List[string]
 $lines.Add('LostBreadcrumbs Local Static Preflight')
 $lines.Add("GeneratedAt: $generatedAt")
 $lines.Add("ProjectRoot: $ProjectRoot")
+$lines.Add("DurationMilliseconds: $durationMilliseconds")
 $lines.Add("Summary: pass=$passCount warn=$warnCount fail=$failCount")
 $lines.Add('')
 foreach ($result in $results) {
@@ -545,6 +549,7 @@ $jsonSummary = [ordered]@{
     schemaVersion = 1
     generatedAt = $generatedAt
     projectRoot = $ProjectRoot
+    durationMilliseconds = [int64]$durationMilliseconds
     git = $gitContext
     exitCode = [int]$exitCode
     hasFailures = [bool]$hasFailures
@@ -563,6 +568,7 @@ if ($null -eq $jsonSummaryReadback -or
     $jsonSummaryReadback.exitCode -ne $exitCode -or
     $jsonSummaryReadback.hasFailures -ne $hasFailures -or
     $jsonSummaryReadback.hasWarnings -ne $hasWarnings -or
+    $jsonSummaryReadback.durationMilliseconds -ne $durationMilliseconds -or
     $jsonSummaryReadback.git.available -ne $gitContext.available -or
     "$($jsonSummaryReadback.git.branch)" -ne "$($gitContext.branch)" -or
     "$($jsonSummaryReadback.git.shortCommit)" -ne "$($gitContext.shortCommit)" -or

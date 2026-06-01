@@ -18,6 +18,7 @@
 - Static preflight now parses the generated JSON summary after writing it and fails if summary counts or result counts do not round-trip.
 - Static preflight JSON summaries now include schemaVersion, exitCode, hasFailures, and hasWarnings for automation-readable status.
 - Static preflight JSON summaries now include optional Git branch, commit, dirty, and status-count metadata for traceable validation evidence.
+- Static preflight summaries now include durationMilliseconds so automation can notice unusually slow static checks.
 - Static preflight now checks that low-touch rhythm snapshot hooks and semantic stinger test hooks remain present.
 - Static preflight now checks that player unsafe-position recovery and enemy narrow-spawn avoidance hooks remain present.
 - Static preflight now checks that rhythm state transitions, rhythm pressure modulation, spike tell, release relief, and regression suppression hooks remain present.
