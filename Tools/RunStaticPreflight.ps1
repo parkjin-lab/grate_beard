@@ -500,6 +500,27 @@ $hasFailures = $failCount -gt 0
 $hasWarnings = $warnCount -gt 0
 $exitCode = $(if ($hasFailures) { 1 } else { 0 })
 $generatedAt = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss 'KST'")
+$gitContext = [ordered]@{
+    available = $false
+    branch = ''
+    commit = ''
+    shortCommit = ''
+    dirty = $false
+    statusShortLineCount = 0
+}
+try {
+    $gitBranch = (& git -C $ProjectRoot rev-parse --abbrev-ref HEAD 2>$null)
+    $gitCommit = (& git -C $ProjectRoot rev-parse HEAD 2>$null)
+    $gitStatusShort = @(& git -C $ProjectRoot status --short 2>$null)
+    $gitContext.available = $true
+    $gitContext.branch = "$gitBranch"
+    $gitContext.commit = "$gitCommit"
+    $gitContext.shortCommit = $(if ($gitContext.commit.Length -ge 7) { $gitContext.commit.Substring(0, 7) } else { $gitContext.commit })
+    $gitContext.dirty = $gitStatusShort.Count -gt 0
+    $gitContext.statusShortLineCount = [int]$gitStatusShort.Count
+} catch {
+    $gitContext.available = $false
+}
 
 $lines = New-Object System.Collections.Generic.List[string]
 $lines.Add('LostBreadcrumbs Local Static Preflight')
@@ -524,6 +545,7 @@ $jsonSummary = [ordered]@{
     schemaVersion = 1
     generatedAt = $generatedAt
     projectRoot = $ProjectRoot
+    git = $gitContext
     exitCode = [int]$exitCode
     hasFailures = [bool]$hasFailures
     hasWarnings = [bool]$hasWarnings
@@ -541,6 +563,10 @@ if ($null -eq $jsonSummaryReadback -or
     $jsonSummaryReadback.exitCode -ne $exitCode -or
     $jsonSummaryReadback.hasFailures -ne $hasFailures -or
     $jsonSummaryReadback.hasWarnings -ne $hasWarnings -or
+    $jsonSummaryReadback.git.available -ne $gitContext.available -or
+    "$($jsonSummaryReadback.git.branch)" -ne "$($gitContext.branch)" -or
+    "$($jsonSummaryReadback.git.shortCommit)" -ne "$($gitContext.shortCommit)" -or
+    $jsonSummaryReadback.git.dirty -ne $gitContext.dirty -or
     $jsonSummaryReadback.summary.pass -ne $passCount -or
     $jsonSummaryReadback.summary.warn -ne $warnCount -or
     $jsonSummaryReadback.summary.fail -ne $failCount -or
