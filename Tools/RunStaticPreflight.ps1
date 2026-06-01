@@ -264,6 +264,7 @@ $machineSummaryHooks = @(
     'local_static_preflight_last_summary.txt',
     'local_static_preflight_last_summary.json',
     'ConvertTo-Json',
+    'ConvertFrom-Json',
     'jsonSummary',
     'results',
     'summary'
@@ -527,6 +528,14 @@ $jsonSummary = [ordered]@{
     results = $jsonResults
 }
 $jsonSummary | ConvertTo-Json -Depth 5 | Set-Content -Path $jsonSummaryPath -Encoding UTF8
+$jsonSummaryReadback = Get-Content -Path $jsonSummaryPath -Raw | ConvertFrom-Json
+if ($null -eq $jsonSummaryReadback -or
+    $jsonSummaryReadback.summary.pass -ne $passCount -or
+    $jsonSummaryReadback.summary.warn -ne $warnCount -or
+    $jsonSummaryReadback.summary.fail -ne $failCount -or
+    $jsonSummaryReadback.results.Count -ne $results.Count) {
+    throw "Static preflight JSON summary readback failed: $jsonSummaryPath"
+}
 $lines | ForEach-Object { Write-Output $_ }
 
 if ($failCount -gt 0) {
