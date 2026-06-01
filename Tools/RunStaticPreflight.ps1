@@ -65,6 +65,7 @@ $enemySpawnDirectorPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/En
 $gameplayRhythmPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/GameplayRhythmDirector.cs'
 $stagePressurePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/StagePressureDirector.cs'
 $docsRoot = Join-Path $ProjectRoot 'Assets/_Project/Docs'
+$rhythmPlaybookPath = Join-Path $docsRoot 'RHYTHM_VALIDATION_PLAYBOOK_2026-05-26.md'
 $handoffPattern = Join-Path $ProjectRoot 'HANDOFF_*.md'
 $releaseSoakDir = Join-Path $ProjectRoot 'Logs/ReleaseSoak'
 $summaryPath = Join-Path $releaseSoakDir 'local_static_preflight_last_summary.txt'
@@ -450,6 +451,26 @@ if (Test-Path $docsRoot) {
 
 $results.Add((Add-Result 'docs.lowTouchPlanningArtifacts' ($(if ($missingDocPatterns.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($missingDocPatterns -join ', ')"))
 $results.Add((Add-Result 'docs.lowTouchPlanningArtifactMetas' ($(if ($missingDocMetaPatterns.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($missingDocMetaPatterns -join ', ')"))
+
+$lowTouchValidationPolicyMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $rhythmPlaybookPath) {
+    $rhythmPlaybookText = Get-Content $rhythmPlaybookPath -Raw
+    $lowTouchValidationPolicyHooks = @(
+        'Minimal Human Pass',
+        'Use this only when automated/static checks are not enough',
+        'Write Rhythm Snapshot',
+        'Logs/RhythmValidation/',
+        'Snapshot file:'
+    )
+    foreach ($hook in $lowTouchValidationPolicyHooks) {
+        if (-not $rhythmPlaybookText.Contains($hook)) {
+            $lowTouchValidationPolicyMissing.Add($hook)
+        }
+    }
+} else {
+    $lowTouchValidationPolicyMissing.Add('RHYTHM_VALIDATION_PLAYBOOK_2026-05-26.md missing')
+}
+$results.Add((Add-Result 'docs.lowTouchValidationPolicy' ($(if ($lowTouchValidationPolicyMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($lowTouchValidationPolicyMissing -join ', ')"))
 
 $results.Add((Add-LogArtifactResult 'logs.unityPreflightSummary' $unityPreflightSummaryPath))
 $results.Add((Add-LogArtifactResult 'logs.autoSoakTrace' $tracePath))

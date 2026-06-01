@@ -25,6 +25,7 @@
 | Semantic stinger slot guardrails | Authored SFX replacement should not silently lose cue slots | Expanded static preflight coverage to include all semantic stinger clip slots, resolver, count, and audition hooks |
 | Planning artifact guardrails | Low-touch work depends on current planning/resource/rhythm/vendor docs staying available | Added static preflight coverage for required project planning artifacts |
 | Planning meta guardrails | Unity docs need stable `.meta` files to avoid asset GUID churn | Added static preflight coverage for required planning artifact `.meta` files |
+| Low-touch validation policy guardrails | Automation should not drift back into broad manual play checks | Added static preflight coverage for the rhythm playbook's minimal-human-pass and snapshot evidence policy |
 | Performance | Stinger telemetry stores primitive fields only when a stinger plays | No per-frame allocation concern |
 | Risk | Some feel/audio judgment still needs a human eventually | Defer broad play validation; prioritize automated/static guards and tiny evidence captures |
 
@@ -38,7 +39,7 @@
 ## Next Priority
 The next best autonomous task is to reduce the need for human play validation:
 - Prefer static/preflight checks, deterministic runtime counters, and debug snapshots over repeated manual runs.
-- Add small guardrails that catch missing rhythm phases, missing stinger assignments, spawn safety regressions, invalid state transitions, vendor import regressions, validation artifact leakage, and missing planning artifacts. `[in progress: validation, spawn safety, rhythm state, vendor ignore/tracking, log artifact, stinger slot, and planning artifact preflight checks added]`
+- Add small guardrails that catch missing rhythm phases, missing stinger assignments, spawn safety regressions, invalid state transitions, vendor import regressions, validation artifact leakage, missing planning artifacts, and validation-policy drift. `[in progress: validation, spawn safety, rhythm state, vendor ignore/tracking, log artifact, stinger slot, planning artifact, and low-touch validation policy preflight checks added]`
 - Use authored SFX/art only after resource ownership is confirmed.
 - Keep any human pass short and evidence-producing: one snapshot per meaningful anomaly is enough.
 
