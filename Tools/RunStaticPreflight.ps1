@@ -61,6 +61,8 @@ $debugOverlayPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/DebugOver
 $audioManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioManager.cs'
 $playerControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDummyController.cs'
 $enemySpawnDirectorPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/EnemySpawnDirector.cs'
+$gameplayRhythmPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/GameplayRhythmDirector.cs'
+$stagePressurePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/StagePressureDirector.cs'
 $handoffPattern = Join-Path $ProjectRoot 'HANDOFF_*.md'
 $releaseSoakDir = Join-Path $ProjectRoot 'Logs/ReleaseSoak'
 $summaryPath = Join-Path $releaseSoakDir 'local_static_preflight_last_summary.txt'
@@ -324,6 +326,48 @@ if (Test-Path $enemySpawnDirectorPath) {
 }
 
 $results.Add((Add-Result 'code.spawnSafetyHooks' ($(if ($spawnSafetyMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($spawnSafetyMissing -join ', ')"))
+
+$rhythmStateMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $gameplayRhythmPath) {
+    $gameplayRhythmText = Get-Content $gameplayRhythmPath -Raw
+    $rhythmHooks = @(
+        'GameplayRhythmPhase.Calm => GameplayRhythmPhase.Build',
+        'GameplayRhythmPhase.Build => GameplayRhythmPhase.Spike',
+        'GameplayRhythmPhase.Spike => GameplayRhythmPhase.Release',
+        'GameplayRhythmPhase.Release => GameplayRhythmPhase.Calm',
+        'ForceSetPhaseForRuntime',
+        'EnterPhase',
+        'ApplyPressureRhythmForRuntime',
+        'TryRaiseSpikeTell',
+        'TryGrantRhythmReleaseRelief',
+        'RegressionChecklistRunner.IsRegressionRunActive'
+    )
+    foreach ($hook in $rhythmHooks) {
+        if (-not $gameplayRhythmText.Contains($hook)) {
+            $rhythmStateMissing.Add("GameplayRhythmDirector:$hook")
+        }
+    }
+} else {
+    $rhythmStateMissing.Add('GameplayRhythmDirector.cs missing')
+}
+
+if (Test-Path $stagePressurePath) {
+    $stagePressureText = Get-Content $stagePressurePath -Raw
+    $pressureRhythmHooks = @(
+        'applyRhythmPressureModulation',
+        'ApplyPressureRhythmForRuntime',
+        'RegressionChecklistRunner.IsRegressionRunActive'
+    )
+    foreach ($hook in $pressureRhythmHooks) {
+        if (-not $stagePressureText.Contains($hook)) {
+            $rhythmStateMissing.Add("StagePressureDirector:$hook")
+        }
+    }
+} else {
+    $rhythmStateMissing.Add('StagePressureDirector.cs missing')
+}
+
+$results.Add((Add-Result 'code.rhythmStateTransitionHooks' ($(if ($rhythmStateMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmStateMissing -join ', ')"))
 
 $results.Add((Add-LogArtifactResult 'logs.unityPreflightSummary' $unityPreflightSummaryPath))
 $results.Add((Add-LogArtifactResult 'logs.autoSoakTrace' $tracePath))

@@ -16,6 +16,7 @@
 - `DebugOverlay` can now write rhythm validation snapshots to `Logs/RhythmValidation/` for rare, low-touch Play Mode checks.
 - Static preflight now checks that low-touch rhythm snapshot hooks and semantic stinger test hooks remain present.
 - Static preflight now checks that player unsafe-position recovery and enemy narrow-spawn avoidance hooks remain present.
+- Static preflight now checks that rhythm state transitions, rhythm pressure modulation, spike tell, release relief, and regression suppression hooks remain present.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

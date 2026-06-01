@@ -18,6 +18,7 @@
 | Rhythm phase coverage | Testers still had to infer which phases were missing from C/B/S/R flags | Added explicit missing-phase labels to the overlay and snapshot file |
 | Low-touch guardrails | Validation helpers could regress silently during later UI/audio edits | Added static preflight checks for rhythm snapshot/missing-phase hooks and semantic stinger test hooks |
 | Spawn safety guardrails | Player/monster spawn safety should not rely on repeated player validation | Added static preflight coverage for player unsafe-position recovery and enemy narrow-spawn avoidance hooks |
+| Rhythm state guardrails | Rhythm phase order and pressure modulation should not rely on human observation | Added static preflight coverage for Calm->Build->Spike->Release transitions, spike tell, release relief, and regression suppression |
 | Performance | Stinger telemetry stores primitive fields only when a stinger plays | No per-frame allocation concern |
 | Risk | Some feel/audio judgment still needs a human eventually | Defer broad play validation; prioritize automated/static guards and tiny evidence captures |
 
@@ -31,7 +32,7 @@
 ## Next Priority
 The next best autonomous task is to reduce the need for human play validation:
 - Prefer static/preflight checks, deterministic runtime counters, and debug snapshots over repeated manual runs.
-- Add small guardrails that catch missing rhythm phases, missing stinger assignments, spawn safety regressions, and invalid state transitions. `[in progress: validation and spawn safety preflight checks added]`
+- Add small guardrails that catch missing rhythm phases, missing stinger assignments, spawn safety regressions, and invalid state transitions. `[in progress: validation, spawn safety, and rhythm state preflight checks added]`
 - Use authored SFX/art only after resource ownership is confirmed.
 - Keep any human pass short and evidence-producing: one snapshot per meaningful anomaly is enough.
 
