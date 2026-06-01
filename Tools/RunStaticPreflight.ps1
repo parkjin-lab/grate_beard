@@ -426,7 +426,9 @@ $requiredDocPatterns = @(
     'RESOURCE_REQUIREMENTS_UPDATE_*.md',
     'RHYTHM_VALIDATION_PLAYBOOK_*.md',
     'VENDOR_ASSET_REVIEW_*.md',
-    'GAME_GAP_ANALYSIS_AND_POLICY_*.md'
+    'GAME_GAP_ANALYSIS_AND_POLICY_*.md',
+    'HANDOFF_AFTER_RHYTHM_WORK_*.md',
+    'PROJECT_STATUS_UPDATE_*.md'
 )
 $missingDocPatterns = New-Object System.Collections.Generic.List[string]
 $missingDocMetaPatterns = New-Object System.Collections.Generic.List[string]

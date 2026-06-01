@@ -23,6 +23,7 @@
 - Static preflight now checks that semantic stinger clip slots, resolver, counter, and audition hooks remain present.
 - Static preflight now checks that low-touch planning/resource/rhythm/vendor analysis documents remain present.
 - Static preflight now checks that required planning documents keep their Unity `.meta` files.
+- Static preflight now includes rhythm handoff and project status update documents in the required planning artifact set.
 - Static preflight now checks that the rhythm validation playbook preserves the minimal-human-pass and snapshot evidence policy.
 - Static preflight now labels stale release-soak logs with freshness days and refresh-required status so old evidence is not mistaken for current validation.
 
