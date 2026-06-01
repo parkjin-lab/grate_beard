@@ -381,8 +381,16 @@ if (Test-Path $gitignorePath) {
     )
     $missingVendorIgnoreHooks = @($vendorIgnoreHooks | Where-Object { -not $gitignoreText.Contains($_) })
     $results.Add((Add-Result 'repo.vendorAssetIgnoreGuards' ($(if ($missingVendorIgnoreHooks.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($missingVendorIgnoreHooks -join ', ')"))
+
+    $validationArtifactIgnoreHooks = @(
+        '/[Ll]ogs/',
+        '*.log'
+    )
+    $missingValidationArtifactIgnoreHooks = @($validationArtifactIgnoreHooks | Where-Object { -not $gitignoreText.Contains($_) })
+    $results.Add((Add-Result 'repo.validationArtifactIgnoreGuards' ($(if ($missingValidationArtifactIgnoreHooks.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($missingValidationArtifactIgnoreHooks -join ', ')"))
 } else {
     $results.Add((Add-Result 'repo.vendorAssetIgnoreGuards' 'FAIL' '.gitignore is missing.'))
+    $results.Add((Add-Result 'repo.validationArtifactIgnoreGuards' 'FAIL' '.gitignore is missing.'))
 }
 
 $results.Add((Add-LogArtifactResult 'logs.unityPreflightSummary' $unityPreflightSummaryPath))
