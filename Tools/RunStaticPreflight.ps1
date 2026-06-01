@@ -47,7 +47,7 @@ function Add-LogArtifactResult {
     $isStale = $age.TotalDays -gt $FreshnessDays
     $status = $(if ($isStale) { 'WARN' } else { 'PASS' })
     $lastWrite = $item.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
-    return Add-Result $Name $status "exists=True lastWrite=$lastWrite ageDays=$ageDays stale=$isStale"
+    return Add-Result $Name $status "exists=True lastWrite=$lastWrite ageDays=$ageDays stale=$isStale freshnessDays=$FreshnessDays refreshRequired=$isStale"
 }
 
 $results = New-Object System.Collections.Generic.List[object]

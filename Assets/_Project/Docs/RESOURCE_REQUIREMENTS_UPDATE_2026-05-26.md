@@ -24,6 +24,7 @@
 - Static preflight now checks that low-touch planning/resource/rhythm/vendor analysis documents remain present.
 - Static preflight now checks that required planning documents keep their Unity `.meta` files.
 - Static preflight now checks that the rhythm validation playbook preserves the minimal-human-pass and snapshot evidence policy.
+- Static preflight now labels stale release-soak logs with freshness days and refresh-required status so old evidence is not mistaken for current validation.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |
