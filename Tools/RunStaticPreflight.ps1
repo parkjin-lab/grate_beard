@@ -259,6 +259,18 @@ if (Test-Path $regressionPath) {
     $results.Add((Add-Result 'code.regressionReportHooks' 'FAIL' 'RegressionChecklistRunner.cs is missing.'))
 }
 
+$preflightScriptText = Get-Content $PSCommandPath -Raw
+$machineSummaryHooks = @(
+    'local_static_preflight_last_summary.txt',
+    'local_static_preflight_last_summary.json',
+    'ConvertTo-Json',
+    'jsonSummary',
+    'results',
+    'summary'
+)
+$missingMachineSummaryHooks = @($machineSummaryHooks | Where-Object { -not $preflightScriptText.Contains($_) })
+$results.Add((Add-Result 'code.preflightMachineSummaryHooks' ($(if ($missingMachineSummaryHooks.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($missingMachineSummaryHooks -join ', ')"))
+
 if (Test-Path $debugOverlayPath) {
     $debugOverlayText = Get-Content $debugOverlayPath -Raw
     $debugOverlayHooks = @(

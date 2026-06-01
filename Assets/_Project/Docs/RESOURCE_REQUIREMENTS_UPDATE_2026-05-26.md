@@ -14,6 +14,7 @@
 - `DebugOverlay` now exposes the last semantic stinger, source, age, volume, pitch, and suppression count for audio rhythm validation.
 - `AudioManager` now has optional authored clip slots for the semantic stinger set, so placeholder tones can be replaced one cue at a time.
 - `DebugOverlay` can now write rhythm validation snapshots to `Logs/RhythmValidation/` for rare, low-touch Play Mode checks.
+- Static preflight now checks that local text and JSON summary output hooks remain present for automation-readable evidence.
 - Static preflight now checks that low-touch rhythm snapshot hooks and semantic stinger test hooks remain present.
 - Static preflight now checks that player unsafe-position recovery and enemy narrow-spawn avoidance hooks remain present.
 - Static preflight now checks that rhythm state transitions, rhythm pressure modulation, spike tell, release relief, and regression suppression hooks remain present.
