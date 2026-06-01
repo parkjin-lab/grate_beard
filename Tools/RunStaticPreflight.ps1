@@ -496,6 +496,9 @@ New-Item -ItemType Directory -Path $releaseSoakDir -Force | Out-Null
 $failCount = @($results | Where-Object { $_.Status -eq 'FAIL' }).Count
 $warnCount = @($results | Where-Object { $_.Status -eq 'WARN' }).Count
 $passCount = @($results | Where-Object { $_.Status -eq 'PASS' }).Count
+$hasFailures = $failCount -gt 0
+$hasWarnings = $warnCount -gt 0
+$exitCode = $(if ($hasFailures) { 1 } else { 0 })
 $generatedAt = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss 'KST'")
 
 $lines = New-Object System.Collections.Generic.List[string]
@@ -518,8 +521,12 @@ foreach ($result in $results) {
     }
 }
 $jsonSummary = [ordered]@{
+    schemaVersion = 1
     generatedAt = $generatedAt
     projectRoot = $ProjectRoot
+    exitCode = [int]$exitCode
+    hasFailures = [bool]$hasFailures
+    hasWarnings = [bool]$hasWarnings
     summary = [ordered]@{
         pass = [int]$passCount
         warn = [int]$warnCount
@@ -530,6 +537,10 @@ $jsonSummary = [ordered]@{
 $jsonSummary | ConvertTo-Json -Depth 5 | Set-Content -Path $jsonSummaryPath -Encoding UTF8
 $jsonSummaryReadback = Get-Content -Path $jsonSummaryPath -Raw | ConvertFrom-Json
 if ($null -eq $jsonSummaryReadback -or
+    $jsonSummaryReadback.schemaVersion -ne 1 -or
+    $jsonSummaryReadback.exitCode -ne $exitCode -or
+    $jsonSummaryReadback.hasFailures -ne $hasFailures -or
+    $jsonSummaryReadback.hasWarnings -ne $hasWarnings -or
     $jsonSummaryReadback.summary.pass -ne $passCount -or
     $jsonSummaryReadback.summary.warn -ne $warnCount -or
     $jsonSummaryReadback.summary.fail -ne $failCount -or
@@ -538,8 +549,4 @@ if ($null -eq $jsonSummaryReadback -or
 }
 $lines | ForEach-Object { Write-Output $_ }
 
-if ($failCount -gt 0) {
-    exit 1
-}
-
-exit 0
+exit $exitCode
