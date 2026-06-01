@@ -418,18 +418,28 @@ $requiredDocPatterns = @(
     'GAME_GAP_ANALYSIS_AND_POLICY_*.md'
 )
 $missingDocPatterns = New-Object System.Collections.Generic.List[string]
+$missingDocMetaPatterns = New-Object System.Collections.Generic.List[string]
 if (Test-Path $docsRoot) {
     foreach ($pattern in $requiredDocPatterns) {
         $matches = @(Get-ChildItem -Path (Join-Path $docsRoot $pattern) -File -ErrorAction SilentlyContinue)
         if ($matches.Count -le 0) {
             $missingDocPatterns.Add($pattern)
         }
+
+        foreach ($match in $matches) {
+            $metaPath = "$($match.FullName).meta"
+            if (-not (Test-Path $metaPath)) {
+                $missingDocMetaPatterns.Add((Get-RelativePath $metaPath))
+            }
+        }
     }
 } else {
     $missingDocPatterns.Add('Assets/_Project/Docs missing')
+    $missingDocMetaPatterns.Add('Assets/_Project/Docs missing')
 }
 
 $results.Add((Add-Result 'docs.lowTouchPlanningArtifacts' ($(if ($missingDocPatterns.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($missingDocPatterns -join ', ')"))
+$results.Add((Add-Result 'docs.lowTouchPlanningArtifactMetas' ($(if ($missingDocMetaPatterns.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($missingDocMetaPatterns -join ', ')"))
 
 $results.Add((Add-LogArtifactResult 'logs.unityPreflightSummary' $unityPreflightSummaryPath))
 $results.Add((Add-LogArtifactResult 'logs.autoSoakTrace' $tracePath))
