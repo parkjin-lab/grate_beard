@@ -4,6 +4,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $preflightStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+$durationWarningThresholdMilliseconds = 60000
 
 function Add-Result {
     param(
@@ -268,6 +269,8 @@ $machineSummaryHooks = @(
     'ConvertFrom-Json',
     'jsonSummary',
     'durationMilliseconds',
+    'durationWarningThresholdMilliseconds',
+    'durationWarning',
     'results',
     'summary'
 )
@@ -503,6 +506,7 @@ $hasWarnings = $warnCount -gt 0
 $exitCode = $(if ($hasFailures) { 1 } else { 0 })
 $generatedAt = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss 'KST'")
 $durationMilliseconds = [int64]$preflightStopwatch.ElapsedMilliseconds
+$durationWarning = $durationMilliseconds -gt $durationWarningThresholdMilliseconds
 $gitContext = [ordered]@{
     available = $false
     branch = ''
@@ -530,6 +534,8 @@ $lines.Add('LostBreadcrumbs Local Static Preflight')
 $lines.Add("GeneratedAt: $generatedAt")
 $lines.Add("ProjectRoot: $ProjectRoot")
 $lines.Add("DurationMilliseconds: $durationMilliseconds")
+$lines.Add("DurationWarningThresholdMilliseconds: $durationWarningThresholdMilliseconds")
+$lines.Add("DurationWarning: $durationWarning")
 $lines.Add("Summary: pass=$passCount warn=$warnCount fail=$failCount")
 $lines.Add('')
 foreach ($result in $results) {
@@ -550,6 +556,8 @@ $jsonSummary = [ordered]@{
     generatedAt = $generatedAt
     projectRoot = $ProjectRoot
     durationMilliseconds = [int64]$durationMilliseconds
+    durationWarningThresholdMilliseconds = [int64]$durationWarningThresholdMilliseconds
+    durationWarning = [bool]$durationWarning
     git = $gitContext
     exitCode = [int]$exitCode
     hasFailures = [bool]$hasFailures
@@ -569,6 +577,8 @@ if ($null -eq $jsonSummaryReadback -or
     $jsonSummaryReadback.hasFailures -ne $hasFailures -or
     $jsonSummaryReadback.hasWarnings -ne $hasWarnings -or
     $jsonSummaryReadback.durationMilliseconds -ne $durationMilliseconds -or
+    $jsonSummaryReadback.durationWarningThresholdMilliseconds -ne $durationWarningThresholdMilliseconds -or
+    $jsonSummaryReadback.durationWarning -ne $durationWarning -or
     $jsonSummaryReadback.git.available -ne $gitContext.available -or
     "$($jsonSummaryReadback.git.branch)" -ne "$($gitContext.branch)" -or
     "$($jsonSummaryReadback.git.shortCommit)" -ne "$($gitContext.shortCommit)" -or

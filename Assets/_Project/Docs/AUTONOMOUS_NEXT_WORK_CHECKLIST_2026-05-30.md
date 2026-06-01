@@ -22,6 +22,7 @@
 | Preflight JSON contract | Future automation should not infer schema or exit semantics | Added schemaVersion, exitCode, hasFailures, and hasWarnings to the JSON summary and readback check |
 | Preflight Git context | Validation evidence should identify the branch and commit it came from | Added optional Git branch, commit, dirty, and status-count metadata to the JSON summary |
 | Preflight duration evidence | Automation should notice if the static gate becomes unexpectedly slow | Added durationMilliseconds to text and JSON preflight summaries |
+| Preflight duration warning | Slow static checks should be visible without becoming release failures | Added a 60s duration warning threshold and JSON/text warning flag |
 | Spawn safety guardrails | Player/monster spawn safety should not rely on repeated player validation | Added static preflight coverage for player unsafe-position recovery and enemy narrow-spawn avoidance hooks |
 | Rhythm state guardrails | Rhythm phase order and pressure modulation should not rely on human observation | Added static preflight coverage for Calm->Build->Spike->Release transitions, spike tell, release relief, and regression suppression |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
@@ -46,7 +47,7 @@
 ## Next Priority
 The next best autonomous task is to reduce the need for human play validation:
 - Prefer static/preflight checks, deterministic runtime counters, and debug snapshots over repeated manual runs.
-- Add small guardrails that catch missing rhythm phases, malformed machine-readable summaries, missing stinger assignments, spawn safety regressions, invalid state transitions, vendor import regressions, validation artifact leakage, missing planning/handoff artifacts, and validation-policy drift. `[in progress: validation, machine summary/readback/schema/git context/duration, spawn safety, rhythm state, vendor ignore/tracking, log artifact, stinger slot, planning/handoff artifact, and low-touch validation policy preflight checks added]`
+- Add small guardrails that catch missing rhythm phases, malformed machine-readable summaries, missing stinger assignments, spawn safety regressions, invalid state transitions, vendor import regressions, validation artifact leakage, missing planning/handoff artifacts, and validation-policy drift. `[in progress: validation, machine summary/readback/schema/git context/duration warning, spawn safety, rhythm state, vendor ignore/tracking, log artifact, stinger slot, planning/handoff artifact, and low-touch validation policy preflight checks added]`
 - Treat stale release-soak log warnings as refresh signals, not release-blocking failures, unless a fresh build claim depends on those logs.
 - Use authored SFX/art only after resource ownership is confirmed.
 - Keep any human pass short and evidence-producing: one snapshot per meaningful anomaly is enough.
