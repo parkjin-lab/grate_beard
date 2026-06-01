@@ -55,6 +55,7 @@ $results = New-Object System.Collections.Generic.List[object]
 $scenePath = Join-Path $ProjectRoot 'Assets/Scenes/SampleScene.unity'
 $sceneMetaPath = "$scenePath.meta"
 $buildSettingsPath = Join-Path $ProjectRoot 'ProjectSettings/EditorBuildSettings.asset'
+$gitignorePath = Join-Path $ProjectRoot '.gitignore'
 $setupPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Editor/LostBreadcrumbsProjectSetup.cs'
 $regressionPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/RegressionChecklistRunner.cs'
 $debugOverlayPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/DebugOverlay.cs'
@@ -368,6 +369,21 @@ if (Test-Path $stagePressurePath) {
 }
 
 $results.Add((Add-Result 'code.rhythmStateTransitionHooks' ($(if ($rhythmStateMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmStateMissing -join ', ')"))
+
+if (Test-Path $gitignorePath) {
+    $gitignoreText = Get-Content $gitignorePath -Raw
+    $vendorIgnoreHooks = @(
+        '/[Aa]ssets/Feel/',
+        '/[Aa]ssets/Feel.meta',
+        '/[Aa]ssets/Layer Lab/',
+        '/[Aa]ssets/Layer Lab.meta',
+        '/[Aa]ssets/ThirdParty.meta'
+    )
+    $missingVendorIgnoreHooks = @($vendorIgnoreHooks | Where-Object { -not $gitignoreText.Contains($_) })
+    $results.Add((Add-Result 'repo.vendorAssetIgnoreGuards' ($(if ($missingVendorIgnoreHooks.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($missingVendorIgnoreHooks -join ', ')"))
+} else {
+    $results.Add((Add-Result 'repo.vendorAssetIgnoreGuards' 'FAIL' '.gitignore is missing.'))
+}
 
 $results.Add((Add-LogArtifactResult 'logs.unityPreflightSummary' $unityPreflightSummaryPath))
 $results.Add((Add-LogArtifactResult 'logs.autoSoakTrace' $tracePath))
