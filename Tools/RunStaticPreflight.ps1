@@ -276,9 +276,25 @@ if (Test-Path $audioManagerPath) {
     $audioManagerText = Get-Content $audioManagerPath -Raw
     $audioManagerHooks = @(
         'AssignedStingerClipCount',
+        'exitUnlockedStingerClip',
+        'chaseSpikeStingerClip',
+        'lockOnWarningStingerClip',
+        'escapeReliefStingerClip',
+        'quietBreathBrokenStingerClip',
+        'echoReturnStingerClip',
+        'riskRewardStingerClip',
+        'rhythmShiftStingerClip',
+        'setPieceShiftStingerClip',
+        'pressureWaveStingerClip',
+        'deathStingerClip',
+        'GetAssignedStingerClip',
+        'IsAssignedStingerClip',
+        'CountAssignedStingerClips',
         'DebugTestLockOnWarningStinger',
         'DebugTestEscapeReliefStinger',
         'DebugTestQuietBreathBrokenStinger',
+        'DebugTestEchoReturnStinger',
+        'DebugTestRiskRewardStinger',
         'DebugTestRhythmShiftStinger'
     )
     $missingAudioManagerHooks = @($audioManagerHooks | Where-Object { -not $audioManagerText.Contains($_) })

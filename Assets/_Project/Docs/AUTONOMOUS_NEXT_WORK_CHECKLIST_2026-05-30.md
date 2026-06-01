@@ -21,6 +21,7 @@
 | Rhythm state guardrails | Rhythm phase order and pressure modulation should not rely on human observation | Added static preflight coverage for Calm->Build->Spike->Release transitions, spike tell, release relief, and regression suppression |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |
+| Semantic stinger slot guardrails | Authored SFX replacement should not silently lose cue slots | Expanded static preflight coverage to include all semantic stinger clip slots, resolver, count, and audition hooks |
 | Performance | Stinger telemetry stores primitive fields only when a stinger plays | No per-frame allocation concern |
 | Risk | Some feel/audio judgment still needs a human eventually | Defer broad play validation; prioritize automated/static guards and tiny evidence captures |
 
@@ -34,7 +35,7 @@
 ## Next Priority
 The next best autonomous task is to reduce the need for human play validation:
 - Prefer static/preflight checks, deterministic runtime counters, and debug snapshots over repeated manual runs.
-- Add small guardrails that catch missing rhythm phases, missing stinger assignments, spawn safety regressions, invalid state transitions, vendor import regressions, and validation artifact leakage. `[in progress: validation, spawn safety, rhythm state, vendor ignore, and log artifact preflight checks added]`
+- Add small guardrails that catch missing rhythm phases, missing stinger assignments, spawn safety regressions, invalid state transitions, vendor import regressions, and validation artifact leakage. `[in progress: validation, spawn safety, rhythm state, vendor ignore, log artifact, and stinger slot preflight checks added]`
 - Use authored SFX/art only after resource ownership is confirmed.
 - Keep any human pass short and evidence-producing: one snapshot per meaningful anomaly is enough.
 
