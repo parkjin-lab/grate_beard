@@ -410,6 +410,16 @@ if (Test-Path $gitignorePath) {
     $results.Add((Add-Result 'repo.validationArtifactIgnoreGuards' 'FAIL' '.gitignore is missing.'))
 }
 
+$trackedVendorAssets = @()
+try {
+    $trackedVendorAssets = @(& git -C $ProjectRoot ls-files -- 'Assets/Feel' 'Assets/Layer Lab' 'Assets/ThirdParty.meta' 2>$null)
+} catch {
+    $trackedVendorAssets = @('__git_ls_files_failed__')
+}
+$trackedVendorAssetStatus = $(if ($trackedVendorAssets.Count -eq 0) { 'PASS' } else { 'FAIL' })
+$trackedVendorAssetDetail = $(if ($trackedVendorAssets.Count -eq 0) { 'tracked=0' } else { "tracked=$($trackedVendorAssets.Count) sample=$((@($trackedVendorAssets | Select-Object -First 5)) -join ', ')" })
+$results.Add((Add-Result 'repo.vendorAssetTrackedGuards' $trackedVendorAssetStatus $trackedVendorAssetDetail))
+
 $requiredDocPatterns = @(
     'AUTONOMOUS_NEXT_WORK_CHECKLIST_*.md',
     'RESOURCE_REQUIREMENTS_UPDATE_*.md',
