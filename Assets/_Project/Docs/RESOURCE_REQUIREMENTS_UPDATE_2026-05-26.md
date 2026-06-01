@@ -20,6 +20,7 @@
 - Static preflight now checks that ignored vendor Asset Store import paths remain protected in `.gitignore`.
 - Static preflight now checks that logs and validation artifacts remain ignored instead of entering source control.
 - Static preflight now checks that semantic stinger clip slots, resolver, counter, and audition hooks remain present.
+- Static preflight now checks that low-touch planning/resource/rhythm/vendor analysis documents remain present.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

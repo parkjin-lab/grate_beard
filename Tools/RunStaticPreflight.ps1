@@ -64,6 +64,7 @@ $playerControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/P
 $enemySpawnDirectorPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/EnemySpawnDirector.cs'
 $gameplayRhythmPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/GameplayRhythmDirector.cs'
 $stagePressurePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/StagePressureDirector.cs'
+$docsRoot = Join-Path $ProjectRoot 'Assets/_Project/Docs'
 $handoffPattern = Join-Path $ProjectRoot 'HANDOFF_*.md'
 $releaseSoakDir = Join-Path $ProjectRoot 'Logs/ReleaseSoak'
 $summaryPath = Join-Path $releaseSoakDir 'local_static_preflight_last_summary.txt'
@@ -408,6 +409,27 @@ if (Test-Path $gitignorePath) {
     $results.Add((Add-Result 'repo.vendorAssetIgnoreGuards' 'FAIL' '.gitignore is missing.'))
     $results.Add((Add-Result 'repo.validationArtifactIgnoreGuards' 'FAIL' '.gitignore is missing.'))
 }
+
+$requiredDocPatterns = @(
+    'AUTONOMOUS_NEXT_WORK_CHECKLIST_*.md',
+    'RESOURCE_REQUIREMENTS_UPDATE_*.md',
+    'RHYTHM_VALIDATION_PLAYBOOK_*.md',
+    'VENDOR_ASSET_REVIEW_*.md',
+    'GAME_GAP_ANALYSIS_AND_POLICY_*.md'
+)
+$missingDocPatterns = New-Object System.Collections.Generic.List[string]
+if (Test-Path $docsRoot) {
+    foreach ($pattern in $requiredDocPatterns) {
+        $matches = @(Get-ChildItem -Path (Join-Path $docsRoot $pattern) -File -ErrorAction SilentlyContinue)
+        if ($matches.Count -le 0) {
+            $missingDocPatterns.Add($pattern)
+        }
+    }
+} else {
+    $missingDocPatterns.Add('Assets/_Project/Docs missing')
+}
+
+$results.Add((Add-Result 'docs.lowTouchPlanningArtifacts' ($(if ($missingDocPatterns.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($missingDocPatterns -join ', ')"))
 
 $results.Add((Add-LogArtifactResult 'logs.unityPreflightSummary' $unityPreflightSummaryPath))
 $results.Add((Add-LogArtifactResult 'logs.autoSoakTrace' $tracePath))
