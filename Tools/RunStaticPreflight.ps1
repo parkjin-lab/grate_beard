@@ -614,6 +614,13 @@ if (Test-Path $rhythmPlaybookPath) {
     $rhythmPlaybookText = Get-Content $rhythmPlaybookPath -Raw
     $lowTouchValidationPolicyHooks = @(
         'Minimal Human Pass',
+        'Plain Judgment Card',
+        'Spike가 무섭지만 억울하지 않은가?',
+        'Release가 실제로 안도감인가?',
+        'Build가 유혹인가?',
+        'scary but fair',
+        'felt relief',
+        'tempted',
         'Use this only when automated/static checks are not enough',
         'Write Rhythm Snapshot',
         'Logs/RhythmValidation/',

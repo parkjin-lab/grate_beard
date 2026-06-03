@@ -35,6 +35,7 @@
 - Static preflight now checks that required planning documents keep their Unity `.meta` files.
 - Static preflight now includes rhythm handoff and project status update documents in the required planning artifact set.
 - Static preflight now checks that the rhythm validation playbook preserves the minimal-human-pass and snapshot evidence policy.
+- The rhythm validation playbook now includes a Korean-first judgment card for fair Spike, felt Release, and tempting Build notes.
 - Static preflight now labels stale release-soak logs with freshness days and refresh-required status so old evidence is not mistaken for current validation.
 
 ## P0 Resource Needs

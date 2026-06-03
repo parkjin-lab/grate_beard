@@ -37,6 +37,7 @@
 | Planning meta guardrails | Unity docs need stable `.meta` files to avoid asset GUID churn | Added static preflight coverage for required planning artifact `.meta` files |
 | Handoff/status artifact guardrails | Future agents need the last rhythm handoff and project status trail | Expanded static preflight planning coverage to require rhythm handoff and project status update docs |
 | Low-touch validation policy guardrails | Automation should not drift back into broad manual play checks | Added static preflight coverage for the rhythm playbook's minimal-human-pass and snapshot evidence policy |
+| Rhythm judgment card | Human spot checks need plain terms for fair Spike, felt Release, and tempting Build | Added a Korean-first judgment card to the rhythm playbook and static preflight policy hooks |
 | Stale log warning clarity | Old release-soak logs should not be mistaken for current validation | Static preflight now labels stale log warnings with freshness days and refresh-required status |
 | Performance | Stinger telemetry stores primitive fields only when a stinger plays | No per-frame allocation concern |
 | Risk | Some feel/audio judgment still needs a human eventually | Defer broad play validation; prioritize automated/static guards and tiny evidence captures |
@@ -52,6 +53,7 @@
 The next best autonomous task is to reduce the need for human play validation:
 - Prefer static/preflight checks, deterministic runtime counters, and debug snapshots over repeated manual runs.
 - Add small guardrails that catch missing rhythm phases, malformed machine-readable summaries, missing stinger assignments, spawn safety regressions, invalid state transitions, spike fairness regressions, build temptation regressions, release relief contract regressions, vendor import regressions, validation artifact leakage, missing planning/handoff artifacts, and validation-policy drift. `[in progress: validation, machine summary/readback/schema/git context/duration warning, conflict-scan performance, spawn safety, rhythm state, spike fairness, build temptation, release relief, vendor ignore/tracking, log artifact, stinger slot, planning/handoff artifact, and low-touch validation policy preflight checks added]`
+- Keep human rhythm notes plain: `scary but fair`, `unfair`, `felt relief`, `no relief`, `tempted`, or `flat` is enough.
 - Treat stale release-soak log warnings as refresh signals, not release-blocking failures, unless a fresh build claim depends on those logs.
 - Use authored SFX/art only after resource ownership is confirmed.
 - Keep any human pass short and evidence-producing: one snapshot per meaningful anomaly is enough.
