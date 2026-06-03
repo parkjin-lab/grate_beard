@@ -373,6 +373,8 @@ if (Test-Path $mapSystemPath) {
         'TryResolveSafePlayerSpawnPosition',
         'IsPlayerSpawnBlocked',
         'LastPlayerSpawnUsedBlockedFallback',
+        'RefreshRuntimeReferencesForRespawn',
+        'TryRecoverUnsafePositionNowForRuntime',
         'loggedPlayerSpawnBlockerScopeGuard',
         'widened player spawn blocker checks to all blocking colliders'
     )

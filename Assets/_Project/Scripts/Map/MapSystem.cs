@@ -1486,6 +1486,11 @@ namespace LostBreadcrumbs.Runtime.Systems
             }
 
             player.transform.position = position;
+            if (player.TryGetComponent(out PlayerDummyController controller))
+            {
+                controller.RefreshRuntimeReferencesForRespawn();
+                controller.TryRecoverUnsafePositionNowForRuntime();
+            }
         }
 
         private bool TryResolveSafePlayerSpawnPosition(
