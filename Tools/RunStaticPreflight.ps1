@@ -513,6 +513,9 @@ if (Test-Path $riskCachePickupPath) {
         'releaseNoiseMultiplier',
         'EvaluateRewardMultiplier',
         'EvaluateNoiseMultiplier',
+        'buildTemptationPulseSpeedMultiplier',
+        'buildTemptationPulseScaleMultiplier',
+        'buildTemptationColorLift',
         'LastRhythmPhaseLabel'
     )
     foreach ($hook in $riskCacheTemptationHooks) {

@@ -27,6 +27,7 @@
 - Static preflight now checks that rhythm state transitions, rhythm pressure modulation, spike tell, release relief, and regression suppression hooks remain present.
 - Static preflight now checks that Spike fairness keeps Build-phase LockOnWarning tells, major stinger budget, chase/lock-on stingers, and audio duck boost hooks.
 - Static preflight now checks that Build temptation keeps phase-aware risk cache reward/noise and breadcrumb momentum reward/chain hooks.
+- Risk caches now pulse faster/larger with a slight color lift during Build so the higher reward window is visible before pickup.
 - Static preflight now checks that Release relief keeps multiple non-text channels: stamina, fog reveal, pulse, objective whisper, audio, calm window, quiet breath, and semantic telemetry.
 - Rhythm Release now applies longer, wider objective whisper guidance so relief also prepares the next route choice.
 - Stage set-pieces now align to BuildCrest or SpikeEntry rhythm windows when possible, expose rhythm alignment labels in the debug overlay, write set-piece rhythm evidence into rhythm snapshots, and have static preflight hooks to preserve that timing policy.

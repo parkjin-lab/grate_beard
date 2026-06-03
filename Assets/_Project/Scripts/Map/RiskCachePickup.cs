@@ -26,8 +26,13 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField, Range(0.25f, 2.5f)] private float buildNoiseMultiplier = 1.08f;
         [SerializeField, Range(0.25f, 2.5f)] private float spikeNoiseMultiplier = 1.48f;
         [SerializeField, Range(0.25f, 2.5f)] private float releaseNoiseMultiplier = 0.68f;
+        [SerializeField, Range(0.5f, 2f)] private float buildTemptationPulseSpeedMultiplier = 1.32f;
+        [SerializeField, Range(0.5f, 2f)] private float buildTemptationPulseScaleMultiplier = 1.38f;
+        [SerializeField, Range(0f, 0.5f)] private float buildTemptationColorLift = 0.12f;
 
         private Vector3 initialScale;
+        private SpriteRenderer spriteRenderer;
+        private Color initialColor;
 
         public float LastRecoveredStamina { get; private set; }
         public float LastPulseCooldownRefund { get; private set; }
@@ -38,12 +43,28 @@ namespace LostBreadcrumbs.Runtime.Map
         private void Awake()
         {
             initialScale = transform.localScale;
+            spriteRenderer = GetComponent<SpriteRenderer>();
+            if (spriteRenderer != null)
+            {
+                initialColor = spriteRenderer.color;
+            }
         }
 
         private void Update()
         {
-            float wave = Mathf.Sin(Time.time * pulseSpeed) * pulseScale;
+            GameplayRhythmPhase phase = rhythmDirector != null ? rhythmDirector.CurrentPhase : GameplayRhythmPhase.Calm;
+            bool buildTemptation = phase == GameplayRhythmPhase.Build;
+            float speed = pulseSpeed * (buildTemptation ? buildTemptationPulseSpeedMultiplier : 1f);
+            float scale = pulseScale * (buildTemptation ? buildTemptationPulseScaleMultiplier : 1f);
+            float wave = Mathf.Sin(Time.time * speed) * scale;
             transform.localScale = initialScale * (1f + wave);
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = buildTemptation
+                    ? Color.Lerp(initialColor, Color.white, buildTemptationColorLift)
+                    : initialColor;
+            }
         }
 
         public void Configure(
