@@ -232,6 +232,9 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Range(0f, 1f)] private float rhythmReleaseReliefPressureBonus = 0.24f;
         [SerializeField, Range(0.2f, 1.5f)] private float rhythmReleaseFogRadiusMultiplier = 0.85f;
         [SerializeField, Range(0.2f, 1.5f)] private float rhythmReleaseQuietBreathMultiplier = 1.08f;
+        [SerializeField, Range(0.5f, 2f)] private float rhythmReleaseObjectiveWhisperDistanceMultiplier = 1.22f;
+        [SerializeField, Range(0.5f, 2f)] private float rhythmReleaseObjectiveWhisperDurationMultiplier = 1.34f;
+        [SerializeField, Range(0.5f, 1.8f)] private float rhythmReleaseObjectiveWhisperWidthMultiplier = 1.14f;
 
         [Header("Flashlight Dread")]
         [SerializeField] private bool enableFlashlightDread = true;
@@ -1343,7 +1346,12 @@ namespace LostBreadcrumbs.Runtime.Managers
             }
 
             SpawnEscapeReliefPulse(rewardPosition, intensity);
-            TrySpawnEscapeReliefObjectiveWhisper(rewardPosition, intensity);
+            TrySpawnEscapeReliefObjectiveWhisper(
+                rewardPosition,
+                intensity,
+                rhythmReleaseObjectiveWhisperDistanceMultiplier,
+                rhythmReleaseObjectiveWhisperDurationMultiplier,
+                rhythmReleaseObjectiveWhisperWidthMultiplier);
             PlayEscapeReliefAudio(rewardPosition, intensity * 0.82f);
             StartEscapeReliefCalmWindow(intensity);
             ApplyRhythmReleaseQuietBreath(controller, intensity);
@@ -1567,7 +1575,12 @@ namespace LostBreadcrumbs.Runtime.Managers
             return escapeReliefTrailMaterial;
         }
 
-        private void TrySpawnEscapeReliefObjectiveWhisper(Vector2 playerPosition, float intensity)
+        private void TrySpawnEscapeReliefObjectiveWhisper(
+            Vector2 playerPosition,
+            float intensity,
+            float distanceMultiplier = 1f,
+            float durationMultiplier = 1f,
+            float widthMultiplier = 1f)
         {
             if (!enableEscapeReliefObjectiveWhisper)
             {
@@ -1592,7 +1605,10 @@ namespace LostBreadcrumbs.Runtime.Managers
                 return;
             }
 
-            float maxDistance = Mathf.Max(0.2f, escapeReliefObjectiveWhisperMaxDistance);
+            float safeDistanceMultiplier = Mathf.Max(0.1f, distanceMultiplier);
+            float safeDurationMultiplier = Mathf.Max(0.1f, durationMultiplier);
+            float safeWidthMultiplier = Mathf.Max(0.1f, widthMultiplier);
+            float maxDistance = Mathf.Max(0.2f, escapeReliefObjectiveWhisperMaxDistance * safeDistanceMultiplier);
             Vector2 whisperTarget = playerPosition + toTarget.normalized * Mathf.Min(distance, maxDistance);
 
             GameObject whisperObject = new($"EscapeReliefObjectiveWhisper_{Time.frameCount}");
@@ -1610,7 +1626,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             line.textureMode = LineTextureMode.Stretch;
             line.numCornerVertices = 2;
             line.numCapVertices = 2;
-            line.widthMultiplier = Mathf.Max(0.01f, escapeReliefObjectiveWhisperWidth);
+            line.widthMultiplier = Mathf.Max(0.01f, escapeReliefObjectiveWhisperWidth * safeWidthMultiplier);
             line.sharedMaterial = GetEscapeReliefTrailMaterial();
             line.sortingOrder = escapeReliefObjectiveWhisperSortingOrder;
 
@@ -1621,7 +1637,14 @@ namespace LostBreadcrumbs.Runtime.Managers
             }
 
             Color color = targetIsExit ? escapeReliefExitWhisperColor : escapeReliefBreadcrumbWhisperColor;
-            StartCoroutine(EscapeReliefObjectiveWhisperRoutine(whisperObject, line, points, color, Mathf.Clamp01(intensity)));
+            StartCoroutine(EscapeReliefObjectiveWhisperRoutine(
+                whisperObject,
+                line,
+                points,
+                color,
+                Mathf.Clamp01(intensity),
+                safeDurationMultiplier,
+                safeWidthMultiplier));
 
             Color pulseColor = color;
             pulseColor.a *= 0.62f;
@@ -1636,7 +1659,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             visual.Configure(
                 Mathf.Lerp(0.85f, 1.35f, Mathf.Clamp01(intensity)),
                 pulseColor,
-                Mathf.Max(0.1f, escapeReliefObjectiveWhisperDuration * 0.9f),
+                Mathf.Max(0.1f, escapeReliefObjectiveWhisperDuration * safeDurationMultiplier * 0.9f),
                 1,
                 0f,
                 escapeReliefObjectiveWhisperSortingOrder);
@@ -1657,9 +1680,17 @@ namespace LostBreadcrumbs.Runtime.Managers
             };
         }
 
-        private IEnumerator EscapeReliefObjectiveWhisperRoutine(GameObject whisperObject, LineRenderer line, Vector3[] basePoints, Color baseColor, float intensity)
+        private IEnumerator EscapeReliefObjectiveWhisperRoutine(
+            GameObject whisperObject,
+            LineRenderer line,
+            Vector3[] basePoints,
+            Color baseColor,
+            float intensity,
+            float durationMultiplier,
+            float widthMultiplier)
         {
-            float duration = Mathf.Max(0.1f, escapeReliefObjectiveWhisperDuration);
+            float duration = Mathf.Max(0.1f, escapeReliefObjectiveWhisperDuration * Mathf.Max(0.1f, durationMultiplier));
+            float safeWidth = Mathf.Max(0.01f, escapeReliefObjectiveWhisperWidth * Mathf.Max(0.1f, widthMultiplier));
             float startedAt = Time.time;
             Vector3 direction = basePoints[^1] - basePoints[0];
             Vector3 side = direction.sqrMagnitude > 0.001f
@@ -1688,7 +1719,7 @@ namespace LostBreadcrumbs.Runtime.Managers
                 color.a *= fade * shimmer * Mathf.Lerp(0.86f, 1.14f, intensity);
                 line.startColor = color;
                 line.endColor = color;
-                line.widthMultiplier = Mathf.Max(0.01f, escapeReliefObjectiveWhisperWidth) * Mathf.Lerp(1.15f, 0.25f, t);
+                line.widthMultiplier = safeWidth * Mathf.Lerp(1.15f, 0.25f, t);
                 yield return null;
             }
 
