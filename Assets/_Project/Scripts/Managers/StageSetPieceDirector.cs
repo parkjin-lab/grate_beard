@@ -22,6 +22,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private MapSystem mapSystem;
         [SerializeField] private EnemySpawnDirector enemySpawnDirector;
         [SerializeField] private StagePressureDirector stagePressureDirector;
+        [SerializeField] private GameplayRhythmDirector gameplayRhythmDirector;
         [SerializeField] private MapTuningDebugController mapTuningDebugController;
         [SerializeField] private Transform setPieceRoot;
 
@@ -30,6 +31,14 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private bool applyOnStartIfMapExists = true;
         [SerializeField] private bool raiseRuntimeEvents = true;
         [SerializeField] private bool logSummary;
+
+        [Header("Rhythm Alignment")]
+        [SerializeField] private bool alignSetPiecesToRhythm = true;
+        [SerializeField, Min(0f)] private float rhythmAlignmentMaxWaitSeconds = 12.5f;
+        [SerializeField, Range(0f, 1f)] private float buildAlignmentMinProgress = 0.34f;
+        [SerializeField, Range(0f, 1f)] private float spikeAlignmentMaxProgress = 0.44f;
+        [SerializeField, Range(0.5f, 1.6f)] private float buildAlignedIntensityMultiplier = 1.08f;
+        [SerializeField, Range(0.5f, 1.8f)] private float spikeAlignedIntensityMultiplier = 1.16f;
 
         [Header("Tier Stages")]
         [SerializeField, Min(1)] private int stage3Start = 3;
@@ -122,6 +131,8 @@ namespace LostBreadcrumbs.Runtime.Managers
         private float lastRuntimePulseLoudness;
         private float lastRuntimePulseRadius;
         private float lastRuntimeFocusRadius;
+        private string lastRhythmPhaseLabel = "Unknown";
+        private string lastRhythmAlignmentLabel = "Unaligned";
 
         public StageSetPieceTier ActiveTier => activeTier;
         public int ActiveBeaconCount => activeBeaconCount;
@@ -138,6 +149,8 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float LastRuntimePulseLoudness => lastRuntimePulseLoudness;
         public float LastRuntimePulseRadius => lastRuntimePulseRadius;
         public float LastRuntimeFocusRadius => lastRuntimeFocusRadius;
+        public string LastRhythmPhaseLabel => string.IsNullOrWhiteSpace(lastRhythmPhaseLabel) ? "Unknown" : lastRhythmPhaseLabel;
+        public string LastRhythmAlignmentLabel => string.IsNullOrWhiteSpace(lastRhythmAlignmentLabel) ? "Unaligned" : lastRhythmAlignmentLabel;
 
         private void OnEnable()
         {
@@ -199,6 +212,11 @@ namespace LostBreadcrumbs.Runtime.Managers
                 stagePressureDirector = FindFirstObjectByType<StagePressureDirector>();
             }
 
+            if (gameplayRhythmDirector == null)
+            {
+                gameplayRhythmDirector = FindFirstObjectByType<GameplayRhythmDirector>();
+            }
+
             if (mapTuningDebugController == null)
             {
                 mapTuningDebugController = FindFirstObjectByType<MapTuningDebugController>();
@@ -250,6 +268,20 @@ namespace LostBreadcrumbs.Runtime.Managers
                 yield break;
             }
 
+            if (ShouldAlignSetPieceToRhythm(stage))
+            {
+                float deadline = Time.realtimeSinceStartup + Mathf.Max(0f, rhythmAlignmentMaxWaitSeconds);
+                while (token == generationToken && Time.realtimeSinceStartup < deadline && !IsRhythmAlignedForSetPiece())
+                {
+                    yield return null;
+                }
+            }
+
+            if (token != generationToken)
+            {
+                yield break;
+            }
+
             BuildSetPiece(stage, cells);
         }
 
@@ -280,6 +312,10 @@ namespace LostBreadcrumbs.Runtime.Managers
             lastRuntimeIntensity = runtimeIntensity;
             lastRuntimePresetIntensity = presetIntensity;
             lastRuntimePresetLabel = presetLabel;
+            ApplyRhythmAlignmentTuning(ref runtimeIntensity, ref tension01);
+            runtimeIntensity = Mathf.Clamp(runtimeIntensity, 0.65f, 1.8f);
+            lastRuntimeIntensity = runtimeIntensity;
+            lastRuntimeTension01 = tension01;
 
             int beaconCount = EvaluateBeaconCount(activeTier, tension01, runtimeIntensity);
             int reinforcementCount = EvaluateReinforcementCount(activeTier, tension01, runtimeIntensity);
@@ -295,6 +331,10 @@ namespace LostBreadcrumbs.Runtime.Managers
             lastRuntimePulseRadius = pulseRadius;
             lastRuntimeFocusRadius = focusRadius;
             lastBeatLabel = EvaluateBeatLabel(activeTier);
+            if (!string.IsNullOrWhiteSpace(lastRhythmAlignmentLabel) && lastRhythmAlignmentLabel != "Unaligned")
+            {
+                lastBeatLabel = $"{lastBeatLabel}_{lastRhythmAlignmentLabel}";
+            }
 
             List<GeneratedMapCell> selected = SelectSetPieceCells(activeTier, cells, beaconCount, lastAppliedStage);
             if (selected.Count <= 0)
@@ -406,6 +446,8 @@ namespace LostBreadcrumbs.Runtime.Managers
             lastRuntimePulseLoudness = 0f;
             lastRuntimePulseRadius = 0f;
             lastRuntimeFocusRadius = 0f;
+            lastRhythmPhaseLabel = gameplayRhythmDirector != null ? gameplayRhythmDirector.CurrentPhaseLabel : "Unknown";
+            lastRhythmAlignmentLabel = "Unaligned";
         }
 
         private StageSetPieceTier EvaluateTier(int stage)
@@ -442,6 +484,78 @@ namespace LostBreadcrumbs.Runtime.Managers
                 StageSetPieceTier.Stage7ExitSiege => "ExitSiege",
                 _ => "None"
             };
+        }
+
+        private bool ShouldAlignSetPieceToRhythm(int stage)
+        {
+            if (!alignSetPiecesToRhythm || rhythmAlignmentMaxWaitSeconds <= 0f)
+            {
+                return false;
+            }
+
+            ResolveReferences();
+            return gameplayRhythmDirector != null && EvaluateTier(stage) != StageSetPieceTier.None;
+        }
+
+        private bool IsRhythmAlignedForSetPiece()
+        {
+            if (gameplayRhythmDirector == null)
+            {
+                lastRhythmPhaseLabel = "Unknown";
+                lastRhythmAlignmentLabel = "Unaligned";
+                return true;
+            }
+
+            GameplayRhythmPhase phase = gameplayRhythmDirector.CurrentPhase;
+            float progress = gameplayRhythmDirector.CurrentPhaseProgress;
+            lastRhythmPhaseLabel = gameplayRhythmDirector.CurrentPhaseLabel;
+
+            if (phase == GameplayRhythmPhase.Build && progress >= buildAlignmentMinProgress)
+            {
+                lastRhythmAlignmentLabel = "BuildCrest";
+                return true;
+            }
+
+            if (phase == GameplayRhythmPhase.Spike && progress <= spikeAlignmentMaxProgress)
+            {
+                lastRhythmAlignmentLabel = "SpikeEntry";
+                return true;
+            }
+
+            lastRhythmAlignmentLabel = "Waiting";
+            return false;
+        }
+
+        private void ApplyRhythmAlignmentTuning(ref float runtimeIntensity, ref float tension01)
+        {
+            if (gameplayRhythmDirector == null)
+            {
+                lastRhythmPhaseLabel = "Unknown";
+                lastRhythmAlignmentLabel = "Unaligned";
+                return;
+            }
+
+            GameplayRhythmPhase phase = gameplayRhythmDirector.CurrentPhase;
+            float progress = gameplayRhythmDirector.CurrentPhaseProgress;
+            lastRhythmPhaseLabel = gameplayRhythmDirector.CurrentPhaseLabel;
+
+            if (phase == GameplayRhythmPhase.Build && progress >= buildAlignmentMinProgress)
+            {
+                lastRhythmAlignmentLabel = "BuildCrest";
+                runtimeIntensity *= Mathf.Max(0.5f, buildAlignedIntensityMultiplier);
+                tension01 = Mathf.Clamp01(tension01 + 0.08f);
+                return;
+            }
+
+            if (phase == GameplayRhythmPhase.Spike && progress <= spikeAlignmentMaxProgress)
+            {
+                lastRhythmAlignmentLabel = "SpikeEntry";
+                runtimeIntensity *= Mathf.Max(0.5f, spikeAlignedIntensityMultiplier);
+                tension01 = Mathf.Clamp01(tension01 + 0.12f);
+                return;
+            }
+
+            lastRhythmAlignmentLabel = "Fallback";
         }
 
         private int EvaluateBeaconCount(StageSetPieceTier tier, float tension01, float runtimeIntensity)

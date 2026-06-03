@@ -397,6 +397,7 @@ namespace LostBreadcrumbs.Runtime.UI
             if (setPieceDirector != null)
             {
                 GUILayout.Label($"SetPiece Tier/Beat: {setPieceDirector.ActiveTier}/{setPieceDirector.LastBeatLabel}");
+                GUILayout.Label($"SetPiece Rhythm: {setPieceDirector.LastRhythmPhaseLabel}/{setPieceDirector.LastRhythmAlignmentLabel}");
                 GUILayout.Label($"SetPiece Beacons/Reinforce: {setPieceDirector.ActiveBeaconCount}/{setPieceDirector.LastReinforcementCount} @Stage {setPieceDirector.LastAppliedStage}");
                 GUILayout.Label($"SetPiece Tune P/T/I: {setPieceDirector.LastRuntimePressure01:0.00}/{setPieceDirector.LastRuntimeTension01:0.00}/{setPieceDirector.LastRuntimeIntensity:0.00} ({setPieceDirector.LastRuntimePresetLabel})");
                 GUILayout.Label($"SetPiece Pulse Int/L/R/Life: {setPieceDirector.LastRuntimePulseInterval:0.00}/{setPieceDirector.LastRuntimePulseLoudness:0.00}/{setPieceDirector.LastRuntimePulseRadius:0.00}/{setPieceDirector.LastRuntimeBeaconLifetime:0.00}s");

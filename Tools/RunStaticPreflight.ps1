@@ -69,6 +69,7 @@ $stageLoopPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/StageLoopDi
 $riskCachePickupPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/RiskCachePickup.cs'
 $gameplayRhythmPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/GameplayRhythmDirector.cs'
 $stagePressurePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/StagePressureDirector.cs'
+$stageSetPiecePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/StageSetPieceDirector.cs'
 $threatReadabilityPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/ThreatReadabilityDirector.cs'
 $docsRoot = Join-Path $ProjectRoot 'Assets/_Project/Docs'
 $rhythmPlaybookPath = Join-Path $docsRoot 'RHYTHM_VALIDATION_PLAYBOOK_2026-05-26.md'
@@ -568,6 +569,38 @@ if (Test-Path $threatReadabilityPath) {
     $releaseReliefMissing.Add('ThreatReadabilityDirector.cs missing')
 }
 $results.Add((Add-Result 'code.releaseReliefContractHooks' ($(if ($releaseReliefMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($releaseReliefMissing -join ', ')"))
+
+$rhythmSetPieceMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $stageSetPiecePath) {
+    $stageSetPieceText = Get-Content $stageSetPiecePath -Raw
+    $rhythmSetPieceHooks = @(
+        'alignSetPiecesToRhythm',
+        'ShouldAlignSetPieceToRhythm',
+        'IsRhythmAlignedForSetPiece',
+        'ApplyRhythmAlignmentTuning',
+        'GameplayRhythmPhase.Build',
+        'GameplayRhythmPhase.Spike',
+        'BuildCrest',
+        'SpikeEntry',
+        'LastRhythmAlignmentLabel'
+    )
+    foreach ($hook in $rhythmSetPieceHooks) {
+        if (-not $stageSetPieceText.Contains($hook)) {
+            $rhythmSetPieceMissing.Add("StageSetPieceDirector:$hook")
+        }
+    }
+} else {
+    $rhythmSetPieceMissing.Add('StageSetPieceDirector.cs missing')
+}
+if (Test-Path $debugOverlayPath) {
+    $debugOverlayText = Get-Content $debugOverlayPath -Raw
+    if (-not $debugOverlayText.Contains('SetPiece Rhythm:')) {
+        $rhythmSetPieceMissing.Add('DebugOverlay:SetPiece Rhythm:')
+    }
+} else {
+    $rhythmSetPieceMissing.Add('DebugOverlay.cs missing')
+}
+$results.Add((Add-Result 'code.rhythmSetPieceAlignmentHooks' ($(if ($rhythmSetPieceMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmSetPieceMissing -join ', ')"))
 
 if (Test-Path $gitignorePath) {
     $gitignoreText = Get-Content $gitignorePath -Raw
