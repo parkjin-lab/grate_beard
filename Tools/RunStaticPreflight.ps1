@@ -306,6 +306,10 @@ if (Test-Path $debugOverlayPath) {
         'writeRhythmSnapshotKey',
         'WriteRhythmValidationSnapshot',
         'BuildRhythmValidationSnapshotText',
+        'RhythmQuickRead:',
+        'RhythmJudgmentPrompt:',
+        'BuildRhythmSnapshotQuickRead',
+        'BuildRhythmJudgmentPrompt',
         'GetMissingRhythmPhaseLabel',
         'MissingPhases'
     )
@@ -688,6 +692,8 @@ if (Test-Path $rhythmPlaybookPath) {
         'Spike가 무섭지만 억울하지 않은가?',
         'Release가 실제로 안도감인가?',
         'Build가 유혹인가?',
+        'QuickRead',
+        'JudgmentPrompt',
         'scary but fair',
         'felt relief',
         'tempted',

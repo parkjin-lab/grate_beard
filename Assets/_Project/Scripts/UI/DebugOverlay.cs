@@ -813,6 +813,8 @@ namespace LostBreadcrumbs.Runtime.UI
             builder.AppendLine($"ObservedPhases_CalmBuildSpikeRelease: {FormatObserved(rhythmCalmObserved)}/{FormatObserved(rhythmBuildObserved)}/{FormatObserved(rhythmSpikeObserved)}/{FormatObserved(rhythmReleaseObserved)}");
             builder.AppendLine($"ObservedPhaseStatus: {GetRhythmValidationStatusLabel()}");
             builder.AppendLine($"MissingPhases: {GetMissingRhythmPhaseLabel()}");
+            builder.AppendLine($"RhythmQuickRead: {BuildRhythmSnapshotQuickRead()}");
+            builder.AppendLine($"RhythmJudgmentPrompt: {BuildRhythmJudgmentPrompt()}");
 
             if (pressureDirector != null)
             {
@@ -859,6 +861,44 @@ namespace LostBreadcrumbs.Runtime.UI
             }
 
             return builder.ToString();
+        }
+
+        private string BuildRhythmSnapshotQuickRead()
+        {
+            GameplayRhythmPhase phase = rhythmDirector != null ? rhythmDirector.CurrentPhase : lastObservedRhythmPhase;
+            string phaseLabel = rhythmDirector != null ? rhythmDirector.CurrentPhaseLabel : phase.ToString();
+            float progress = rhythmDirector != null ? rhythmDirector.CurrentPhaseProgress : 0f;
+            string setPiece = setPieceDirector != null
+                ? $"{setPieceDirector.LastBeatLabel}/{setPieceDirector.LastRhythmAlignmentLabel}"
+                : "none";
+            float pressure = pressureDirector != null ? pressureDirector.CurrentPressure01 : -1f;
+            float closeThreat = readabilityDirector != null ? readabilityDirector.CurrentCloseThreatDistance : -1f;
+            float relief = playerController != null ? playerController.TemporaryNoiseDampeningRemaining : 0f;
+
+            return phase switch
+            {
+                GameplayRhythmPhase.Build => $"Build check: tempted vs flat; phase={phaseLabel} {progress:0.00}, setPiece={setPiece}, pressure={FormatSnapshotFloat(pressure)}",
+                GameplayRhythmPhase.Spike => $"Spike check: scary but fair vs unfair; phase={phaseLabel} {progress:0.00}, closeThreat={FormatSnapshotFloat(closeThreat)}, setPiece={setPiece}",
+                GameplayRhythmPhase.Release => $"Release check: felt relief vs no relief; phase={phaseLabel} {progress:0.00}, quietBreath={relief:0.00}s, pressure={FormatSnapshotFloat(pressure)}",
+                _ => $"Calm check: readable route vs early pressure; phase={phaseLabel} {progress:0.00}, pressure={FormatSnapshotFloat(pressure)}, missing={GetMissingRhythmPhaseLabel()}"
+            };
+        }
+
+        private string BuildRhythmJudgmentPrompt()
+        {
+            GameplayRhythmPhase phase = rhythmDirector != null ? rhythmDirector.CurrentPhase : lastObservedRhythmPhase;
+            return phase switch
+            {
+                GameplayRhythmPhase.Build => "Write one note: Build=tempted or flat.",
+                GameplayRhythmPhase.Spike => "Write one note: Spike=scary but fair or unfair.",
+                GameplayRhythmPhase.Release => "Write one note: Release=felt relief or no relief.",
+                _ => "Write one note: Calm=readable or rushed."
+            };
+        }
+
+        private static string FormatSnapshotFloat(float value)
+        {
+            return value < 0f ? "n/a" : value.ToString("0.000");
         }
 
         private string GetRhythmSnapshotDisplayLabel()
