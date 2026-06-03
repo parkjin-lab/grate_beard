@@ -66,6 +66,7 @@ $playerControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/P
 $enemySpawnDirectorPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/EnemySpawnDirector.cs'
 $gameplayRhythmPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/GameplayRhythmDirector.cs'
 $stagePressurePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/StagePressureDirector.cs'
+$threatReadabilityPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/ThreatReadabilityDirector.cs'
 $docsRoot = Join-Path $ProjectRoot 'Assets/_Project/Docs'
 $rhythmPlaybookPath = Join-Path $docsRoot 'RHYTHM_VALIDATION_PLAYBOOK_2026-05-26.md'
 $handoffPattern = Join-Path $ProjectRoot 'HANDOFF_*.md'
@@ -405,6 +406,30 @@ if (Test-Path $stagePressurePath) {
 }
 
 $results.Add((Add-Result 'code.rhythmStateTransitionHooks' ($(if ($rhythmStateMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmStateMissing -join ', ')"))
+
+$releaseReliefMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $threatReadabilityPath) {
+    $threatReadabilityText = Get-Content $threatReadabilityPath -Raw
+    $releaseReliefHooks = @(
+        'TryGrantRhythmReleaseRelief',
+        'RecoverStamina',
+        'ApplyEchoRevealPulse',
+        'SpawnEscapeReliefPulse',
+        'TrySpawnEscapeReliefObjectiveWhisper',
+        'PlayEscapeReliefAudio',
+        'StartEscapeReliefCalmWindow',
+        'ApplyRhythmReleaseQuietBreath',
+        'RuntimeEventSemantic.EscapeRelief'
+    )
+    foreach ($hook in $releaseReliefHooks) {
+        if (-not $threatReadabilityText.Contains($hook)) {
+            $releaseReliefMissing.Add("ThreatReadabilityDirector:$hook")
+        }
+    }
+} else {
+    $releaseReliefMissing.Add('ThreatReadabilityDirector.cs missing')
+}
+$results.Add((Add-Result 'code.releaseReliefContractHooks' ($(if ($releaseReliefMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($releaseReliefMissing -join ', ')"))
 
 if (Test-Path $gitignorePath) {
     $gitignoreText = Get-Content $gitignorePath -Raw
