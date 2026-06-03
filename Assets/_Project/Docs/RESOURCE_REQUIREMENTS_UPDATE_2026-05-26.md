@@ -28,7 +28,7 @@
 - Static preflight now checks that Spike fairness keeps Build-phase LockOnWarning tells, major stinger budget, chase/lock-on stingers, and audio duck boost hooks.
 - Static preflight now checks that Build temptation keeps phase-aware risk cache reward/noise and breadcrumb momentum reward/chain hooks.
 - Static preflight now checks that Release relief keeps multiple non-text channels: stamina, fog reveal, pulse, objective whisper, audio, calm window, quiet breath, and semantic telemetry.
-- Stage set-pieces now align to BuildCrest or SpikeEntry rhythm windows when possible, expose rhythm alignment labels in the debug overlay, and have static preflight hooks to preserve that timing policy.
+- Stage set-pieces now align to BuildCrest or SpikeEntry rhythm windows when possible, expose rhythm alignment labels in the debug overlay, write set-piece rhythm evidence into rhythm snapshots, and have static preflight hooks to preserve that timing policy.
 - Static preflight now checks that ignored vendor Asset Store import paths remain protected in `.gitignore`.
 - Static preflight now checks that ignored vendor Asset Store import paths are not already tracked by Git.
 - Static preflight now checks that logs and validation artifacts remain ignored instead of entering source control.

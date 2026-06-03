@@ -30,7 +30,7 @@
 | Spike fairness cue budget guardrails | Spike should be telegraphed and not stack major cues unfairly | Added static preflight coverage for Build-phase LockOnWarning tells, major stinger budget, chase/lock-on stingers, and duck boost hooks |
 | Build temptation wager guardrails | Build should make risk caches and breadcrumb momentum tempting, not static | Added static preflight coverage for phase-aware risk cache reward/noise and breadcrumb momentum reward/chain hooks |
 | Release relief contract guardrails | Release must be felt through multiple non-text channels | Added static preflight coverage for stamina, fog reveal, pulse, whisper, audio, calm window, quiet breath, and semantic event hooks |
-| Rhythm set-piece alignment | Set-pieces should land as Build crest or Spike entry beats, not only stage-number events | Added rhythm-aware set-piece delay/tuning, BuildCrest/SpikeEntry labels, debug overlay readout, and static preflight hooks |
+| Rhythm set-piece alignment | Set-pieces should land as Build crest or Spike entry beats, not only stage-number events | Added rhythm-aware set-piece delay/tuning, BuildCrest/SpikeEntry labels, debug overlay readout, rhythm snapshot evidence, and static preflight hooks |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |

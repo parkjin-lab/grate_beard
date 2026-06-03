@@ -597,6 +597,17 @@ if (Test-Path $debugOverlayPath) {
     if (-not $debugOverlayText.Contains('SetPiece Rhythm:')) {
         $rhythmSetPieceMissing.Add('DebugOverlay:SetPiece Rhythm:')
     }
+    foreach ($hook in @(
+        'SetPieceTierBeat:',
+        'SetPieceRhythm:',
+        'SetPieceBeaconsReinforceStage:',
+        'SetPieceTune_PressureTensionIntensity:',
+        'SetPiecePulse_IntervalLoudnessRadiusLife:'
+    )) {
+        if (-not $debugOverlayText.Contains($hook)) {
+            $rhythmSetPieceMissing.Add("DebugOverlay:$hook")
+        }
+    }
 } else {
     $rhythmSetPieceMissing.Add('DebugOverlay.cs missing')
 }

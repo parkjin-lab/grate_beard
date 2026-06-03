@@ -820,6 +820,15 @@ namespace LostBreadcrumbs.Runtime.UI
                 builder.AppendLine($"StagePressureParts: {pressureDirector.CurrentStagePressure01:0.000}/{pressureDirector.CurrentBehaviorPressure01:0.000}/{pressureDirector.CurrentLateStageBonus01:0.000}");
             }
 
+            if (setPieceDirector != null)
+            {
+                builder.AppendLine($"SetPieceTierBeat: {setPieceDirector.ActiveTier}/{setPieceDirector.LastBeatLabel}");
+                builder.AppendLine($"SetPieceRhythm: {setPieceDirector.LastRhythmPhaseLabel}/{setPieceDirector.LastRhythmAlignmentLabel}");
+                builder.AppendLine($"SetPieceBeaconsReinforceStage: {setPieceDirector.ActiveBeaconCount}/{setPieceDirector.LastReinforcementCount}/{setPieceDirector.LastAppliedStage}");
+                builder.AppendLine($"SetPieceTune_PressureTensionIntensity: {setPieceDirector.LastRuntimePressure01:0.000}/{setPieceDirector.LastRuntimeTension01:0.000}/{setPieceDirector.LastRuntimeIntensity:0.000}");
+                builder.AppendLine($"SetPiecePulse_IntervalLoudnessRadiusLife: {setPieceDirector.LastRuntimePulseInterval:0.000}/{setPieceDirector.LastRuntimePulseLoudness:0.000}/{setPieceDirector.LastRuntimePulseRadius:0.000}/{setPieceDirector.LastRuntimeBeaconLifetime:0.000}");
+            }
+
             if (readabilityDirector != null)
             {
                 builder.AppendLine($"ReadabilityPressure_NearStageFinal: {readabilityDirector.CurrentNearbyThreat:0.000}/{readabilityDirector.CurrentStagePressure:0.000}/{readabilityDirector.CurrentReadabilityPressure:0.000}");
