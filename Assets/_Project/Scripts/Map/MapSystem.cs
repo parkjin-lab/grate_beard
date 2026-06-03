@@ -125,7 +125,7 @@ namespace LostBreadcrumbs.Runtime.Systems
         [SerializeField, Range(1, 8)] private int playerSpawnSearchRings = 5;
         [SerializeField, Min(0f)] private float playerSpawnCellInset = 0.42f;
         [SerializeField] private LayerMask playerSpawnBlockerMask = ~0;
-        [SerializeField] private bool playerSpawnGeneratedBlockersOnly = true;
+        [SerializeField] private bool playerSpawnGeneratedBlockersOnly;
         [SerializeField] private bool updateFogBounds = true;
         [SerializeField, Min(0f)] private float fogPadding = 5f;
         [SerializeField] private FogOfWarSystem fogSystem;
@@ -155,6 +155,7 @@ namespace LostBreadcrumbs.Runtime.Systems
         private bool lastPlayerSpawnUsedBlockedFallback;
         private Vector3 lastPlayerSpawnPosition;
         private bool loggedRiskFloorVisibilityGuard;
+        private bool loggedPlayerSpawnBlockerScopeGuard;
         private float lastHookStagePressure01;
         private float lastHookChanceMultiplier = 1f;
         private float lastHookLoudnessMultiplier = 1f;
@@ -397,6 +398,18 @@ namespace LostBreadcrumbs.Runtime.Systems
                     loggedRiskFloorVisibilityGuard = true;
                     Debug.LogWarning(
                         "MapSystem runtime safety guard enabled floor rendering to avoid invisible blocking collisions on risk tiles.",
+                        this);
+                }
+            }
+
+            if (playerSpawnGeneratedBlockersOnly)
+            {
+                playerSpawnGeneratedBlockersOnly = false;
+                if (!loggedPlayerSpawnBlockerScopeGuard)
+                {
+                    loggedPlayerSpawnBlockerScopeGuard = true;
+                    Debug.LogWarning(
+                        "MapSystem runtime safety guard widened player spawn blocker checks to all blocking colliders.",
                         this);
                 }
             }
@@ -1527,7 +1540,7 @@ namespace LostBreadcrumbs.Runtime.Systems
             }
 
             HashSet<Vector2Int> occupied = BuildOccupiedCellSet(cells);
-            if (TryFindSafePlayerSpawnCandidate(preferred, occupied, playerTransform, out Vector3 safePosition))
+            if (TryFindSafePlayerSpawnCandidate(preferred, cells, occupied, playerTransform, out Vector3 safePosition))
             {
                 safePosition.z = z;
                 lastPlayerSpawnAdjusted = ((Vector2)safePosition - (Vector2)preferred).sqrMagnitude > 0.0001f;
@@ -1565,6 +1578,7 @@ namespace LostBreadcrumbs.Runtime.Systems
 
         private bool TryFindSafePlayerSpawnCandidate(
             Vector3 preferred,
+            IReadOnlyList<GeneratedMapCell> cells,
             HashSet<Vector2Int> occupied,
             Transform playerTransform,
             out Vector3 safePosition)
@@ -1614,7 +1628,49 @@ namespace LostBreadcrumbs.Runtime.Systems
                 }
             }
 
+            if (TryFindSafeGeneratedCellCenter(preferred, cells, playerTransform, out safePosition))
+            {
+                return true;
+            }
+
             return false;
+        }
+
+        private bool TryFindSafeGeneratedCellCenter(
+            Vector3 preferred,
+            IReadOnlyList<GeneratedMapCell> cells,
+            Transform playerTransform,
+            out Vector3 safePosition)
+        {
+            safePosition = preferred;
+
+            if (cells == null || cells.Count == 0 || config == null)
+            {
+                return false;
+            }
+
+            float z = preferred.z;
+            float bestDistanceSqr = float.PositiveInfinity;
+            bool found = false;
+            for (int i = 0; i < cells.Count; i++)
+            {
+                Vector3 candidate = ToWorld(cells[i].position);
+                candidate.z = z;
+                if (IsPlayerSpawnBlocked(candidate, playerTransform))
+                {
+                    continue;
+                }
+
+                float distanceSqr = ((Vector2)candidate - (Vector2)preferred).sqrMagnitude;
+                if (distanceSqr < bestDistanceSqr)
+                {
+                    bestDistanceSqr = distanceSqr;
+                    safePosition = candidate;
+                    found = true;
+                }
+            }
+
+            return found;
         }
 
         private bool IsInsideGeneratedWalkableCell(Vector3 worldPosition, HashSet<Vector2Int> occupied)

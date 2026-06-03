@@ -63,6 +63,7 @@ $regressionPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/Regre
 $debugOverlayPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/DebugOverlay.cs'
 $audioManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioManager.cs'
 $playerControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDummyController.cs'
+$mapSystemPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/MapSystem.cs'
 $enemySpawnDirectorPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/EnemySpawnDirector.cs'
 $stageLoopPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/StageLoopDirector.cs'
 $riskCachePickupPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/RiskCachePickup.cs'
@@ -362,6 +363,26 @@ if (Test-Path $playerControllerPath) {
     }
 } else {
     $spawnSafetyMissing.Add('PlayerDummyController.cs missing')
+}
+
+if (Test-Path $mapSystemPath) {
+    $mapSystemText = Get-Content $mapSystemPath -Raw
+    $playerSpawnSafetyHooks = @(
+        'playerSpawnGeneratedBlockersOnly;',
+        'TryFindSafeGeneratedCellCenter',
+        'TryResolveSafePlayerSpawnPosition',
+        'IsPlayerSpawnBlocked',
+        'LastPlayerSpawnUsedBlockedFallback',
+        'loggedPlayerSpawnBlockerScopeGuard',
+        'widened player spawn blocker checks to all blocking colliders'
+    )
+    foreach ($hook in $playerSpawnSafetyHooks) {
+        if (-not $mapSystemText.Contains($hook)) {
+            $spawnSafetyMissing.Add("MapSystem:$hook")
+        }
+    }
+} else {
+    $spawnSafetyMissing.Add('MapSystem.cs missing')
 }
 
 if (Test-Path $enemySpawnDirectorPath) {

@@ -23,6 +23,7 @@
 - Static preflight conflict marker scans now skip ignored Feel, Layer Lab, and recovery folders to keep low-touch checks fast.
 - Static preflight now checks that low-touch rhythm snapshot hooks and semantic stinger test hooks remain present.
 - Static preflight now checks that player unsafe-position recovery and enemy narrow-spawn avoidance hooks remain present.
+- Player spawn safety now checks all blocker colliders by default and can recover to the nearest safe generated cell center when the preferred start is blocked.
 - Static preflight now checks that rhythm state transitions, rhythm pressure modulation, spike tell, release relief, and regression suppression hooks remain present.
 - Static preflight now checks that Spike fairness keeps Build-phase LockOnWarning tells, major stinger budget, chase/lock-on stingers, and audio duck boost hooks.
 - Static preflight now checks that Build temptation keeps phase-aware risk cache reward/noise and breadcrumb momentum reward/chain hooks.
