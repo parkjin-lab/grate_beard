@@ -120,7 +120,8 @@ namespace LostBreadcrumbs.Runtime.Systems
         [Header("Integration")]
         [SerializeField] private bool movePlayerToStartOnGenerate = true;
         [SerializeField] private bool resolveSafePlayerSpawn = true;
-        [SerializeField, Min(0.05f)] private float playerSpawnClearanceRadius = 0.38f;
+        [SerializeField, Min(0.05f)] private float playerSpawnClearanceRadius = 0.48f;
+        [SerializeField, Min(0f)] private float playerSpawnColliderPadding = 0.12f;
         [SerializeField, Min(0.05f)] private float playerSpawnSearchStep = 0.35f;
         [SerializeField, Range(1, 8)] private int playerSpawnSearchRings = 5;
         [SerializeField, Min(0f)] private float playerSpawnCellInset = 0.42f;
@@ -165,7 +166,7 @@ namespace LostBreadcrumbs.Runtime.Systems
         private Vector2 lastGeneratedWorldCenter;
         private Vector2 lastGeneratedWorldSize = new(10f, 10f);
         private int currentStageVariantSalt;
-        private readonly Collider2D[] playerSpawnOverlapHits = new Collider2D[24];
+        private readonly Collider2D[] playerSpawnOverlapHits = new Collider2D[64];
 
         private static readonly Vector2Int[] CardinalDirections =
         {
@@ -1590,7 +1591,8 @@ namespace LostBreadcrumbs.Runtime.Systems
         {
             safePosition = preferred;
 
-            if (IsInsideGeneratedWalkableCell(preferred, occupied) && !IsPlayerSpawnBlocked(preferred, playerTransform))
+            float clearanceRadius = ResolvePlayerSpawnClearanceRadius(playerTransform);
+            if (IsInsideGeneratedWalkableCell(preferred, occupied, clearanceRadius) && !IsPlayerSpawnBlocked(preferred, playerTransform))
             {
                 return true;
             }
@@ -1612,7 +1614,7 @@ namespace LostBreadcrumbs.Runtime.Systems
                         }
 
                         Vector3 candidate = preferred + new Vector3(x * step, y * step, 0f);
-                        if (!IsInsideGeneratedWalkableCell(candidate, occupied) || IsPlayerSpawnBlocked(candidate, playerTransform))
+                        if (!IsInsideGeneratedWalkableCell(candidate, occupied, clearanceRadius) || IsPlayerSpawnBlocked(candidate, playerTransform))
                         {
                             continue;
                         }
@@ -1678,7 +1680,7 @@ namespace LostBreadcrumbs.Runtime.Systems
             return found;
         }
 
-        private bool IsInsideGeneratedWalkableCell(Vector3 worldPosition, HashSet<Vector2Int> occupied)
+        private bool IsInsideGeneratedWalkableCell(Vector3 worldPosition, HashSet<Vector2Int> occupied, float clearanceRadius)
         {
             if (occupied == null || occupied.Count == 0 || config == null)
             {
@@ -1698,7 +1700,7 @@ namespace LostBreadcrumbs.Runtime.Systems
             Vector2 center = ToWorld(cell);
             float halfCell = cellSize * 0.5f;
             float inset = Mathf.Clamp(
-                Mathf.Max(playerSpawnCellInset, playerSpawnClearanceRadius),
+                Mathf.Max(playerSpawnCellInset, clearanceRadius),
                 0f,
                 Mathf.Max(0f, halfCell - 0.02f));
             Vector2 delta = (Vector2)worldPosition - center;
@@ -1707,7 +1709,7 @@ namespace LostBreadcrumbs.Runtime.Systems
 
         private bool IsPlayerSpawnBlocked(Vector3 worldPosition, Transform playerTransform)
         {
-            float radius = Mathf.Max(0.05f, playerSpawnClearanceRadius);
+            float radius = ResolvePlayerSpawnClearanceRadius(playerTransform);
             ContactFilter2D filter = new()
             {
                 useLayerMask = true,
@@ -1743,6 +1745,43 @@ namespace LostBreadcrumbs.Runtime.Systems
             }
 
             return false;
+        }
+
+        private float ResolvePlayerSpawnClearanceRadius(Transform playerTransform)
+        {
+            float radius = Mathf.Max(0.05f, playerSpawnClearanceRadius);
+            if (playerTransform == null)
+            {
+                return radius;
+            }
+
+            Collider2D playerCollider = playerTransform.GetComponent<Collider2D>();
+            if (playerCollider == null)
+            {
+                return radius;
+            }
+
+            float colliderRadius = ResolveColliderSpawnRadius(playerCollider);
+            return Mathf.Max(radius, colliderRadius + Mathf.Max(0f, playerSpawnColliderPadding));
+        }
+
+        private static float ResolveColliderSpawnRadius(Collider2D collider)
+        {
+            if (collider == null)
+            {
+                return 0f;
+            }
+
+            if (collider is CircleCollider2D circle)
+            {
+                Vector3 scale = circle.transform.lossyScale;
+                float scaleMax = Mathf.Max(0.01f, Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y)));
+                return Mathf.Max(0f, circle.radius * scaleMax + circle.offset.magnitude);
+            }
+
+            Bounds bounds = collider.bounds;
+            Vector2 extents = bounds.extents;
+            return Mathf.Max(extents.x, extents.y);
         }
 
         private bool IsPlayerSpawnBlockingCollider(Collider2D collider)
