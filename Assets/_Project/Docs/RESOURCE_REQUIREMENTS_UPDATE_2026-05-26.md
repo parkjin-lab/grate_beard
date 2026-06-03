@@ -25,6 +25,7 @@
 - Static preflight now checks that player unsafe-position recovery and enemy narrow-spawn avoidance hooks remain present.
 - Static preflight now checks that rhythm state transitions, rhythm pressure modulation, spike tell, release relief, and regression suppression hooks remain present.
 - Static preflight now checks that Spike fairness keeps Build-phase LockOnWarning tells, major stinger budget, chase/lock-on stingers, and audio duck boost hooks.
+- Static preflight now checks that Build temptation keeps phase-aware risk cache reward/noise and breadcrumb momentum reward/chain hooks.
 - Static preflight now checks that Release relief keeps multiple non-text channels: stamina, fog reveal, pulse, objective whisper, audio, calm window, quiet breath, and semantic telemetry.
 - Static preflight now checks that ignored vendor Asset Store import paths remain protected in `.gitignore`.
 - Static preflight now checks that ignored vendor Asset Store import paths are not already tracked by Git.

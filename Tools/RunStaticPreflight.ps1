@@ -64,6 +64,8 @@ $debugOverlayPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/DebugOver
 $audioManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioManager.cs'
 $playerControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDummyController.cs'
 $enemySpawnDirectorPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/EnemySpawnDirector.cs'
+$stageLoopPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/StageLoopDirector.cs'
+$riskCachePickupPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/RiskCachePickup.cs'
 $gameplayRhythmPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/GameplayRhythmDirector.cs'
 $stagePressurePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/StagePressureDirector.cs'
 $threatReadabilityPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/ThreatReadabilityDirector.cs'
@@ -466,6 +468,56 @@ if (Test-Path $audioManagerPath) {
     $spikeFairnessMissing.Add('AudioManager.cs missing')
 }
 $results.Add((Add-Result 'code.spikeFairnessCueBudgetHooks' ($(if ($spikeFairnessMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($spikeFairnessMissing -join ', ')"))
+
+$buildTemptationMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $riskCachePickupPath) {
+    $riskCachePickupText = Get-Content $riskCachePickupPath -Raw
+    $riskCacheTemptationHooks = @(
+        'ConfigureRhythmWager',
+        'buildRewardMultiplier',
+        'spikeRewardMultiplier',
+        'releaseRewardMultiplier',
+        'buildNoiseMultiplier',
+        'spikeNoiseMultiplier',
+        'releaseNoiseMultiplier',
+        'EvaluateRewardMultiplier',
+        'EvaluateNoiseMultiplier',
+        'LastRhythmPhaseLabel'
+    )
+    foreach ($hook in $riskCacheTemptationHooks) {
+        if (-not $riskCachePickupText.Contains($hook)) {
+            $buildTemptationMissing.Add("RiskCachePickup:$hook")
+        }
+    }
+} else {
+    $buildTemptationMissing.Add('RiskCachePickup.cs missing')
+}
+
+if (Test-Path $stageLoopPath) {
+    $stageLoopText = Get-Content $stageLoopPath -Raw
+    $stageLoopTemptationHooks = @(
+        'Risk Cache Rhythm Wager',
+        'riskCacheBuildRewardMultiplier',
+        'riskCacheSpikeRewardMultiplier',
+        'riskCacheBuildNoiseMultiplier',
+        'riskCacheSpikeNoiseMultiplier',
+        'ConfigureRhythmWager',
+        'Breadcrumb Rhythm Momentum',
+        'breadcrumbBuildRewardMultiplier',
+        'breadcrumbSpikeRewardMultiplier',
+        'EvaluateBreadcrumbMomentumRewardMultiplier',
+        'ApplyBreadcrumbMomentumReward',
+        'EmitBreadcrumbChainReaction'
+    )
+    foreach ($hook in $stageLoopTemptationHooks) {
+        if (-not $stageLoopText.Contains($hook)) {
+            $buildTemptationMissing.Add("StageLoopDirector:$hook")
+        }
+    }
+} else {
+    $buildTemptationMissing.Add('StageLoopDirector.cs missing')
+}
+$results.Add((Add-Result 'code.buildTemptationWagerHooks' ($(if ($buildTemptationMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($buildTemptationMissing -join ', ')"))
 
 $releaseReliefMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $threatReadabilityPath) {
