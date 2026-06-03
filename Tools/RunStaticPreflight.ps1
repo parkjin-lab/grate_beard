@@ -425,6 +425,48 @@ if (Test-Path $stagePressurePath) {
 
 $results.Add((Add-Result 'code.rhythmStateTransitionHooks' ($(if ($rhythmStateMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmStateMissing -join ', ')"))
 
+$spikeFairnessMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $gameplayRhythmPath) {
+    $gameplayRhythmText = Get-Content $gameplayRhythmPath -Raw
+    $spikeTellHooks = @(
+        'raiseSpikeTellEvent',
+        'spikeTellLeadSeconds',
+        'currentPhase != GameplayRhythmPhase.Build',
+        'spikeTellRaisedThisBuild',
+        'RuntimeEventSemantic.LockOnWarning',
+        'Spike incoming'
+    )
+    foreach ($hook in $spikeTellHooks) {
+        if (-not $gameplayRhythmText.Contains($hook)) {
+            $spikeFairnessMissing.Add("GameplayRhythmDirector:$hook")
+        }
+    }
+} else {
+    $spikeFairnessMissing.Add('GameplayRhythmDirector.cs missing')
+}
+
+if (Test-Path $audioManagerPath) {
+    $audioManagerText = Get-Content $audioManagerPath -Raw
+    $spikeAudioBudgetHooks = @(
+        'majorStingerBudgetCooldown',
+        'IsMajorStingerBudgetBlocked',
+        'IsMajorRuntimeStinger',
+        'MarkMajorStingerBudget',
+        'PushStingerDuckBoost',
+        'RuntimeStingerKind.LockOnWarning',
+        'RuntimeStingerKind.ChaseSpike',
+        'nextMajorStingerTime'
+    )
+    foreach ($hook in $spikeAudioBudgetHooks) {
+        if (-not $audioManagerText.Contains($hook)) {
+            $spikeFairnessMissing.Add("AudioManager:$hook")
+        }
+    }
+} else {
+    $spikeFairnessMissing.Add('AudioManager.cs missing')
+}
+$results.Add((Add-Result 'code.spikeFairnessCueBudgetHooks' ($(if ($spikeFairnessMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($spikeFairnessMissing -join ', ')"))
+
 $releaseReliefMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $threatReadabilityPath) {
     $threatReadabilityText = Get-Content $threatReadabilityPath -Raw

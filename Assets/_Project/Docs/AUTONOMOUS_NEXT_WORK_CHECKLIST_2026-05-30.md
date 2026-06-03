@@ -26,6 +26,7 @@
 | Preflight conflict scan performance | Ignored vendor folders should not slow source-control hygiene checks | Excluded ignored Feel, Layer Lab, and recovery folders from conflict marker scans |
 | Spawn safety guardrails | Player/monster spawn safety should not rely on repeated player validation | Added static preflight coverage for player unsafe-position recovery and enemy narrow-spawn avoidance hooks |
 | Rhythm state guardrails | Rhythm phase order and pressure modulation should not rely on human observation | Added static preflight coverage for Calm->Build->Spike->Release transitions, spike tell, release relief, and regression suppression |
+| Spike fairness cue budget guardrails | Spike should be telegraphed and not stack major cues unfairly | Added static preflight coverage for Build-phase LockOnWarning tells, major stinger budget, chase/lock-on stingers, and duck boost hooks |
 | Release relief contract guardrails | Release must be felt through multiple non-text channels | Added static preflight coverage for stamina, fog reveal, pulse, whisper, audio, calm window, quiet breath, and semantic event hooks |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
@@ -49,7 +50,7 @@
 ## Next Priority
 The next best autonomous task is to reduce the need for human play validation:
 - Prefer static/preflight checks, deterministic runtime counters, and debug snapshots over repeated manual runs.
-- Add small guardrails that catch missing rhythm phases, malformed machine-readable summaries, missing stinger assignments, spawn safety regressions, invalid state transitions, release relief contract regressions, vendor import regressions, validation artifact leakage, missing planning/handoff artifacts, and validation-policy drift. `[in progress: validation, machine summary/readback/schema/git context/duration warning, conflict-scan performance, spawn safety, rhythm state, release relief, vendor ignore/tracking, log artifact, stinger slot, planning/handoff artifact, and low-touch validation policy preflight checks added]`
+- Add small guardrails that catch missing rhythm phases, malformed machine-readable summaries, missing stinger assignments, spawn safety regressions, invalid state transitions, spike fairness regressions, release relief contract regressions, vendor import regressions, validation artifact leakage, missing planning/handoff artifacts, and validation-policy drift. `[in progress: validation, machine summary/readback/schema/git context/duration warning, conflict-scan performance, spawn safety, rhythm state, spike fairness, release relief, vendor ignore/tracking, log artifact, stinger slot, planning/handoff artifact, and low-touch validation policy preflight checks added]`
 - Treat stale release-soak log warnings as refresh signals, not release-blocking failures, unless a fresh build claim depends on those logs.
 - Use authored SFX/art only after resource ownership is confirmed.
 - Keep any human pass short and evidence-producing: one snapshot per meaningful anomaly is enough.
