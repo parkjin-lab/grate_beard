@@ -20,6 +20,7 @@
 - Static preflight JSON summaries now include optional Git branch, commit, dirty, and status-count metadata for traceable validation evidence.
 - Static preflight summaries now include durationMilliseconds so automation can notice unusually slow static checks.
 - Static preflight summaries now include a 60s duration warning threshold and durationWarning flag without turning slow runs into failures.
+- Static preflight conflict marker scans now skip ignored Feel, Layer Lab, and recovery folders to keep low-touch checks fast.
 - Static preflight now checks that low-touch rhythm snapshot hooks and semantic stinger test hooks remain present.
 - Static preflight now checks that player unsafe-position recovery and enemy narrow-spawn avoidance hooks remain present.
 - Static preflight now checks that rhythm state transitions, rhythm pressure modulation, spike tell, release relief, and regression suppression hooks remain present.

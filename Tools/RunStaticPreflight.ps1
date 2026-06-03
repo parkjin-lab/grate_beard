@@ -202,10 +202,28 @@ $conflictRoots = @(
     (Join-Path $ProjectRoot 'Packages'),
     (Join-Path $ProjectRoot 'Tools')
 ) | Where-Object { Test-Path $_ }
+$conflictExcludeRoots = @(
+    (Join-Path $ProjectRoot 'Assets/Feel'),
+    (Join-Path $ProjectRoot 'Assets/Layer Lab'),
+    (Join-Path $ProjectRoot 'Assets/_Recovery')
+) | Where-Object { Test-Path $_ } | ForEach-Object {
+    [System.IO.Path]::GetFullPath($_).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+}
 $conflictFiles = @()
 foreach ($root in $conflictRoots) {
     $conflictFiles += Get-ChildItem -Path $root -Recurse -File -ErrorAction SilentlyContinue |
-        Where-Object { $conflictExtensions -contains $_.Extension.ToLowerInvariant() }
+        Where-Object {
+            $fullName = [System.IO.Path]::GetFullPath($_.FullName)
+            $isExcluded = $false
+            foreach ($excludeRoot in $conflictExcludeRoots) {
+                if ($fullName.StartsWith($excludeRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $isExcluded = $true
+                    break
+                }
+            }
+
+            -not $isExcluded -and $conflictExtensions -contains $_.Extension.ToLowerInvariant()
+        }
 }
 $conflictFiles += @(Get-ChildItem -Path $handoffPattern -File -ErrorAction SilentlyContinue)
 $conflictFiles = @($conflictFiles | Sort-Object FullName -Unique)
