@@ -1740,7 +1740,7 @@ namespace LostBreadcrumbs.Runtime.Map
             {
                 RuntimeEventBus.Raise(
                     RuntimeEventType.Objective,
-                    "Exit unlocked",
+                    BuildExitUnlockedMessage(),
                     this,
                     CurrentStage,
                     semantic: RuntimeEventSemantic.ExitUnlocked);
@@ -1954,7 +1954,7 @@ namespace LostBreadcrumbs.Runtime.Map
             SpawnExitChoiceCacheBeacon(exitChoiceCachePosition, 0.72f);
             RuntimeEventBus.Raise(
                 RuntimeEventType.Objective,
-                "Exit cache exposed",
+                BuildExitChoiceCacheExposedMessage(),
                 this,
                 CurrentStage);
         }
@@ -2086,7 +2086,7 @@ namespace LostBreadcrumbs.Runtime.Map
 
                 RuntimeEventBus.Raise(
                     RuntimeEventType.Objective,
-                    "Exit cache revealed the next route",
+                    BuildExitChoiceCacheCarryoverMessage(),
                     this,
                     CurrentStage,
                     semantic: RuntimeEventSemantic.EchoChoiceScan);
@@ -2117,7 +2117,7 @@ namespace LostBreadcrumbs.Runtime.Map
             {
                 RuntimeEventBus.Raise(
                     RuntimeEventType.Objective,
-                    "Exit taken - cache left behind",
+                    BuildExitChoiceCacheLeftBehindMessage(),
                     this,
                     CurrentStage,
                     semantic: RuntimeEventSemantic.RiskReward);
@@ -2128,11 +2128,36 @@ namespace LostBreadcrumbs.Runtime.Map
             {
                 RuntimeEventBus.Raise(
                     RuntimeEventType.Objective,
-                    "Exit taken - route hint carried forward",
+                    BuildExitChoiceRouteHintCarriedMessage(),
                     this,
                     CurrentStage,
                     semantic: RuntimeEventSemantic.EchoChoiceScan);
             }
+        }
+
+        private static string BuildExitUnlockedMessage()
+        {
+            return "출구 열림 - 지금 나가";
+        }
+
+        private static string BuildExitChoiceCacheExposedMessage()
+        {
+            return "출구 옆 단서가 드러났다";
+        }
+
+        private static string BuildExitChoiceCacheCarryoverMessage()
+        {
+            return "출구 단서가 다음 길을 비춘다";
+        }
+
+        private static string BuildExitChoiceCacheLeftBehindMessage()
+        {
+            return "탈출 선택 - 남은 단서는 버려졌다";
+        }
+
+        private static string BuildExitChoiceRouteHintCarriedMessage()
+        {
+            return "탈출 선택 - 다음 길 힌트를 가져간다";
         }
 
         private void ClearExistingObjects()

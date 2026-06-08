@@ -594,6 +594,11 @@ if (Test-Path $stageLoopPath) {
         'BuildBreadcrumbMomentumRewardMessage',
         'BuildRiskCacheRewardMessage',
         'BuildExitChoiceCacheRewardMessage',
+        'BuildExitUnlockedMessage',
+        'BuildExitChoiceCacheExposedMessage',
+        'BuildExitChoiceCacheCarryoverMessage',
+        'BuildExitChoiceCacheLeftBehindMessage',
+        'BuildExitChoiceRouteHintCarriedMessage',
         'LocalizeRhythmPhaseLabel',
         'ApplyBreadcrumbMomentumReward',
         'EmitBreadcrumbChainReaction'
