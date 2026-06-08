@@ -235,6 +235,11 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Range(0.5f, 2f)] private float rhythmReleaseObjectiveWhisperDistanceMultiplier = 1.22f;
         [SerializeField, Range(0.5f, 2f)] private float rhythmReleaseObjectiveWhisperDurationMultiplier = 1.34f;
         [SerializeField, Range(0.5f, 1.8f)] private float rhythmReleaseObjectiveWhisperWidthMultiplier = 1.14f;
+        [SerializeField] private bool enableRhythmReleaseCameraExhale = true;
+        [SerializeField, Min(0.1f)] private float rhythmReleaseCameraExhaleSeconds = 2.2f;
+        [SerializeField, Min(0f)] private float rhythmReleaseCameraExhaleZoomBonus = 0.22f;
+        [SerializeField, Range(0.5f, 1.2f)] private float rhythmReleaseCameraExhaleLookAheadMultiplier = 0.76f;
+        [SerializeField, Range(0.5f, 1.3f)] private float rhythmReleaseCameraExhaleSmoothMultiplier = 0.88f;
 
         [Header("Flashlight Dread")]
         [SerializeField] private bool enableFlashlightDread = true;
@@ -336,6 +341,10 @@ namespace LostBreadcrumbs.Runtime.Managers
         private float activeChaseStartRealtime = -1f;
         private float nextEscapeReliefRewardRealtime;
         private float nextRhythmReleaseReliefRealtime;
+        private float rhythmReleaseCameraExhaleUntilRealtime;
+        private float rhythmReleaseCameraExhaleStartedRealtime;
+        private float rhythmReleaseCameraExhaleDuration;
+        private float rhythmReleaseCameraExhaleIntensity;
         private float escapeReliefCalmStartedRealtime;
         private float escapeReliefCalmUntilRealtime;
         private float escapeReliefCalmDuration;
@@ -566,6 +575,14 @@ namespace LostBreadcrumbs.Runtime.Managers
                 - maxCloseThreatZoomIn * tunnelTarget,
                 Mathf.Max(1f, minimumCameraOrthoSize),
                 Mathf.Max(Mathf.Max(1f, minimumCameraOrthoSize), maximumCameraOrthoSize));
+            float releaseExhale = EvaluateRhythmReleaseCameraExhale01();
+            if (releaseExhale > 0f)
+            {
+                targetSize = Mathf.Clamp(
+                    targetSize + rhythmReleaseCameraExhaleZoomBonus * releaseExhale,
+                    Mathf.Max(1f, minimumCameraOrthoSize),
+                    Mathf.Max(Mathf.Max(1f, minimumCameraOrthoSize), maximumCameraOrthoSize));
+            }
 
             float zoomLerp = 1f - Mathf.Exp(-Mathf.Max(0.0001f, responseSmoothing) * Mathf.Max(0.0001f, dt));
             currentThreatTunnelVision = Mathf.Lerp(currentThreatTunnelVision, tunnelTarget, zoomLerp);
@@ -578,6 +595,13 @@ namespace LostBreadcrumbs.Runtime.Managers
                 float lookAheadMultiplier = Mathf.Lerp(minLookAheadMultiplier, maxLookAheadMultiplier, pressureLookAhead);
                 float smoothMultiplier = Mathf.Lerp(minSmoothMultiplier, maxSmoothMultiplier, pressure);
                 float lookAheadSmoothingMultiplier = Mathf.Lerp(minLookAheadSmoothingMultiplier, maxLookAheadSmoothingMultiplier, pressureLookAhead);
+                if (releaseExhale > 0f)
+                {
+                    lookAheadMultiplier = Mathf.Lerp(lookAheadMultiplier, rhythmReleaseCameraExhaleLookAheadMultiplier, releaseExhale);
+                    smoothMultiplier = Mathf.Lerp(smoothMultiplier, rhythmReleaseCameraExhaleSmoothMultiplier, releaseExhale);
+                    lookAheadSmoothingMultiplier = Mathf.Lerp(lookAheadSmoothingMultiplier, 1f, releaseExhale);
+                }
+
                 cameraFollow.ApplyRuntimeTuningForEditor(lookAheadMultiplier, smoothMultiplier, lookAheadSmoothingMultiplier);
             }
 
@@ -1355,6 +1379,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             PlayEscapeReliefAudio(rewardPosition, intensity * 0.82f);
             StartEscapeReliefCalmWindow(intensity);
             ApplyRhythmReleaseQuietBreath(controller, intensity);
+            StartRhythmReleaseCameraExhale(intensity);
 
             nextRhythmReleaseReliefRealtime = now + Mathf.Max(0.5f, rhythmReleaseReliefCooldownSeconds);
 
@@ -1366,6 +1391,38 @@ namespace LostBreadcrumbs.Runtime.Managers
                 semantic: RuntimeEventSemantic.EscapeRelief);
 
             return true;
+        }
+
+        private void StartRhythmReleaseCameraExhale(float intensity)
+        {
+            if (!enableRhythmReleaseCameraExhale)
+            {
+                return;
+            }
+
+            rhythmReleaseCameraExhaleStartedRealtime = Time.realtimeSinceStartup;
+            rhythmReleaseCameraExhaleDuration = Mathf.Max(0.1f, rhythmReleaseCameraExhaleSeconds);
+            rhythmReleaseCameraExhaleUntilRealtime = rhythmReleaseCameraExhaleStartedRealtime + rhythmReleaseCameraExhaleDuration;
+            rhythmReleaseCameraExhaleIntensity = Mathf.Clamp01(intensity);
+        }
+
+        private float EvaluateRhythmReleaseCameraExhale01()
+        {
+            if (!enableRhythmReleaseCameraExhale || rhythmReleaseCameraExhaleUntilRealtime <= 0f)
+            {
+                return 0f;
+            }
+
+            float remaining = rhythmReleaseCameraExhaleUntilRealtime - Time.realtimeSinceStartup;
+            if (remaining <= 0f)
+            {
+                return 0f;
+            }
+
+            float duration = Mathf.Max(0.1f, rhythmReleaseCameraExhaleDuration);
+            float progress = Mathf.Clamp01((Time.realtimeSinceStartup - rhythmReleaseCameraExhaleStartedRealtime) / duration);
+            float fade = 1f - Mathf.SmoothStep(0f, 1f, progress);
+            return Mathf.Clamp01(fade * Mathf.Lerp(0.72f, 1f, rhythmReleaseCameraExhaleIntensity));
         }
 
         private void SpawnEscapeReliefPulse(Vector2 position, float intensity)
@@ -2389,6 +2446,10 @@ namespace LostBreadcrumbs.Runtime.Managers
             nextDreadBeatTime = 0f;
             nextPhantomCueTime = 0f;
             nextCloseStalkerCueTime = 0f;
+            rhythmReleaseCameraExhaleUntilRealtime = 0f;
+            rhythmReleaseCameraExhaleStartedRealtime = 0f;
+            rhythmReleaseCameraExhaleDuration = 0f;
+            rhythmReleaseCameraExhaleIntensity = 0f;
             nextMajorThreatCueTime = 0f;
             nextMinorThreatCueTime = 0f;
             suppressedThreatCueCount = 0;
