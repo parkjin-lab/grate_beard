@@ -2253,11 +2253,16 @@ namespace LostBreadcrumbs.Runtime.Managers
             int stage = mapSystem != null ? Mathf.Max(1, mapSystem.CurrentStage) : 0;
             RuntimeEventBus.Raise(
                 RuntimeEventType.System,
-                $"Pressure wave {pressure:0.00} (+{Mathf.Max(0f, delta):0.00})",
+                BuildPressureWaveMessage(pressure, delta),
                 this,
                 stage,
                 semantic: RuntimeEventSemantic.PressureWave);
             nextPressureWaveEventTime = Time.time + Mathf.Max(0.1f, pressureWaveEventCooldownSeconds);
+        }
+
+        private static string BuildPressureWaveMessage(float pressure, float delta)
+        {
+            return $"압박 파동 {Mathf.Clamp01(pressure):0.00} (+{Mathf.Max(0f, delta):0.00})";
         }
 
         private void SpawnPressureWaveVisual(Vector3 position, float intensity)

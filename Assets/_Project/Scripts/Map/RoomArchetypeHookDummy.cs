@@ -361,10 +361,29 @@ namespace LostBreadcrumbs.Runtime.Map
             nextGlobalHauntedEventTime = Time.unscaledTime + Mathf.Max(0.2f, hauntedGlobalEventCooldownSeconds);
             RuntimeEventBus.Raise(
                 RuntimeEventType.System,
-                $"Haunted room stirred: {variant}",
+                BuildHauntedRoomStirredMessage(variant),
                 this,
                 configuredStage,
                 semantic: RuntimeEventSemantic.HauntedRoom);
+        }
+
+        private static string BuildHauntedRoomStirredMessage(RoomArchetypeHookVariant variant)
+        {
+            return $"불길한 방 반응: {LocalizeRoomVariantLabel(variant)}";
+        }
+
+        private static string LocalizeRoomVariantLabel(RoomArchetypeHookVariant variant)
+        {
+            return variant switch
+            {
+                RoomArchetypeHookVariant.LooseMetal => "흔들리는 금속",
+                RoomArchetypeHookVariant.HangingChain => "매달린 사슬",
+                RoomArchetypeHookVariant.CrackedGlass => "금 간 유리",
+                RoomArchetypeHookVariant.RustedVent => "녹슨 환풍구",
+                RoomArchetypeHookVariant.ClothRustle => "천 스침",
+                RoomArchetypeHookVariant.AlarmDebris => "경보 잔해",
+                _ => variant.ToString()
+            };
         }
 
         private void TryGrantRiskRoomBonus(PlayerDummyController player)

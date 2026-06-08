@@ -189,9 +189,7 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             RuntimeEventBus.Raise(
                 RuntimeEventType.Stage,
-                string.IsNullOrWhiteSpace(reason)
-                    ? $"Spike clutch release advance {advance:0.0}s"
-                    : $"Spike clutch {reason} (-{advance:0.0}s)",
+                BuildSpikeClutchAdvanceMessage(advance, reason),
                 this,
                 mapSystem != null ? mapSystem.CurrentStage : 0,
                 semantic: RuntimeEventSemantic.EscapeRelief);
@@ -244,7 +242,7 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             RuntimeEventBus.Raise(
                 RuntimeEventType.Stage,
-                $"Rhythm {lastBeatLabel} ({currentPhaseDuration:0.0}s)",
+                BuildRhythmShiftMessage(lastBeatLabel, currentPhaseDuration),
                 this,
                 mapSystem != null ? mapSystem.CurrentStage : 0,
                 semantic: RuntimeEventSemantic.RhythmShift);
@@ -350,7 +348,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             spikeTellRaisedThisBuild = true;
             RuntimeEventBus.Raise(
                 RuntimeEventType.Stage,
-                $"Spike incoming ({remaining:0.0}s)",
+                BuildSpikeIncomingMessage(remaining),
                 this,
                 mapSystem != null ? mapSystem.CurrentStage : 0,
                 semantic: RuntimeEventSemantic.LockOnWarning);
@@ -377,10 +375,43 @@ namespace LostBreadcrumbs.Runtime.Managers
             releaseEndTellRaisedThisRelease = true;
             RuntimeEventBus.Raise(
                 RuntimeEventType.Stage,
-                $"다시 빨라진다 ({remaining:0.0}s)",
+                BuildReleaseEndTellMessage(remaining),
                 this,
                 mapSystem != null ? mapSystem.CurrentStage : 0,
                 semantic: RuntimeEventSemantic.RhythmShift);
+        }
+
+        private static string BuildSpikeClutchAdvanceMessage(float advanceSeconds, string reason)
+        {
+            string suffix = string.IsNullOrWhiteSpace(reason) ? string.Empty : $" / {reason.Trim()}";
+            return $"급습 단축{suffix} (-{Mathf.Max(0f, advanceSeconds):0.0}초)";
+        }
+
+        private static string BuildRhythmShiftMessage(string beatLabel, float durationSeconds)
+        {
+            return $"리듬 전환 {LocalizeRhythmBeatLabel(beatLabel)} ({Mathf.Max(0f, durationSeconds):0.0}초)";
+        }
+
+        private static string BuildSpikeIncomingMessage(float remainingSeconds)
+        {
+            return $"급습 임박 ({Mathf.Max(0f, remainingSeconds):0.0}초)";
+        }
+
+        private static string BuildReleaseEndTellMessage(float remainingSeconds)
+        {
+            return $"다시 빨라진다 ({Mathf.Max(0f, remainingSeconds):0.0}초)";
+        }
+
+        private static string LocalizeRhythmBeatLabel(string beatLabel)
+        {
+            return beatLabel switch
+            {
+                "Calm" => "고요",
+                "Build" => "고조",
+                "Spike" => "급습",
+                "Release" => "안도",
+                _ => string.IsNullOrWhiteSpace(beatLabel) ? "미정" : beatLabel
+            };
         }
 
         private void HandleMapGenerated(int stage, System.Collections.Generic.IReadOnlyList<GeneratedMapCell> cells)

@@ -1025,7 +1025,7 @@ namespace LostBreadcrumbs.Runtime.Map
             bool shouldUnlockExit = RequiredBreadcrumbs <= 0 || CollectedBreadcrumbs >= RequiredBreadcrumbs;
             if (allowFeedback)
             {
-                RuntimeEventBus.Raise(RuntimeEventType.Objective, $"Breadcrumb {CollectedBreadcrumbs}/{RequiredBreadcrumbs}", this, CurrentStage);
+                RuntimeEventBus.Raise(RuntimeEventType.Objective, BuildBreadcrumbCollectedMessage(CollectedBreadcrumbs, RequiredBreadcrumbs), this, CurrentStage);
                 SaveManager.Instance?.NotifyBreadcrumbCollected(1);
                 ApplyBreadcrumbMomentumReward(collectedPosition, momentumLevel);
                 EmitBreadcrumbChainReaction(collectedPosition, shouldUnlockExit, momentumLevel);
@@ -1033,6 +1033,11 @@ namespace LostBreadcrumbs.Runtime.Map
 
             UpdateExitState();
             TryStartExitChoiceCarryover();
+        }
+
+        private static string BuildBreadcrumbCollectedMessage(int collected, int required)
+        {
+            return $"빵부스러기 {Mathf.Max(0, collected)}/{Mathf.Max(0, required)}";
         }
 
         private int UpdateBreadcrumbMomentumLevel()

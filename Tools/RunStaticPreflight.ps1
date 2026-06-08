@@ -70,9 +70,12 @@ $playerDecoyPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/Player
 $playerSmokePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerSmokeAbility.cs'
 $playerVitalPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerVitalSystem.cs'
 $mapSystemPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/MapSystem.cs'
+$enemyControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/AI/EnemyController.cs'
 $enemySpawnDirectorPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/EnemySpawnDirector.cs'
 $stageLoopPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/StageLoopDirector.cs'
 $riskCachePickupPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/RiskCachePickup.cs'
+$safeHavenPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/SafeHavenZone.cs'
+$roomArchetypeHookPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/RoomArchetypeHookDummy.cs'
 $runLoadoutPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/RunLoadoutDirector.cs'
 $gameplayRhythmPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/GameplayRhythmDirector.cs'
 $stagePressurePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/StagePressureDirector.cs'
@@ -481,7 +484,7 @@ if (Test-Path $gameplayRhythmPath) {
         'raiseReleaseEndTellEvent',
         'releaseEndTellRaisedThisRelease',
         'RuntimeEventSemantic.RhythmShift',
-        'Spike incoming'
+        'BuildSpikeIncomingMessage'
     )
     foreach ($hook in $spikeTellHooks) {
         if (-not $gameplayRhythmText.Contains($hook)) {
@@ -686,6 +689,82 @@ if (Test-Path $playerControllerPath) {
     }
 } else {
     $systemEventKoreanWordingMissing.Add('PlayerDummyController.cs missing')
+}
+
+if (Test-Path $gameplayRhythmPath) {
+    $gameplayRhythmText = Get-Content $gameplayRhythmPath -Raw
+    $gameplayRhythmWordingHooks = @(
+        'BuildSpikeClutchAdvanceMessage',
+        'BuildRhythmShiftMessage',
+        'BuildSpikeIncomingMessage',
+        'BuildReleaseEndTellMessage',
+        'LocalizeRhythmBeatLabel'
+    )
+    foreach ($hook in $gameplayRhythmWordingHooks) {
+        if (-not $gameplayRhythmText.Contains($hook)) {
+            $systemEventKoreanWordingMissing.Add("GameplayRhythmDirector:$hook")
+        }
+    }
+} else {
+    $systemEventKoreanWordingMissing.Add('GameplayRhythmDirector.cs missing')
+}
+
+if (Test-Path $stageLoopPath) {
+    $stageLoopText = Get-Content $stageLoopPath -Raw
+    if (-not $stageLoopText.Contains('BuildBreadcrumbCollectedMessage')) {
+        $systemEventKoreanWordingMissing.Add('StageLoopDirector:BuildBreadcrumbCollectedMessage')
+    }
+} else {
+    $systemEventKoreanWordingMissing.Add('StageLoopDirector.cs missing')
+}
+
+if (Test-Path $threatReadabilityPath) {
+    $threatReadabilityText = Get-Content $threatReadabilityPath -Raw
+    if (-not $threatReadabilityText.Contains('BuildPressureWaveMessage')) {
+        $systemEventKoreanWordingMissing.Add('ThreatReadabilityDirector:BuildPressureWaveMessage')
+    }
+} else {
+    $systemEventKoreanWordingMissing.Add('ThreatReadabilityDirector.cs missing')
+}
+
+if (Test-Path $safeHavenPath) {
+    $safeHavenText = Get-Content $safeHavenPath -Raw
+    if (-not $safeHavenText.Contains('BuildSafeHavenThinningMessage')) {
+        $systemEventKoreanWordingMissing.Add('SafeHavenZone:BuildSafeHavenThinningMessage')
+    }
+} else {
+    $systemEventKoreanWordingMissing.Add('SafeHavenZone.cs missing')
+}
+
+if (Test-Path $roomArchetypeHookPath) {
+    $roomArchetypeHookText = Get-Content $roomArchetypeHookPath -Raw
+    $roomWordingHooks = @(
+        'BuildHauntedRoomStirredMessage',
+        'LocalizeRoomVariantLabel'
+    )
+    foreach ($hook in $roomWordingHooks) {
+        if (-not $roomArchetypeHookText.Contains($hook)) {
+            $systemEventKoreanWordingMissing.Add("RoomArchetypeHookDummy:$hook")
+        }
+    }
+} else {
+    $systemEventKoreanWordingMissing.Add('RoomArchetypeHookDummy.cs missing')
+}
+
+if (Test-Path $enemyControllerPath) {
+    $enemyControllerText = Get-Content $enemyControllerPath -Raw
+    $enemyWordingHooks = @(
+        'BuildLockOnWarningMessage',
+        'BuildLockOnCancelledMessage',
+        'NormalizeAgentName'
+    )
+    foreach ($hook in $enemyWordingHooks) {
+        if (-not $enemyControllerText.Contains($hook)) {
+            $systemEventKoreanWordingMissing.Add("EnemyController:$hook")
+        }
+    }
+} else {
+    $systemEventKoreanWordingMissing.Add('EnemyController.cs missing')
 }
 $results.Add((Add-Result 'code.systemEventKoreanWordingHooks' ($(if ($systemEventKoreanWordingMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($systemEventKoreanWordingMissing -join ', ')"))
 

@@ -267,7 +267,7 @@ namespace LostBreadcrumbs.Runtime.Map
                 overstayWarningRaised = true;
                 RuntimeEventBus.Raise(
                     RuntimeEventType.Objective,
-                    "Safe haven thinning",
+                    BuildSafeHavenThinningMessage(),
                     this,
                     configuredStage,
                     semantic: RuntimeEventSemantic.SafeHavenThin);
@@ -286,6 +286,11 @@ namespace LostBreadcrumbs.Runtime.Map
                 Mathf.Max(0.1f, overstayNoiseRadius) * Mathf.Lerp(1f, 1.32f, pressure),
                 NoiseKind.ItemUse,
                 gameObject);
+        }
+
+        private static string BuildSafeHavenThinningMessage()
+        {
+            return "안식처가 얇아진다";
         }
 
         private void SpawnOverstayPulse(float pressure)

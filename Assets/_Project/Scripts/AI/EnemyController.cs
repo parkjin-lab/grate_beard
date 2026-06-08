@@ -2379,7 +2379,7 @@ namespace LostBreadcrumbs.Runtime.AI
                 animator.SetTrigger(HitTriggerHash);
             }
 
-            RaiseAgentRuntimeEvent($"{name} lock-on warning", RuntimeEventSemantic.LockOnWarning);
+            RaiseAgentRuntimeEvent(BuildLockOnWarningMessage(name), RuntimeEventSemantic.LockOnWarning);
         }
 
         private void CancelChaseTransition(string reason)
@@ -2399,8 +2399,23 @@ namespace LostBreadcrumbs.Runtime.AI
 
             if (reason == "VisualLostBeforeCommit")
             {
-                RaiseAgentRuntimeEvent($"{name} lock-on cancelled");
+                RaiseAgentRuntimeEvent(BuildLockOnCancelledMessage(name));
             }
+        }
+
+        private static string BuildLockOnWarningMessage(string agentName)
+        {
+            return $"{NormalizeAgentName(agentName)} 주시 시작";
+        }
+
+        private static string BuildLockOnCancelledMessage(string agentName)
+        {
+            return $"{NormalizeAgentName(agentName)} 주시 해제";
+        }
+
+        private static string NormalizeAgentName(string agentName)
+        {
+            return string.IsNullOrWhiteSpace(agentName) ? "위협" : agentName.Trim();
         }
 
 
