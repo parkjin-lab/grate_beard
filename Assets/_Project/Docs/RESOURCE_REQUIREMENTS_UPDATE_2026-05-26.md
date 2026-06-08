@@ -33,6 +33,7 @@
 - Static preflight now checks that Release relief keeps multiple non-text channels: stamina, fog reveal, pulse, objective whisper, audio, calm window, quiet breath, and semantic telemetry.
 - Rhythm Release now adds a short camera exhale window that slightly opens the view and settles look-ahead/smoothing, improving relief feel without new assets.
 - Rhythm Release now applies longer, wider objective whisper guidance so relief also prepares the next route choice.
+- Release now emits a one-shot Build-returning RhythmShift cue near the end of the phase, keeping relief from reading as permanent safety.
 - Stage set-pieces now align to BuildCrest or SpikeEntry rhythm windows when possible, expose rhythm alignment labels in the debug overlay, write set-piece rhythm evidence into rhythm snapshots, and have static preflight hooks to preserve that timing policy.
 - Rhythm snapshots now include QuickRead/JudgmentPrompt lines so rare human checks can quickly classify Build, Spike, Release, or Calm without broad playtest notes.
 - Static preflight now checks that ignored vendor Asset Store import paths remain protected in `.gitignore`.

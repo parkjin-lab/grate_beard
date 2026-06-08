@@ -428,6 +428,8 @@ if (Test-Path $gameplayRhythmPath) {
         'EnterPhase',
         'ApplyPressureRhythmForRuntime',
         'TryRaiseSpikeTell',
+        'TryRaiseReleaseEndTell',
+        'releaseEndTellLeadSeconds',
         'TryAdvanceSpikeTowardRelease',
         'spikeClutchMinimumRemainingSeconds',
         'TryGrantRhythmReleaseRelief',
@@ -469,6 +471,9 @@ if (Test-Path $gameplayRhythmPath) {
         'currentPhase != GameplayRhythmPhase.Build',
         'spikeTellRaisedThisBuild',
         'RuntimeEventSemantic.LockOnWarning',
+        'raiseReleaseEndTellEvent',
+        'Build returning',
+        'RuntimeEventSemantic.RhythmShift',
         'Spike incoming'
     )
     foreach ($hook in $spikeTellHooks) {

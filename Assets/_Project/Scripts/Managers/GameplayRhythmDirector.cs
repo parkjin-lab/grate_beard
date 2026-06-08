@@ -43,6 +43,8 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private bool raiseRhythmEvents = true;
         [SerializeField] private bool raiseSpikeTellEvent = true;
         [SerializeField, Min(0.1f)] private float spikeTellLeadSeconds = 1.15f;
+        [SerializeField] private bool raiseReleaseEndTellEvent = true;
+        [SerializeField, Min(0.1f)] private float releaseEndTellLeadSeconds = 1.05f;
         [SerializeField] private bool grantReliefOnRelease = true;
         [SerializeField] private bool impulseOnSpike = true;
         [SerializeField, Range(0f, 0.18f)] private float spikeCameraImpulse = 0.08f;
@@ -59,6 +61,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         private float lastContextPressure;
         private float lastAppliedPressureMultiplier = 1f;
         private bool spikeTellRaisedThisBuild;
+        private bool releaseEndTellRaisedThisRelease;
 
         public GameplayRhythmPhase CurrentPhase => currentPhase;
         public string CurrentPhaseLabel => currentPhase.ToString();
@@ -99,6 +102,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             if (CurrentPhaseElapsed < currentPhaseDuration)
             {
                 TryRaiseSpikeTell();
+                TryRaiseReleaseEndTell();
                 return;
             }
 
@@ -209,6 +213,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             currentPhase = phase;
             phaseStartedAt = Time.realtimeSinceStartup;
             spikeTellRaisedThisBuild = false;
+            releaseEndTellRaisedThisRelease = false;
             lastAppliedPressureMultiplier = GetPressureMultiplierForPhase(phase);
             lastBeatLabel = BuildBeatLabel(phase);
 
@@ -349,6 +354,33 @@ namespace LostBreadcrumbs.Runtime.Managers
                 this,
                 mapSystem != null ? mapSystem.CurrentStage : 0,
                 semantic: RuntimeEventSemantic.LockOnWarning);
+        }
+
+        private void TryRaiseReleaseEndTell()
+        {
+            if (!Application.isPlaying
+                || !raiseRhythmEvents
+                || !raiseReleaseEndTellEvent
+                || RegressionChecklistRunner.IsRegressionRunActive
+                || currentPhase != GameplayRhythmPhase.Release
+                || releaseEndTellRaisedThisRelease)
+            {
+                return;
+            }
+
+            float remaining = currentPhaseDuration - CurrentPhaseElapsed;
+            if (remaining > Mathf.Max(0.1f, releaseEndTellLeadSeconds))
+            {
+                return;
+            }
+
+            releaseEndTellRaisedThisRelease = true;
+            RuntimeEventBus.Raise(
+                RuntimeEventType.Stage,
+                $"Build returning ({remaining:0.0}s)",
+                this,
+                mapSystem != null ? mapSystem.CurrentStage : 0,
+                semantic: RuntimeEventSemantic.RhythmShift);
         }
 
         private void HandleMapGenerated(int stage, System.Collections.Generic.IReadOnlyList<GeneratedMapCell> cells)

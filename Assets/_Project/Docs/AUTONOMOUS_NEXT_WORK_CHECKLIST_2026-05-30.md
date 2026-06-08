@@ -35,6 +35,7 @@
 | Release relief contract guardrails | Release must be felt through multiple non-text channels | Added static preflight coverage for stamina, fog reveal, pulse, whisper, audio, calm window, quiet breath, and semantic event hooks |
 | Release camera exhale | Release should briefly feel like an exhale, not only a resource refill | Rhythm Release now opens the camera slightly and settles look-ahead/smoothing for a short fade-out window, with static preflight hooks |
 | Release route clarity | Release should prepare the next choice, not only lower pressure | Rhythm Release now lengthens/widens objective whisper guidance with static preflight hooks |
+| Release end tension cue | Release should end with a small warning that the rhythm is about to rise again | Release now raises a one-shot Build-returning RhythmShift cue near its end, with static preflight hooks |
 | Rhythm set-piece alignment | Set-pieces should land as Build crest or Spike entry beats, not only stage-number events | Added rhythm-aware set-piece delay/tuning, BuildCrest/SpikeEntry labels, debug overlay readout, rhythm snapshot evidence, and static preflight hooks |
 | Rhythm snapshot readability | Snapshot files should guide quick human judgment without long playtest notes | Added QuickRead/JudgmentPrompt lines and static policy hooks for the Korean judgment card |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
