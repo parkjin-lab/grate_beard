@@ -1638,15 +1638,16 @@ namespace LostBreadcrumbs.Runtime.Map
             pickup.Collected -= HandleRiskCacheCollected;
             activeRiskCaches.Remove(pickup);
 
-            string pulseRefund = pickup.LastPulseCooldownRefund > 0.05f
-                ? $", Q -{pickup.LastPulseCooldownRefund:0.0}s"
-                : string.Empty;
             string phaseLabel = string.IsNullOrWhiteSpace(pickup.LastRhythmPhaseLabel)
                 ? "None"
                 : pickup.LastRhythmPhaseLabel;
             RuntimeEventBus.Raise(
                 RuntimeEventType.Objective,
-                $"Risk cache opened {phaseLabel} x{pickup.LastRewardMultiplier:0.00} (+{pickup.LastRecoveredStamina:0.0} stamina{pulseRefund})",
+                BuildRiskCacheRewardMessage(
+                    phaseLabel,
+                    pickup.LastRewardMultiplier,
+                    pickup.LastRecoveredStamina,
+                    pickup.LastPulseCooldownRefund),
                 this,
                 CurrentStage,
                 semantic: RuntimeEventSemantic.RiskReward);
@@ -1675,6 +1676,21 @@ namespace LostBreadcrumbs.Runtime.Map
                 2,
                 0.2f,
                 riskCacheSortingOrder);
+        }
+
+        private static string BuildRiskCacheRewardMessage(
+            string phaseLabel,
+            float rewardMultiplier,
+            float recoveredStamina,
+            float pulseCooldownRefund)
+        {
+            string message = $"위험 보상 {LocalizeRhythmPhaseLabel(phaseLabel)} x{rewardMultiplier:0.00} (+{recoveredStamina:0.0} 스태미나)";
+            if (pulseCooldownRefund > 0.05f)
+            {
+                message += $" / 메아리 -{pulseCooldownRefund:0.0}초";
+            }
+
+            return message;
         }
 
         private void TriggerRiskCacheAftershock(Vector3 position, float noiseMultiplier)
@@ -1970,10 +1986,15 @@ namespace LostBreadcrumbs.Runtime.Map
 
             RuntimeEventBus.Raise(
                 RuntimeEventType.Objective,
-                $"Exit cache taken (+{exitChoiceCacheRecoverAmount:0.0} stamina, next route hint)",
+                BuildExitChoiceCacheRewardMessage(exitChoiceCacheRecoverAmount),
                 this,
                 CurrentStage,
                 semantic: RuntimeEventSemantic.EchoChoiceScan);
+        }
+
+        private static string BuildExitChoiceCacheRewardMessage(float recoverAmount)
+        {
+            return $"출구 단서 확보 (+{recoverAmount:0.0} 스태미나 / 다음 길 힌트)";
         }
 
         private void SpawnExitChoiceCacheBeacon(Vector3 position, float alphaScale)
