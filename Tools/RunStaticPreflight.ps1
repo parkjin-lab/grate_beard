@@ -617,6 +617,40 @@ if (Test-Path $threatReadabilityPath) {
 }
 $results.Add((Add-Result 'code.playerEventKoreanWordingHooks' ($(if ($playerEventKoreanWordingMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($playerEventKoreanWordingMissing -join ', ')"))
 
+$stageEventKoreanWordingMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $stagePressurePath) {
+    $stagePressureText = Get-Content $stagePressurePath -Raw
+    $stagePressureWordingHooks = @(
+        'BuildPressureAppliedMessage',
+        'BuildPressureRestoredMessage',
+        'BuildPressureEventMessage'
+    )
+    foreach ($hook in $stagePressureWordingHooks) {
+        if (-not $stagePressureText.Contains($hook)) {
+            $stageEventKoreanWordingMissing.Add("StagePressureDirector:$hook")
+        }
+    }
+} else {
+    $stageEventKoreanWordingMissing.Add('StagePressureDirector.cs missing')
+}
+
+if (Test-Path $stageSetPiecePath) {
+    $stageSetPieceText = Get-Content $stageSetPiecePath -Raw
+    $stageSetPieceWordingHooks = @(
+        'BuildSetPieceShiftMessage',
+        'LocalizeSetPieceBeatLabel',
+        'RuntimeEventSemantic.SetPieceShift'
+    )
+    foreach ($hook in $stageSetPieceWordingHooks) {
+        if (-not $stageSetPieceText.Contains($hook)) {
+            $stageEventKoreanWordingMissing.Add("StageSetPieceDirector:$hook")
+        }
+    }
+} else {
+    $stageEventKoreanWordingMissing.Add('StageSetPieceDirector.cs missing')
+}
+$results.Add((Add-Result 'code.stageEventKoreanWordingHooks' ($(if ($stageEventKoreanWordingMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($stageEventKoreanWordingMissing -join ', ')"))
+
 $buildTemptationMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $riskCachePickupPath) {
     $riskCachePickupText = Get-Content $riskCachePickupPath -Raw

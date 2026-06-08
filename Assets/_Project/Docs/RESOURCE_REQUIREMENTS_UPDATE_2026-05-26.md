@@ -41,6 +41,7 @@
 - Release-end rhythm cue wording now stays Korean-first as `다시 빨라진다` across the event, priority toast, HUD alert feed, and static preflight hooks.
 - Echo pulse, echo return, decoy, and smoke deployment alerts now use Korean-first helper messages instead of English debug counters.
 - Death and quiet-breath break alerts now use Korean-first helper messages so punishment and over-sprinting feedback read as player-facing rhythm cues.
+- Stage pressure and set-piece shift alerts now use Korean-first helper messages so pressure changes and authored beats read as horror rhythm cues.
 - Stage set-pieces now align to BuildCrest or SpikeEntry rhythm windows when possible, expose rhythm alignment labels in the debug overlay, write set-piece rhythm evidence into rhythm snapshots, and have static preflight hooks to preserve that timing policy.
 - Rhythm snapshots now include QuickRead/JudgmentPrompt lines so rare human checks can quickly classify Build, Spike, Release, or Calm without broad playtest notes.
 - Static preflight now checks that ignored vendor Asset Store import paths remain protected in `.gitignore`.

@@ -182,7 +182,13 @@ namespace LostBreadcrumbs.Runtime.Managers
             {
                 RuntimeEventBus.Raise(
                     RuntimeEventType.Stage,
-                    $"Pressure {currentPressure01:0.00} (Late+ {currentLateStageBonus01:0.00}, Enemy x{appliedEnemyCountMultiplier:0.00}, CD x{appliedPulseCooldownMultiplier:0.00}/{appliedDecoyCooldownMultiplier:0.00}/{appliedSmokeCooldownMultiplier:0.00})",
+                    BuildPressureAppliedMessage(
+                        currentPressure01,
+                        currentLateStageBonus01,
+                        appliedEnemyCountMultiplier,
+                        appliedPulseCooldownMultiplier,
+                        appliedDecoyCooldownMultiplier,
+                        appliedSmokeCooldownMultiplier),
                     this,
                     stage);
             }
@@ -287,7 +293,13 @@ namespace LostBreadcrumbs.Runtime.Managers
             {
                 RuntimeEventBus.Raise(
                     RuntimeEventType.Stage,
-                    $"Pressure restored {currentPressure01:0.00} (Late+ {currentLateStageBonus01:0.00}, Enemy x{appliedEnemyCountMultiplier:0.00}, CD x{appliedPulseCooldownMultiplier:0.00}/{appliedDecoyCooldownMultiplier:0.00}/{appliedSmokeCooldownMultiplier:0.00})",
+                    BuildPressureRestoredMessage(
+                        currentPressure01,
+                        currentLateStageBonus01,
+                        appliedEnemyCountMultiplier,
+                        appliedPulseCooldownMultiplier,
+                        appliedDecoyCooldownMultiplier,
+                        appliedSmokeCooldownMultiplier),
                     this,
                     stage);
             }
@@ -357,6 +369,54 @@ namespace LostBreadcrumbs.Runtime.Managers
         private void HandleMapGenerated(int stage, System.Collections.Generic.IReadOnlyList<GeneratedMapCell> cells)
         {
             ApplyPressureNow(rebuildEnemiesOnApply, raiseEvent: true);
+        }
+
+        private static string BuildPressureAppliedMessage(
+            float pressure01,
+            float lateBonus01,
+            float enemyMultiplier,
+            float pulseCooldownMultiplier,
+            float decoyCooldownMultiplier,
+            float smokeCooldownMultiplier)
+        {
+            return BuildPressureEventMessage(
+                "압박 상승",
+                pressure01,
+                lateBonus01,
+                enemyMultiplier,
+                pulseCooldownMultiplier,
+                decoyCooldownMultiplier,
+                smokeCooldownMultiplier);
+        }
+
+        private static string BuildPressureRestoredMessage(
+            float pressure01,
+            float lateBonus01,
+            float enemyMultiplier,
+            float pulseCooldownMultiplier,
+            float decoyCooldownMultiplier,
+            float smokeCooldownMultiplier)
+        {
+            return BuildPressureEventMessage(
+                "압박 복원",
+                pressure01,
+                lateBonus01,
+                enemyMultiplier,
+                pulseCooldownMultiplier,
+                decoyCooldownMultiplier,
+                smokeCooldownMultiplier);
+        }
+
+        private static string BuildPressureEventMessage(
+            string prefix,
+            float pressure01,
+            float lateBonus01,
+            float enemyMultiplier,
+            float pulseCooldownMultiplier,
+            float decoyCooldownMultiplier,
+            float smokeCooldownMultiplier)
+        {
+            return $"{prefix} {Mathf.Clamp01(pressure01):0.00} (후반 +{Mathf.Clamp01(lateBonus01):0.00}, 적 x{Mathf.Max(0f, enemyMultiplier):0.00}, 장치 쿨다운 x{Mathf.Max(0f, pulseCooldownMultiplier):0.00}/{Mathf.Max(0f, decoyCooldownMultiplier):0.00}/{Mathf.Max(0f, smokeCooldownMultiplier):0.00})";
         }
 
         private float EvaluateStagePressure01(int stage)

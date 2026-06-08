@@ -402,7 +402,13 @@ namespace LostBreadcrumbs.Runtime.Managers
             {
                 RuntimeEventBus.Raise(
                     RuntimeEventType.Stage,
-                    $"SetPiece {lastBeatLabel}: beacons {activeBeaconCount}, reinforcements {lastReinforcementCount}, tune {lastRuntimePresetLabel} p{lastRuntimePressure01:0.00}/t{lastRuntimeTension01:0.00}",
+                    BuildSetPieceShiftMessage(
+                        lastBeatLabel,
+                        activeBeaconCount,
+                        lastReinforcementCount,
+                        lastRuntimePresetLabel,
+                        lastRuntimePressure01,
+                        lastRuntimeTension01),
                     this,
                     lastAppliedStage,
                     semantic: RuntimeEventSemantic.SetPieceShift);
@@ -484,6 +490,39 @@ namespace LostBreadcrumbs.Runtime.Managers
                 StageSetPieceTier.Stage7ExitSiege => "ExitSiege",
                 _ => "None"
             };
+        }
+
+        private static string BuildSetPieceShiftMessage(
+            string beatLabel,
+            int beaconCount,
+            int reinforcementCount,
+            string presetLabel,
+            float pressure01,
+            float tension01)
+        {
+            string label = LocalizeSetPieceBeatLabel(beatLabel);
+            string preset = string.IsNullOrWhiteSpace(presetLabel) ? "기본" : presetLabel;
+            return $"사건 전조 {label}: 표식 {Mathf.Max(0, beaconCount)}, 증원 {Mathf.Max(0, reinforcementCount)}, 조율 {preset} 압박 {Mathf.Clamp01(pressure01):0.00}/긴장 {Mathf.Clamp01(tension01):0.00}";
+        }
+
+        private static string LocalizeSetPieceBeatLabel(string beatLabel)
+        {
+            if (string.IsNullOrWhiteSpace(beatLabel))
+            {
+                return "미정";
+            }
+
+            string localized = beatLabel
+                .Replace("ForkLure", "갈림길 유혹")
+                .Replace("SplitPressure", "분산 압박")
+                .Replace("ExitSiege", "출구 포위")
+                .Replace("BuildCrest", "고조 정점")
+                .Replace("SpikeEntry", "급습 진입")
+                .Replace("Unaligned", "즉시 발동")
+                .Replace("None", "미정")
+                .Replace("_", " / ");
+
+            return localized.Trim();
         }
 
         private bool ShouldAlignSetPieceToRhythm(int stage)
