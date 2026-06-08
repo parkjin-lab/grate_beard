@@ -40,6 +40,7 @@
 | Release route clarity | Release should prepare the next choice, not only lower pressure | Rhythm Release now lengthens/widens objective whisper guidance with static preflight hooks |
 | Release end tension cue | Release should end with a small warning that the rhythm is about to rise again | Release now raises a one-shot Build-returning RhythmShift cue near its end, with static preflight hooks |
 | Rhythm cue Korean wording | Player-facing rhythm alerts should not leak developer English | Release-end rhythm cue now uses Korean-first `다시 빨라진다` wording in the event, priority toast, HUD alert feed, and static preflight hooks |
+| Ability event Korean wording | Core ability alerts should read as player feedback, not debug counters | Echo pulse, echo return, decoy, and smoke deployment events now use Korean-first helper messages with static preflight hooks |
 | Rhythm set-piece alignment | Set-pieces should land as Build crest or Spike entry beats, not only stage-number events | Added rhythm-aware set-piece delay/tuning, BuildCrest/SpikeEntry labels, debug overlay readout, rhythm snapshot evidence, and static preflight hooks |
 | Rhythm snapshot readability | Snapshot files should guide quick human judgment without long playtest notes | Added QuickRead/JudgmentPrompt lines and static policy hooks for the Korean judgment card |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |

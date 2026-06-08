@@ -141,8 +141,13 @@ namespace LostBreadcrumbs.Runtime.Player
 
             EmitDeployNoise();
             behaviorTelemetry?.RegisterSmokeDeploy();
-            RuntimeEventBus.Raise(RuntimeEventType.Ability, $"Smoke deployed (Active {activeSmokes.Count}/{maxActiveSmokes})", this);
+            RuntimeEventBus.Raise(RuntimeEventType.Ability, BuildSmokeDeployedMessage(activeSmokes.Count, maxActiveSmokes), this);
             return true;
+        }
+
+        private static string BuildSmokeDeployedMessage(int activeCount, int maxCount)
+        {
+            return $"연막 전개 ({Mathf.Max(0, activeCount)}/{Mathf.Max(1, maxCount)})";
         }
 
         public void SetCooldownRemainingForRuntime(float remainingSeconds)

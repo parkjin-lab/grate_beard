@@ -65,6 +65,9 @@ $eventFeedbackPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/EventFee
 $gameplayHudPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/GameplayHudRuntime.cs'
 $audioManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioManager.cs'
 $playerControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDummyController.cs'
+$playerEchoPulsePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerEchoPulseAbility.cs'
+$playerDecoyPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDecoyAbility.cs'
+$playerSmokePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerSmokeAbility.cs'
 $mapSystemPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/MapSystem.cs'
 $enemySpawnDirectorPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/EnemySpawnDirector.cs'
 $stageLoopPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/StageLoopDirector.cs'
@@ -542,6 +545,42 @@ if (Test-Path $gameplayHudPath) {
     $rhythmUiWordingMissing.Add('GameplayHudRuntime.cs missing')
 }
 $results.Add((Add-Result 'code.rhythmUiWordingHooks' ($(if ($rhythmUiWordingMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmUiWordingMissing -join ', ')"))
+
+$abilityKoreanWordingMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $playerEchoPulsePath) {
+    $playerEchoPulseText = Get-Content $playerEchoPulsePath -Raw
+    $echoPulseWordingHooks = @(
+        'BuildEchoPulseUsedMessage',
+        'BuildEchoReturnThreatMessage',
+        'RuntimeEventSemantic.EchoReturn'
+    )
+    foreach ($hook in $echoPulseWordingHooks) {
+        if (-not $playerEchoPulseText.Contains($hook)) {
+            $abilityKoreanWordingMissing.Add("PlayerEchoPulseAbility:$hook")
+        }
+    }
+} else {
+    $abilityKoreanWordingMissing.Add('PlayerEchoPulseAbility.cs missing')
+}
+
+if (Test-Path $playerDecoyPath) {
+    $playerDecoyText = Get-Content $playerDecoyPath -Raw
+    if (-not $playerDecoyText.Contains('BuildDecoyDeployedMessage')) {
+        $abilityKoreanWordingMissing.Add('PlayerDecoyAbility:BuildDecoyDeployedMessage')
+    }
+} else {
+    $abilityKoreanWordingMissing.Add('PlayerDecoyAbility.cs missing')
+}
+
+if (Test-Path $playerSmokePath) {
+    $playerSmokeText = Get-Content $playerSmokePath -Raw
+    if (-not $playerSmokeText.Contains('BuildSmokeDeployedMessage')) {
+        $abilityKoreanWordingMissing.Add('PlayerSmokeAbility:BuildSmokeDeployedMessage')
+    }
+} else {
+    $abilityKoreanWordingMissing.Add('PlayerSmokeAbility.cs missing')
+}
+$results.Add((Add-Result 'code.abilityKoreanWordingHooks' ($(if ($abilityKoreanWordingMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($abilityKoreanWordingMissing -join ', ')"))
 
 $buildTemptationMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $riskCachePickupPath) {

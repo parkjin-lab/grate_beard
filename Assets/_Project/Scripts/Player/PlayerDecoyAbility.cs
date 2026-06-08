@@ -136,8 +136,13 @@ namespace LostBreadcrumbs.Runtime.Player
             deployedCount++;
             nextReadyTime = Time.time + EffectiveCooldownSeconds;
             behaviorTelemetry?.RegisterDecoyDeploy();
-            RuntimeEventBus.Raise(RuntimeEventType.Ability, $"Decoy deployed (Active {activeDecoys.Count}/{maxActiveDecoys})", this);
+            RuntimeEventBus.Raise(RuntimeEventType.Ability, BuildDecoyDeployedMessage(activeDecoys.Count, maxActiveDecoys), this);
             return true;
+        }
+
+        private static string BuildDecoyDeployedMessage(int activeCount, int maxCount)
+        {
+            return $"미끼 배치 ({Mathf.Max(0, activeCount)}/{Mathf.Max(1, maxCount)})";
         }
 
         public void ResetCooldown()

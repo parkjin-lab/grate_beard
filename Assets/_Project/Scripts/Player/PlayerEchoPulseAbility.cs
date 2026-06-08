@@ -227,7 +227,7 @@ namespace LostBreadcrumbs.Runtime.Player
             }
 
             behaviorTelemetry?.RegisterPulseCast();
-            RuntimeEventBus.Raise(RuntimeEventType.Ability, $"Echo Pulse used (Stun {lastStunnedCount}, Scout {lastScoutRevealCount})", this);
+            RuntimeEventBus.Raise(RuntimeEventType.Ability, BuildEchoPulseUsedMessage(lastStunnedCount, lastScoutRevealCount), this);
 
             if (logPulseResult)
             {
@@ -467,11 +467,21 @@ namespace LostBreadcrumbs.Runtime.Player
                 int stage = StageLoopDirector.Instance != null ? Mathf.Max(1, StageLoopDirector.Instance.CurrentStage) : 0;
                 RuntimeEventBus.Raise(
                     RuntimeEventType.Ability,
-                    $"Echo return caught a threat at {distance:0.0}m",
+                    BuildEchoReturnThreatMessage(distance),
                     this,
                     stage,
                     semantic: RuntimeEventSemantic.EchoReturn);
             }
+        }
+
+        private static string BuildEchoPulseUsedMessage(int stunnedCount, int scoutRevealCount)
+        {
+            return $"메아리 사용 (기절 {Mathf.Max(0, stunnedCount)}, 정찰 {Mathf.Max(0, scoutRevealCount)})";
+        }
+
+        private static string BuildEchoReturnThreatMessage(float distance)
+        {
+            return $"메아리 응답 - 위협 {Mathf.Max(0f, distance):0.0}m";
         }
 
         private bool TryFindEchoReturnThreat(Vector2 origin, float effectiveStunRadius, out EnemyController selectedEnemy, out float selectedDistance, out int threatCount)
