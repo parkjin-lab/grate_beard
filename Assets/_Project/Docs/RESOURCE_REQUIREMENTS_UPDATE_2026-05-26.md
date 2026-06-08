@@ -30,6 +30,7 @@
 - Risk caches now pulse faster/larger with a slight color lift during Build so the higher reward window is visible before pickup.
 - Breadcrumb momentum now gets longer/wider chain echoes, larger pulses, and a slightly broader noise risk during Build so the streak choice is easier to read without new assets.
 - Spike breadcrumb momentum can now pull the current Spike closer to Release, making clutch collection a felt relief reward without adding new assets.
+- Breadcrumb chain reward alerts now use Korean-first rhythm labels and relief timing so the reward reads as player feedback instead of debug telemetry.
 - Static preflight now checks that Release relief keeps multiple non-text channels: stamina, fog reveal, pulse, objective whisper, audio, calm window, quiet breath, and semantic telemetry.
 - Rhythm Release now adds a short camera exhale window that slightly opens the view and settles look-ahead/smoothing, improving relief feel without new assets.
 - Rhythm Release now applies longer, wider objective whisper guidance so relief also prepares the next route choice.

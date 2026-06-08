@@ -1174,16 +1174,29 @@ namespace LostBreadcrumbs.Runtime.Map
 
         private static string BuildBreadcrumbMomentumRewardMessage(int momentumLevel, string phaseLabel, float recovered, float releaseAdvance)
         {
+            string rhythmLabel = LocalizeRhythmPhaseLabel(phaseLabel);
             string message = recovered > 0.01f
-                ? $"Breadcrumb chain x{momentumLevel} {phaseLabel} (+{recovered:0.0} stamina)"
-                : $"Breadcrumb chain x{momentumLevel} {phaseLabel}";
+                ? $"흔적 연쇄 x{momentumLevel} {rhythmLabel} (+{recovered:0.0} 스태미나)"
+                : $"흔적 연쇄 x{momentumLevel} {rhythmLabel}";
 
             if (releaseAdvance > 0.01f)
             {
-                message += $" / Release -{releaseAdvance:0.0}s";
+                message += $" / 안도 -{releaseAdvance:0.0}초";
             }
 
             return message;
+        }
+
+        private static string LocalizeRhythmPhaseLabel(string phaseLabel)
+        {
+            return phaseLabel switch
+            {
+                "Calm" => "고요",
+                "Build" => "고조",
+                "Spike" => "습격",
+                "Release" => "안도",
+                _ => string.IsNullOrWhiteSpace(phaseLabel) ? "리듬" : phaseLabel
+            };
         }
 
         private void EmitBreadcrumbChainReaction(Vector3 origin, bool preferExit, int momentumLevel)

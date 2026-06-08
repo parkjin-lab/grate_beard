@@ -592,6 +592,7 @@ if (Test-Path $stageLoopPath) {
         'EvaluateBreadcrumbBuildMultiplier',
         'TryGrantSpikeBreadcrumbReleaseAdvance',
         'BuildBreadcrumbMomentumRewardMessage',
+        'LocalizeRhythmPhaseLabel',
         'ApplyBreadcrumbMomentumReward',
         'EmitBreadcrumbChainReaction'
     )
