@@ -670,6 +670,8 @@ if (Test-Path $threatReadabilityPath) {
         'PlayEscapeReliefAudio',
         'StartEscapeReliefCalmWindow',
         'ApplyRhythmReleaseQuietBreath',
+        'BuildEscapeReliefRewardMessage',
+        'BuildRhythmReleaseReliefMessage',
         'RuntimeEventSemantic.EscapeRelief'
     )
     foreach ($hook in $releaseReliefHooks) {

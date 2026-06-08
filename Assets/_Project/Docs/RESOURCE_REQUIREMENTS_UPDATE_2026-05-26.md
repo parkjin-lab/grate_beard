@@ -34,6 +34,7 @@
 - Risk cache and exit choice cache reward alerts now use Korean-first stamina, echo cooldown, and route-hint wording.
 - Exit unlock, exit cache exposed, route carryover, and exit decision alerts now use Korean-first helper messages.
 - Static preflight now checks that Release relief keeps multiple non-text channels: stamina, fog reveal, pulse, objective whisper, audio, calm window, quiet breath, and semantic telemetry.
+- Escape relief and Rhythm Release recovery alerts now use Korean-first helper messages so relief reads as a felt breath instead of English debug telemetry.
 - Rhythm Release now adds a short camera exhale window that slightly opens the view and settles look-ahead/smoothing, improving relief feel without new assets.
 - Rhythm Release now applies longer, wider objective whisper guidance so relief also prepares the next route choice.
 - Release now emits a one-shot Build-returning RhythmShift cue near the end of the phase, keeping relief from reading as permanent safety.

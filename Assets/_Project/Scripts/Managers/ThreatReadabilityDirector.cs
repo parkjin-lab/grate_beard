@@ -1328,7 +1328,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             int stage = record.HasStage ? record.Stage : (mapSystem != null ? Mathf.Max(1, mapSystem.CurrentStage) : 0);
             RuntimeEventBus.Raise(
                 RuntimeEventType.Ability,
-                $"Escape relief recovered {recovered:0.0} stamina after {chaseDuration:0.0}s chase",
+                BuildEscapeReliefRewardMessage(recovered, chaseDuration),
                 this,
                 stage,
                 semantic: RuntimeEventSemantic.EscapeRelief);
@@ -1385,12 +1385,22 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             RuntimeEventBus.Raise(
                 RuntimeEventType.Ability,
-                $"Release relief recovered {recovered:0.0} stamina",
+                BuildRhythmReleaseReliefMessage(recovered),
                 this,
                 Mathf.Max(0, stage),
                 semantic: RuntimeEventSemantic.EscapeRelief);
 
             return true;
+        }
+
+        private static string BuildEscapeReliefRewardMessage(float recovered, float chaseDuration)
+        {
+            return $"숨 돌릴 틈 (+{Mathf.Max(0f, recovered):0.0} 스태미나 / 추격 {Mathf.Max(0f, chaseDuration):0.0}초)";
+        }
+
+        private static string BuildRhythmReleaseReliefMessage(float recovered)
+        {
+            return $"안도 회복 (+{Mathf.Max(0f, recovered):0.0} 스태미나)";
         }
 
         private void StartRhythmReleaseCameraExhale(float intensity)
