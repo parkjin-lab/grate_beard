@@ -809,14 +809,18 @@ namespace LostBreadcrumbs.Runtime.Player
                 return;
             }
 
-            string primary = primaryIsExit ? "exit" : "breadcrumb";
-            string choiceLabel = choiceCount == 1 ? "choice" : "choices";
             RuntimeEventBus.Raise(
                 RuntimeEventType.Ability,
-                $"Echo scan: {primary} + {choiceCount} {choiceLabel}",
+                BuildEchoObjectiveScanMessage(primaryIsExit, choiceCount),
                 this,
                 stageLoop != null ? stageLoop.CurrentStage : 0,
                 semantic: RuntimeEventSemantic.EchoChoiceScan);
+        }
+
+        private static string BuildEchoObjectiveScanMessage(bool primaryIsExit, int choiceCount)
+        {
+            string primary = primaryIsExit ? "출구" : "빵부스러기";
+            return $"메아리 경로 스캔: {primary} + 선택지 {Mathf.Max(0, choiceCount)}개";
         }
 
         private int SpawnEchoObjectiveChoiceScans(StageLoopDirector stageLoop, Vector2 origin, Vector3 primaryTarget)

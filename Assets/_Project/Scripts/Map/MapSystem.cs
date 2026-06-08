@@ -374,7 +374,7 @@ namespace LostBreadcrumbs.Runtime.Systems
             }
 
             MapGenerated?.Invoke(currentStage, lastGeneratedCells);
-            RuntimeEventBus.Raise(RuntimeEventType.Stage, string.Format("Stage generated {0} ({1} cells)", currentStage, generated.Count), this, currentStage);
+            RuntimeEventBus.Raise(RuntimeEventType.Stage, BuildStageGeneratedMessage(currentStage, generated.Count), this, currentStage);
 
             if (logSummary)
             {
@@ -382,6 +382,11 @@ namespace LostBreadcrumbs.Runtime.Systems
                     $"Map generated. Stage={currentStage}, Variant={currentStageVariantSalt}, Cells={generated.Count}, WallSegments={lastWallSegmentCount}, Occluders={lastOccluderCount} (Choke {lastChokeOccluderCount}), Hooks={lastArchetypeHookCount}, RiskColliders={lastRiskTileColliderCount}, FallbackVisibleColliders={lastFallbackVisibleColliderCount}, HookTune={LastHookPresetLabel} P{lastHookStagePressure01:0.00} C/L/R/CD x{lastHookChanceMultiplier:0.00}/{lastHookLoudnessMultiplier:0.00}/{lastHookRadiusMultiplier:0.00}/{lastHookCooldownMultiplier:0.00}",
                     this);
             }
+        }
+
+        private static string BuildStageGeneratedMessage(int stage, int cellCount)
+        {
+            return $"스테이지 구성 완료 {Mathf.Max(1, stage)} (방 {Mathf.Max(0, cellCount)}칸)";
         }
 
         private void ApplyRuntimeVisibilitySafetyGuards()

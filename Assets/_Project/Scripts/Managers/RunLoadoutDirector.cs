@@ -255,7 +255,7 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             if (raiseEvent)
             {
-                RuntimeEventBus.Raise(RuntimeEventType.System, $"Loadout unlocked: {id}", this);
+                RuntimeEventBus.Raise(RuntimeEventType.System, BuildLoadoutUnlockedMessage(id.ToString()), this);
             }
         }
 
@@ -282,7 +282,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             {
                 if (userInitiated)
                 {
-                    RuntimeEventBus.Raise(RuntimeEventType.System, $"Loadout locked: {tuning.EffectiveName}", this);
+                    RuntimeEventBus.Raise(RuntimeEventType.System, BuildLoadoutLockedMessage(tuning.EffectiveName), this);
                 }
 
                 return;
@@ -319,8 +319,29 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             if (raiseEvent)
             {
-                RuntimeEventBus.Raise(RuntimeEventType.System, $"Loadout set: {tuning.EffectiveName} {(selectionLocked ? "(Locked)" : "")}", this);
+                RuntimeEventBus.Raise(RuntimeEventType.System, BuildLoadoutSetMessage(tuning.EffectiveName, selectionLocked), this);
             }
+        }
+
+        private static string BuildLoadoutUnlockedMessage(string loadoutName)
+        {
+            return $"장비 구성 해금: {NormalizeLoadoutName(loadoutName)}";
+        }
+
+        private static string BuildLoadoutLockedMessage(string loadoutName)
+        {
+            return $"장비 구성 잠김: {NormalizeLoadoutName(loadoutName)}";
+        }
+
+        private static string BuildLoadoutSetMessage(string loadoutName, bool locked)
+        {
+            string suffix = locked ? " (선택 고정)" : string.Empty;
+            return $"장비 구성 적용: {NormalizeLoadoutName(loadoutName)}{suffix}";
+        }
+
+        private static string NormalizeLoadoutName(string loadoutName)
+        {
+            return string.IsNullOrWhiteSpace(loadoutName) ? "기본" : loadoutName.Trim();
         }
 
         private void ApplyTuning(RunLoadoutTuning tuning)

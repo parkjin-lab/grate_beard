@@ -73,6 +73,7 @@ $mapSystemPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/MapSystem.c
 $enemySpawnDirectorPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/EnemySpawnDirector.cs'
 $stageLoopPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/StageLoopDirector.cs'
 $riskCachePickupPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/RiskCachePickup.cs'
+$runLoadoutPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/RunLoadoutDirector.cs'
 $gameplayRhythmPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/GameplayRhythmDirector.cs'
 $stagePressurePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/StagePressureDirector.cs'
 $stageSetPiecePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/StageSetPieceDirector.cs'
@@ -650,6 +651,43 @@ if (Test-Path $stageSetPiecePath) {
     $stageEventKoreanWordingMissing.Add('StageSetPieceDirector.cs missing')
 }
 $results.Add((Add-Result 'code.stageEventKoreanWordingHooks' ($(if ($stageEventKoreanWordingMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($stageEventKoreanWordingMissing -join ', ')"))
+
+$systemEventKoreanWordingMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $mapSystemPath) {
+    $mapSystemText = Get-Content $mapSystemPath -Raw
+    if (-not $mapSystemText.Contains('BuildStageGeneratedMessage')) {
+        $systemEventKoreanWordingMissing.Add('MapSystem:BuildStageGeneratedMessage')
+    }
+} else {
+    $systemEventKoreanWordingMissing.Add('MapSystem.cs missing')
+}
+
+if (Test-Path $runLoadoutPath) {
+    $runLoadoutText = Get-Content $runLoadoutPath -Raw
+    $runLoadoutWordingHooks = @(
+        'BuildLoadoutUnlockedMessage',
+        'BuildLoadoutLockedMessage',
+        'BuildLoadoutSetMessage',
+        'NormalizeLoadoutName'
+    )
+    foreach ($hook in $runLoadoutWordingHooks) {
+        if (-not $runLoadoutText.Contains($hook)) {
+            $systemEventKoreanWordingMissing.Add("RunLoadoutDirector:$hook")
+        }
+    }
+} else {
+    $systemEventKoreanWordingMissing.Add('RunLoadoutDirector.cs missing')
+}
+
+if (Test-Path $playerControllerPath) {
+    $playerControllerText = Get-Content $playerControllerPath -Raw
+    if (-not $playerControllerText.Contains('BuildEchoObjectiveScanMessage')) {
+        $systemEventKoreanWordingMissing.Add('PlayerDummyController:BuildEchoObjectiveScanMessage')
+    }
+} else {
+    $systemEventKoreanWordingMissing.Add('PlayerDummyController.cs missing')
+}
+$results.Add((Add-Result 'code.systemEventKoreanWordingHooks' ($(if ($systemEventKoreanWordingMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($systemEventKoreanWordingMissing -join ', ')"))
 
 $buildTemptationMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $riskCachePickupPath) {
