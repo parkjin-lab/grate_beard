@@ -539,7 +539,12 @@ if (Test-Path $stageLoopPath) {
         'Breadcrumb Rhythm Momentum',
         'breadcrumbBuildRewardMultiplier',
         'breadcrumbSpikeRewardMultiplier',
+        'breadcrumbBuildEchoDurationMultiplier',
+        'breadcrumbBuildEchoWidthMultiplier',
+        'breadcrumbBuildPulseRadiusMultiplier',
+        'breadcrumbBuildNoiseRadiusMultiplier',
         'EvaluateBreadcrumbMomentumRewardMultiplier',
+        'EvaluateBreadcrumbBuildMultiplier',
         'ApplyBreadcrumbMomentumReward',
         'EmitBreadcrumbChainReaction'
     )

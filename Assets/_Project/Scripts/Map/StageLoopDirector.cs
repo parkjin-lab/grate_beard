@@ -162,6 +162,10 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField, Range(0.25f, 2.5f)] private float breadcrumbBuildRewardMultiplier = 1.18f;
         [SerializeField, Range(0.25f, 2.5f)] private float breadcrumbSpikeRewardMultiplier = 1.34f;
         [SerializeField, Range(0.25f, 2.5f)] private float breadcrumbReleaseRewardMultiplier = 0.82f;
+        [SerializeField, Range(0.5f, 2f)] private float breadcrumbBuildEchoDurationMultiplier = 1.22f;
+        [SerializeField, Range(0.5f, 2f)] private float breadcrumbBuildEchoWidthMultiplier = 1.18f;
+        [SerializeField, Range(0.5f, 2f)] private float breadcrumbBuildPulseRadiusMultiplier = 1.14f;
+        [SerializeField, Range(0.5f, 2f)] private float breadcrumbBuildNoiseRadiusMultiplier = 1.12f;
 
         [Header("Late Stage Pressure")]
         [SerializeField, Min(1)] private int latePressureStartStage = 5;
@@ -1101,6 +1105,17 @@ namespace LostBreadcrumbs.Runtime.Map
             };
         }
 
+        private bool IsBuildRhythmPhase()
+        {
+            return gameplayRhythmDirector != null
+                   && gameplayRhythmDirector.CurrentPhase == GameplayRhythmPhase.Build;
+        }
+
+        private float EvaluateBreadcrumbBuildMultiplier(float buildMultiplier)
+        {
+            return IsBuildRhythmPhase() ? Mathf.Max(0.1f, buildMultiplier) : 1f;
+        }
+
         private void ApplyBreadcrumbMomentumReward(Vector3 origin, int momentumLevel)
         {
             if (!enableBreadcrumbMomentum || momentumLevel <= 1 || RegressionChecklistRunner.IsRegressionRunActive)
@@ -1146,10 +1161,11 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             int momentumSteps = Mathf.Max(0, momentumLevel - 1);
+            float buildNoiseRadiusMultiplier = EvaluateBreadcrumbBuildMultiplier(breadcrumbBuildNoiseRadiusMultiplier);
             NoiseManager.Instance.EmitNoise(
                 origin,
                 Mathf.Max(0f, breadcrumbChainNoiseLoudness) * (1f + breadcrumbMomentumNoiseLoudnessBonus * momentumSteps),
-                Mathf.Max(0.1f, breadcrumbChainNoiseRadius) * (1f + breadcrumbMomentumNoiseRadiusBonus * momentumSteps),
+                Mathf.Max(0.1f, breadcrumbChainNoiseRadius) * (1f + breadcrumbMomentumNoiseRadiusBonus * momentumSteps) * buildNoiseRadiusMultiplier,
                 NoiseKind.ItemUse,
                 gameObject);
         }
@@ -1388,11 +1404,14 @@ namespace LostBreadcrumbs.Runtime.Map
 
         private IEnumerator BreadcrumbChainEchoRoutine(GameObject echoObject, LineRenderer line, bool targetIsExit, int momentumLevel)
         {
+            float buildEchoDurationMultiplier = EvaluateBreadcrumbBuildMultiplier(breadcrumbBuildEchoDurationMultiplier);
             float duration = Mathf.Max(0.1f, breadcrumbChainEchoDuration)
-                             * (1f + Mathf.Max(0, momentumLevel - 1) * Mathf.Max(0f, breadcrumbMomentumEchoDurationBonus));
+                             * (1f + Mathf.Max(0, momentumLevel - 1) * Mathf.Max(0f, breadcrumbMomentumEchoDurationBonus))
+                             * buildEchoDurationMultiplier;
             Color baseColor = targetIsExit ? breadcrumbExitChainEchoColor : breadcrumbChainEchoColor;
             float startedAt = Time.time;
-            float baseWidth = EvaluateBreadcrumbChainWidth(momentumLevel);
+            float baseWidth = EvaluateBreadcrumbChainWidth(momentumLevel)
+                              * EvaluateBreadcrumbBuildMultiplier(breadcrumbBuildEchoWidthMultiplier);
 
             while (line != null && Time.time < startedAt + duration)
             {
@@ -1440,7 +1459,7 @@ namespace LostBreadcrumbs.Runtime.Map
             Color color = breadcrumbMomentumPulseColor;
             color.a *= Mathf.Lerp(0.86f, 1.18f, Mathf.Clamp01((momentumLevel - 2f) / Mathf.Max(1f, BreadcrumbMomentumMaxLevel - 2f)));
             visual.Configure(
-                Mathf.Max(0.1f, breadcrumbMomentumPulseRadius) * (1f + steps * 0.18f),
+                Mathf.Max(0.1f, breadcrumbMomentumPulseRadius) * (1f + steps * 0.18f) * EvaluateBreadcrumbBuildMultiplier(breadcrumbBuildPulseRadiusMultiplier),
                 color,
                 Mathf.Max(0.1f, breadcrumbMomentumPulseDuration) * (1f + steps * 0.12f),
                 Mathf.Clamp(2 + steps, 2, 4),
