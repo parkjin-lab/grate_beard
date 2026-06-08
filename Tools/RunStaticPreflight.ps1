@@ -61,6 +61,8 @@ $gitignorePath = Join-Path $ProjectRoot '.gitignore'
 $setupPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Editor/LostBreadcrumbsProjectSetup.cs'
 $regressionPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/RegressionChecklistRunner.cs'
 $debugOverlayPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/DebugOverlay.cs'
+$eventFeedbackPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/EventFeedbackRuntime.cs'
+$gameplayHudPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/GameplayHudRuntime.cs'
 $audioManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioManager.cs'
 $playerControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDummyController.cs'
 $mapSystemPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/MapSystem.cs'
@@ -472,7 +474,7 @@ if (Test-Path $gameplayRhythmPath) {
         'spikeTellRaisedThisBuild',
         'RuntimeEventSemantic.LockOnWarning',
         'raiseReleaseEndTellEvent',
-        'Build returning',
+        'releaseEndTellRaisedThisRelease',
         'RuntimeEventSemantic.RhythmShift',
         'Spike incoming'
     )
@@ -506,6 +508,40 @@ if (Test-Path $audioManagerPath) {
     $spikeFairnessMissing.Add('AudioManager.cs missing')
 }
 $results.Add((Add-Result 'code.spikeFairnessCueBudgetHooks' ($(if ($spikeFairnessMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($spikeFairnessMissing -join ', ')"))
+
+$rhythmUiWordingMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $eventFeedbackPath) {
+    $eventFeedbackText = Get-Content $eventFeedbackPath -Raw
+    $rhythmUiHooks = @(
+        'IsBuildReturnCue',
+        'build returning',
+        'RuntimeEventSemantic.RhythmShift'
+    )
+    foreach ($hook in $rhythmUiHooks) {
+        if (-not $eventFeedbackText.Contains($hook)) {
+            $rhythmUiWordingMissing.Add("EventFeedbackRuntime:$hook")
+        }
+    }
+} else {
+    $rhythmUiWordingMissing.Add('EventFeedbackRuntime.cs missing')
+}
+
+if (Test-Path $gameplayHudPath) {
+    $gameplayHudText = Get-Content $gameplayHudPath -Raw
+    $rhythmHudHooks = @(
+        'IsBuildReturnCue',
+        'build returning',
+        'RuntimeEventSemantic.RhythmShift'
+    )
+    foreach ($hook in $rhythmHudHooks) {
+        if (-not $gameplayHudText.Contains($hook)) {
+            $rhythmUiWordingMissing.Add("GameplayHudRuntime:$hook")
+        }
+    }
+} else {
+    $rhythmUiWordingMissing.Add('GameplayHudRuntime.cs missing')
+}
+$results.Add((Add-Result 'code.rhythmUiWordingHooks' ($(if ($rhythmUiWordingMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmUiWordingMissing -join ', ')"))
 
 $buildTemptationMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $riskCachePickupPath) {

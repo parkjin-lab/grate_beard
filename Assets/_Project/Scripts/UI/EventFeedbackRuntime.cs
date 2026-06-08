@@ -446,6 +446,13 @@ namespace LostBreadcrumbs.Runtime.UI
             }
 
             int stage = ResolveEventStage(record);
+            string message = record.Message ?? string.Empty;
+            if (record.Semantic == RuntimeEventSemantic.RhythmShift && IsBuildReturnCue(message))
+            {
+                payload = new PriorityCuePayload("다시 빨라진다", new Color(0.34f, 0.12f, 0.08f, 0.9f), new Color(1f, 0.9f, 0.82f, 1f), stage);
+                return true;
+            }
+
             payload = record.Semantic switch
             {
                 RuntimeEventSemantic.ExitUnlocked => new PriorityCuePayload("출구 열림 - 지금 나가", new Color(0.08f, 0.4f, 0.22f, 0.9f), new Color(0.92f, 1f, 0.92f, 1f), stage),
@@ -469,7 +476,6 @@ namespace LostBreadcrumbs.Runtime.UI
                 return true;
             }
 
-            string message = record.Message ?? string.Empty;
             switch (record.Type)
             {
                 case RuntimeEventType.Death:
@@ -496,6 +502,12 @@ namespace LostBreadcrumbs.Runtime.UI
                 default:
                     return false;
             }
+        }
+
+        private static bool IsBuildReturnCue(string message)
+        {
+            return ContainsKeyword(message, "다시 빨라진다")
+                   || ContainsKeyword(message, "build returning");
         }
 
         private void TickPriorityCueFade()

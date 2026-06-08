@@ -377,7 +377,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             releaseEndTellRaisedThisRelease = true;
             RuntimeEventBus.Raise(
                 RuntimeEventType.Stage,
-                $"Build returning ({remaining:0.0}s)",
+                $"다시 빨라진다 ({remaining:0.0}s)",
                 this,
                 mapSystem != null ? mapSystem.CurrentStage : 0,
                 semantic: RuntimeEventSemantic.RhythmShift);

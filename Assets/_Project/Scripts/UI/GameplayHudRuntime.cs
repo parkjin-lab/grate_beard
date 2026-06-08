@@ -707,6 +707,12 @@ namespace LostBreadcrumbs.Runtime.UI
                 return true;
             }
 
+            if (record.Semantic == RuntimeEventSemantic.RhythmShift && IsBuildReturnCue(source))
+            {
+                message = "다시 빨라진다";
+                return true;
+            }
+
             message = record.Semantic switch
             {
                 RuntimeEventSemantic.ExitUnlocked => "출구 열림",
@@ -813,6 +819,12 @@ namespace LostBreadcrumbs.Runtime.UI
             }
 
             return source.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool IsBuildReturnCue(string source)
+        {
+            return ContainsKeyword(source, "다시 빨라진다")
+                   || ContainsKeyword(source, "build returning");
         }
 
         private static bool LooksLikeBreadcrumbProgress(string source)
