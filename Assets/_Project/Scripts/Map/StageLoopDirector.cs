@@ -166,6 +166,8 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField, Range(0.5f, 2f)] private float breadcrumbBuildEchoWidthMultiplier = 1.18f;
         [SerializeField, Range(0.5f, 2f)] private float breadcrumbBuildPulseRadiusMultiplier = 1.14f;
         [SerializeField, Range(0.5f, 2f)] private float breadcrumbBuildNoiseRadiusMultiplier = 1.12f;
+        [SerializeField, Min(0f)] private float breadcrumbSpikeReleaseAdvanceSeconds = 0.72f;
+        [SerializeField, Min(0f)] private float breadcrumbSpikeReleaseAdvancePerLevel = 0.18f;
 
         [Header("Late Stage Pressure")]
         [SerializeField, Min(1)] private int latePressureStartStage = 5;
@@ -1116,6 +1118,12 @@ namespace LostBreadcrumbs.Runtime.Map
             return IsBuildRhythmPhase() ? Mathf.Max(0.1f, buildMultiplier) : 1f;
         }
 
+        private bool IsSpikeRhythmPhase()
+        {
+            return gameplayRhythmDirector != null
+                   && gameplayRhythmDirector.CurrentPhase == GameplayRhythmPhase.Spike;
+        }
+
         private void ApplyBreadcrumbMomentumReward(Vector3 origin, int momentumLevel)
         {
             if (!enableBreadcrumbMomentum || momentumLevel <= 1 || RegressionChecklistRunner.IsRegressionRunActive)
@@ -1134,16 +1142,48 @@ namespace LostBreadcrumbs.Runtime.Map
             reward *= phaseRewardMultiplier;
             float recovered = momentumPlayer != null ? momentumPlayer.RecoverStamina(reward) : 0f;
             string phaseLabel = gameplayRhythmDirector != null ? gameplayRhythmDirector.CurrentPhaseLabel : "None";
+            float releaseAdvance = TryGrantSpikeBreadcrumbReleaseAdvance(momentumLevel);
 
             RuntimeEventBus.Raise(
                 RuntimeEventType.Objective,
-                recovered > 0.01f
-                    ? $"Breadcrumb chain x{momentumLevel} {phaseLabel} (+{recovered:0.0} stamina)"
-                    : $"Breadcrumb chain x{momentumLevel} {phaseLabel}",
+                BuildBreadcrumbMomentumRewardMessage(momentumLevel, phaseLabel, recovered, releaseAdvance),
                 this,
                 CurrentStage);
 
             SpawnBreadcrumbMomentumPulse(origin, momentumLevel);
+        }
+
+        private float TryGrantSpikeBreadcrumbReleaseAdvance(int momentumLevel)
+        {
+            if (!IsSpikeRhythmPhase())
+            {
+                return 0f;
+            }
+
+            float advance = Mathf.Max(0f, breadcrumbSpikeReleaseAdvanceSeconds)
+                            + Mathf.Max(0, momentumLevel - 2) * Mathf.Max(0f, breadcrumbSpikeReleaseAdvancePerLevel);
+            if (advance <= 0.01f || gameplayRhythmDirector == null)
+            {
+                return 0f;
+            }
+
+            return gameplayRhythmDirector.TryAdvanceSpikeTowardRelease(advance, out float appliedAdvance, $"breadcrumb chain x{momentumLevel}")
+                ? appliedAdvance
+                : 0f;
+        }
+
+        private static string BuildBreadcrumbMomentumRewardMessage(int momentumLevel, string phaseLabel, float recovered, float releaseAdvance)
+        {
+            string message = recovered > 0.01f
+                ? $"Breadcrumb chain x{momentumLevel} {phaseLabel} (+{recovered:0.0} stamina)"
+                : $"Breadcrumb chain x{momentumLevel} {phaseLabel}";
+
+            if (releaseAdvance > 0.01f)
+            {
+                message += $" / Release -{releaseAdvance:0.0}s";
+            }
+
+            return message;
         }
 
         private void EmitBreadcrumbChainReaction(Vector3 origin, bool preferExit, int momentumLevel)

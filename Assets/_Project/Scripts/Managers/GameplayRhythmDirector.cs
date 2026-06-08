@@ -47,6 +47,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private bool impulseOnSpike = true;
         [SerializeField, Range(0f, 0.18f)] private float spikeCameraImpulse = 0.08f;
         [SerializeField, Min(0.05f)] private float spikeImpulseDuration = 0.12f;
+        [SerializeField, Min(0.05f)] private float spikeClutchMinimumRemainingSeconds = 0.45f;
         [SerializeField, Min(0.1f)] private float referenceResolveInterval = 0.8f;
 
         private GameplayRhythmPhase currentPhase = GameplayRhythmPhase.Calm;
@@ -157,6 +158,41 @@ namespace LostBreadcrumbs.Runtime.Managers
         public void ForceSetPhaseForRuntime(GameplayRhythmPhase phase, bool raiseEvent = false)
         {
             EnterPhase(phase, raiseEvent, resetCycle: false);
+        }
+
+        public bool TryAdvanceSpikeTowardRelease(float seconds, out float appliedSeconds, string reason = null)
+        {
+            appliedSeconds = 0f;
+            if (!Application.isPlaying
+                || !enableRuntimeRhythm
+                || RegressionChecklistRunner.IsRegressionRunActive
+                || currentPhase != GameplayRhythmPhase.Spike)
+            {
+                return false;
+            }
+
+            float safeSeconds = Mathf.Max(0f, seconds);
+            float remaining = Mathf.Max(0f, currentPhaseDuration - CurrentPhaseElapsed);
+            float minimumRemaining = Mathf.Max(0.05f, spikeClutchMinimumRemainingSeconds);
+            float advance = Mathf.Min(safeSeconds, Mathf.Max(0f, remaining - minimumRemaining));
+            if (advance <= 0.01f)
+            {
+                return false;
+            }
+
+            phaseStartedAt -= advance;
+            appliedSeconds = advance;
+
+            RuntimeEventBus.Raise(
+                RuntimeEventType.Stage,
+                string.IsNullOrWhiteSpace(reason)
+                    ? $"Spike clutch release advance {advance:0.0}s"
+                    : $"Spike clutch {reason} (-{advance:0.0}s)",
+                this,
+                mapSystem != null ? mapSystem.CurrentStage : 0,
+                semantic: RuntimeEventSemantic.EscapeRelief);
+
+            return true;
         }
 
         private void EnterPhase(GameplayRhythmPhase phase, bool raiseEvent, bool resetCycle)

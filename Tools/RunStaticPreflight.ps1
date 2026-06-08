@@ -428,6 +428,8 @@ if (Test-Path $gameplayRhythmPath) {
         'EnterPhase',
         'ApplyPressureRhythmForRuntime',
         'TryRaiseSpikeTell',
+        'TryAdvanceSpikeTowardRelease',
+        'spikeClutchMinimumRemainingSeconds',
         'TryGrantRhythmReleaseRelief',
         'RegressionChecklistRunner.IsRegressionRunActive'
     )
@@ -543,8 +545,12 @@ if (Test-Path $stageLoopPath) {
         'breadcrumbBuildEchoWidthMultiplier',
         'breadcrumbBuildPulseRadiusMultiplier',
         'breadcrumbBuildNoiseRadiusMultiplier',
+        'breadcrumbSpikeReleaseAdvanceSeconds',
+        'breadcrumbSpikeReleaseAdvancePerLevel',
         'EvaluateBreadcrumbMomentumRewardMultiplier',
         'EvaluateBreadcrumbBuildMultiplier',
+        'TryGrantSpikeBreadcrumbReleaseAdvance',
+        'BuildBreadcrumbMomentumRewardMessage',
         'ApplyBreadcrumbMomentumReward',
         'EmitBreadcrumbChainReaction'
     )
