@@ -68,6 +68,7 @@ $playerControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/P
 $playerEchoPulsePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerEchoPulseAbility.cs'
 $playerDecoyPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDecoyAbility.cs'
 $playerSmokePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerSmokeAbility.cs'
+$playerVitalPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerVitalSystem.cs'
 $mapSystemPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/MapSystem.cs'
 $enemySpawnDirectorPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/EnemySpawnDirector.cs'
 $stageLoopPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/StageLoopDirector.cs'
@@ -581,6 +582,40 @@ if (Test-Path $playerSmokePath) {
     $abilityKoreanWordingMissing.Add('PlayerSmokeAbility.cs missing')
 }
 $results.Add((Add-Result 'code.abilityKoreanWordingHooks' ($(if ($abilityKoreanWordingMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($abilityKoreanWordingMissing -join ', ')"))
+
+$playerEventKoreanWordingMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $playerVitalPath) {
+    $playerVitalText = Get-Content $playerVitalPath -Raw
+    $playerVitalHooks = @(
+        'BuildDeathEventMessage',
+        'EvaluateDeathCause',
+        'EvaluateMissedOption',
+        'RuntimeEventType.Death'
+    )
+    foreach ($hook in $playerVitalHooks) {
+        if (-not $playerVitalText.Contains($hook)) {
+            $playerEventKoreanWordingMissing.Add("PlayerVitalSystem:$hook")
+        }
+    }
+} else {
+    $playerEventKoreanWordingMissing.Add('PlayerVitalSystem.cs missing')
+}
+
+if (Test-Path $threatReadabilityPath) {
+    $threatReadabilityText = Get-Content $threatReadabilityPath -Raw
+    $quietBreathHooks = @(
+        'BuildQuietBreathBrokenMessage',
+        'RuntimeEventSemantic.QuietBreathBroken'
+    )
+    foreach ($hook in $quietBreathHooks) {
+        if (-not $threatReadabilityText.Contains($hook)) {
+            $playerEventKoreanWordingMissing.Add("ThreatReadabilityDirector:$hook")
+        }
+    }
+} else {
+    $playerEventKoreanWordingMissing.Add('ThreatReadabilityDirector.cs missing')
+}
+$results.Add((Add-Result 'code.playerEventKoreanWordingHooks' ($(if ($playerEventKoreanWordingMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($playerEventKoreanWordingMissing -join ', ')"))
 
 $buildTemptationMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $riskCachePickupPath) {

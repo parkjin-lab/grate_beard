@@ -2006,10 +2006,15 @@ namespace LostBreadcrumbs.Runtime.Managers
             int stage = mapSystem != null ? Mathf.Max(1, mapSystem.CurrentStage) : 0;
             RuntimeEventBus.Raise(
                 RuntimeEventType.Ability,
-                "Quiet breath broke under sprint strain",
+                BuildQuietBreathBrokenMessage(),
                 this,
                 stage,
                 semantic: RuntimeEventSemantic.QuietBreathBroken);
+        }
+
+        private static string BuildQuietBreathBrokenMessage()
+        {
+            return "조용한 숨 깨짐 - 달리기 소음 발생";
         }
 
         private void ShortenEscapeReliefCalmWindow(float intensity)

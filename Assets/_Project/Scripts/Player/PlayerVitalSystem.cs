@@ -51,8 +51,8 @@ namespace LostBreadcrumbs.Runtime.Player
         private FogOfWarSystem fogSystem;
         private StagePressureDirector stagePressureDirector;
 
-        private string lastDeathCause = "Unknown";
-        private string lastDeathMissedOption = "None";
+        private string lastDeathCause = "알 수 없는 충격";
+        private string lastDeathMissedOption = "전술 선택지 없음";
         private float lastDeathPressureSnapshot;
         private int lastDeathStage = 1;
         private float lastDeathRealtime;
@@ -65,8 +65,8 @@ namespace LostBreadcrumbs.Runtime.Player
         public bool IsInvulnerable => Time.time < invulnerableUntil;
         public bool SafeHavenHealingEnabled => healWhileInsideSafeHaven;
         public float SafeHavenHealCooldownRemaining => Mathf.Max(0f, nextSafeHavenHealTime - Time.time);
-        public string LastDeathCause => string.IsNullOrWhiteSpace(lastDeathCause) ? "Unknown" : lastDeathCause;
-        public string LastDeathMissedOption => string.IsNullOrWhiteSpace(lastDeathMissedOption) ? "None" : lastDeathMissedOption;
+        public string LastDeathCause => string.IsNullOrWhiteSpace(lastDeathCause) ? "알 수 없는 충격" : lastDeathCause;
+        public string LastDeathMissedOption => string.IsNullOrWhiteSpace(lastDeathMissedOption) ? "전술 선택지 없음" : lastDeathMissedOption;
         public float LastDeathPressureSnapshot => Mathf.Clamp01(lastDeathPressureSnapshot);
         public int LastDeathStage => Mathf.Max(1, lastDeathStage);
         public float LastDeathRealtime => Mathf.Max(0f, lastDeathRealtime);
@@ -168,7 +168,7 @@ namespace LostBreadcrumbs.Runtime.Player
 
             RuntimeEventBus.Raise(
                 RuntimeEventType.Death,
-                $"Player died ({lastDeathCause}) | P {lastDeathPressureSnapshot:0.00} | Missed {lastDeathMissedOption} | Deaths {deathCount}",
+                BuildDeathEventMessage(lastDeathCause, lastDeathPressureSnapshot, lastDeathMissedOption, deathCount),
                 this,
                 eventStage);
             RestoreFullHealth();
@@ -424,38 +424,38 @@ namespace LostBreadcrumbs.Runtime.Player
             Vector2 source = hasLastDamageSource ? lastDamageSource : damageSourcePosition;
             if (float.IsNaN(source.x) || float.IsInfinity(source.x) || float.IsNaN(source.y) || float.IsInfinity(source.y))
             {
-                return "Unknown impact";
+                return "알 수 없는 충격";
             }
 
             float distance = Vector2.Distance(playerPosition, source);
             if (distance <= 0.8f)
             {
-                return "Close contact";
+                return "근접 접촉";
             }
 
             if (distance <= 2.2f)
             {
-                return $"Contact {distance:0.0}m";
+                return $"접촉 {distance:0.0}m";
             }
 
-            return $"Ranged hit {distance:0.0}m";
+            return $"원거리 피격 {distance:0.0}m";
         }
 
         private string EvaluateMissedOption()
         {
             if (smokeAbility != null && smokeAbility.IsReady)
             {
-                return "Smoke (R)";
+                return "연막 (R)";
             }
 
             if (decoyAbility != null && decoyAbility.IsReady)
             {
-                return "Decoy (E)";
+                return "미끼 (E)";
             }
 
             if (pulseAbility != null && pulseAbility.IsReady)
             {
-                return "Echo (Q)";
+                return "메아리 (Q)";
             }
 
             float nextCooldown = float.MaxValue;
@@ -476,11 +476,19 @@ namespace LostBreadcrumbs.Runtime.Player
 
             if (nextCooldown < float.MaxValue)
             {
-                return $"No ability ready ({nextCooldown:0.0}s)";
+                return $"준비된 장치 없음 ({nextCooldown:0.0}초)";
             }
 
-            return "No tactical option";
+            return "전술 선택지 없음";
         }
+
+        private static string BuildDeathEventMessage(string cause, float pressure01, string missedOption, int deaths)
+        {
+            string safeCause = string.IsNullOrWhiteSpace(cause) ? "알 수 없는 충격" : cause;
+            string safeMissedOption = string.IsNullOrWhiteSpace(missedOption) ? "전술 선택지 없음" : missedOption;
+            return $"쓰러짐 ({safeCause}) | 압박 {Mathf.Clamp01(pressure01):0.00} | 놓친 선택 {safeMissedOption} | 사망 {Mathf.Max(0, deaths)}회";
+        }
+
         private void MoveToCheckpoint()
         {
             if (!hasCheckpoint)
