@@ -12,6 +12,7 @@ Validate that the game is not only harder or darker, but rhythmically readable: 
 - The overlay and snapshot report missing rhythm phases, so a test run can quickly show whether Calm, Build, Spike, or Release still needs observation.
 - After snapshots are captured, run `Tools\Summarize-RhythmSnapshots.cmd` to summarize phase counts, whether Calm stayed readable, whether Build had a temptation choice, whether Spike had a readable warning chain, and whether Release kept at least two relief channels active.
 - For automation-readable output, add `-OutputJsonPath Logs\RhythmValidation\rhythm_snapshot_summary_last.json`.
+- For the default automation path, run `Tools\Write-RhythmSnapshotSummary.cmd`; it writes `Logs\RhythmValidation\rhythm_snapshot_summary_last.json`.
 - A pass only proves that all phases occurred; it does not prove they felt good. Use the manual notes below for that.
 
 ## Minimal Human Pass
