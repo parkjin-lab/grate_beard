@@ -2090,10 +2090,15 @@ namespace LostBreadcrumbs.Runtime.Managers
             bool telemetryPass = rhythmDirector.CurrentPhaseDuration >= 0.5f
                 && !string.IsNullOrWhiteSpace(rhythmDirector.CurrentPhaseLabel)
                 && !string.IsNullOrWhiteSpace(rhythmDirector.LastBeatLabel);
+            bool spikeFairnessTelemetryPass = !string.IsNullOrWhiteSpace(rhythmDirector.SpikeFairnessSummary)
+                && rhythmDirector.LastSpikeWarningLeadSeconds >= -1f
+                && rhythmDirector.LastLockOnWarningAgeSeconds >= -1f
+                && rhythmDirector.LastChaseStartedAgeSeconds >= -1f;
 
             AddResult("Rhythm.Enabled", enabledPass, enabledPass ? "runtime rhythm enabled" : "runtime rhythm disabled");
             AddResult("Rhythm.PressureShape", pressureShapePass, $"calm={calm:0.00}, build={build:0.00}, spike={spike:0.00}, release={release:0.00}");
             AddResult("Rhythm.Telemetry", telemetryPass, $"phase={rhythmDirector.CurrentPhaseLabel}, beat={rhythmDirector.LastBeatLabel}, duration={rhythmDirector.CurrentPhaseDuration:0.0}s");
+            AddResult("Rhythm.SpikeFairnessTelemetry", spikeFairnessTelemetryPass, rhythmDirector.SpikeFairnessSummary);
         }
 
         private List<int> BuildMatrixStages()

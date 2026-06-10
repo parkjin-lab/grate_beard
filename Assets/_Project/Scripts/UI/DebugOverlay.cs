@@ -415,6 +415,7 @@ namespace LostBreadcrumbs.Runtime.UI
             {
                 GUILayout.Label($"Rhythm: {rhythmDirector.CurrentPhaseLabel} {rhythmDirector.CurrentPhaseProgress:0.00} ({rhythmDirector.CurrentPhaseElapsed:0.0}/{rhythmDirector.CurrentPhaseDuration:0.0}s) cycle {rhythmDirector.CycleCount}");
                 GUILayout.Label($"Rhythm Tempo/Intensity/Pressure: {rhythmDirector.CurrentTempo01:0.00}/{rhythmDirector.CurrentRhythmIntensity:0.00}/{rhythmDirector.CurrentPressureMultiplier:0.00}");
+                GUILayout.Label($"Spike Fairness: {rhythmDirector.SpikeFairnessSummary}");
                 DrawRhythmValidation();
             }
 
@@ -808,6 +809,8 @@ namespace LostBreadcrumbs.Runtime.UI
                 builder.AppendLine($"RhythmElapsedDuration: {rhythmDirector.CurrentPhaseElapsed:0.00}/{rhythmDirector.CurrentPhaseDuration:0.00}");
                 builder.AppendLine($"RhythmTempoIntensityPressure: {rhythmDirector.CurrentTempo01:0.000}/{rhythmDirector.CurrentRhythmIntensity:0.000}/{rhythmDirector.CurrentPressureMultiplier:0.000}");
                 builder.AppendLine($"RhythmCycle: {rhythmDirector.CycleCount}");
+                builder.AppendLine($"SpikeFairness: {rhythmDirector.SpikeFairnessSummary}");
+                builder.AppendLine($"SpikeFairnessFlags: entryWarn={rhythmDirector.LastSpikeHadWarningBeforeEntry}, chaseWarn={rhythmDirector.LastSpikeChaseHadPriorWarning}, lead={rhythmDirector.LastSpikeWarningLeadSeconds:0.000}, lockAge={rhythmDirector.LastLockOnWarningAgeSeconds:0.000}, chaseAge={rhythmDirector.LastChaseStartedAgeSeconds:0.000}");
             }
 
             builder.AppendLine($"ObservedPhases_CalmBuildSpikeRelease: {FormatObserved(rhythmCalmObserved)}/{FormatObserved(rhythmBuildObserved)}/{FormatObserved(rhythmSpikeObserved)}/{FormatObserved(rhythmReleaseObserved)}");
@@ -878,7 +881,7 @@ namespace LostBreadcrumbs.Runtime.UI
             return phase switch
             {
                 GameplayRhythmPhase.Build => $"Build check: tempted vs flat; phase={phaseLabel} {progress:0.00}, setPiece={setPiece}, pressure={FormatSnapshotFloat(pressure)}",
-                GameplayRhythmPhase.Spike => $"Spike check: scary but fair vs unfair; phase={phaseLabel} {progress:0.00}, closeThreat={FormatSnapshotFloat(closeThreat)}, setPiece={setPiece}",
+                GameplayRhythmPhase.Spike => $"Spike check: scary but fair vs unfair; phase={phaseLabel} {progress:0.00}, fair={rhythmDirector?.SpikeFairnessSummary ?? "n/a"}, closeThreat={FormatSnapshotFloat(closeThreat)}, setPiece={setPiece}",
                 GameplayRhythmPhase.Release => $"Release check: felt relief vs no relief; phase={phaseLabel} {progress:0.00}, quietBreath={relief:0.00}s, pressure={FormatSnapshotFloat(pressure)}",
                 _ => $"Calm check: readable route vs early pressure; phase={phaseLabel} {progress:0.00}, pressure={FormatSnapshotFloat(pressure)}, missing={GetMissingRhythmPhaseLabel()}"
             };

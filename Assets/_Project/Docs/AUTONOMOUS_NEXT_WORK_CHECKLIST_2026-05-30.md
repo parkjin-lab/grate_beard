@@ -49,6 +49,7 @@
 | Rhythm overlay response | Spike and Release should feel different without relying only on text or audio | Dread overlay now reads the rhythm director: Spike adds pulsing edge/red pressure, while early Release eases alpha/red blend, with setup wiring and static preflight hooks |
 | Rhythm set-piece alignment | Set-pieces should land as Build crest or Spike entry beats, not only stage-number events | Added rhythm-aware set-piece delay/tuning, BuildCrest/SpikeEntry labels, debug overlay readout, rhythm snapshot evidence, and static preflight hooks |
 | Rhythm snapshot readability | Snapshot files should guide quick human judgment without long playtest notes | Added QuickRead/JudgmentPrompt lines and static policy hooks for the Korean judgment card |
+| Spike fairness telemetry | Spike should be scary but explainable in snapshots, not only judged by feel | Rhythm now records LockOnWarning and ChaseStarted timing, reports entry/chase warning status in DebugOverlay snapshots, and has regression/static hooks |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |
@@ -71,10 +72,10 @@
 6. Follow `AUTONOMOUS_OPERATIONS_PLAYBOOK_2026-06-10.md` when the creator is absent: choose one small task, verify with static evidence, and hand off the next action.
 
 ## Next Priority
-The next best autonomous task is Spike fairness instrumentation:
-- Prove that Spike has a readable tell before the strongest threat response.
-- Capture a lightweight warning -> threat -> response chain in debug or regression evidence.
-- Keep Release relief as the second priority: snapshot whether stamina/calm/quiet breath/camera exhale/objective whisper are active long enough to feel like an exhale.
+The next best autonomous task is Release relief contract instrumentation:
+- Prove that Release has at least two non-text relief channels active long enough to feel like an exhale.
+- Capture calm duration, quiet breath, camera exhale, stamina recovery, and objective whisper state in debug or regression evidence.
+- Keep Spike fairness tuning as the second priority: use the new warning -> threat -> response telemetry to adjust tell lead time or chase timing only when snapshots show an unfair spike.
 
 The continuing autonomous validation policy is:
 - Prefer static/preflight checks, deterministic runtime counters, and debug snapshots over repeated manual runs.

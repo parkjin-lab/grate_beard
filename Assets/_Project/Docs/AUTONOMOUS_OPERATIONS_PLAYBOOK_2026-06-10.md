@@ -34,6 +34,6 @@ Keep development moving when the creator is busy or absent, without broad manual
 - If Unity is unavailable, keep changes small and backed by static hooks.
 
 ## Next Agent Handoff
-- Next implementation target: Spike fairness telemetry in `GameplayRhythmDirector`, `EnemyController`, `ThreatReadabilityDirector`, and `RegressionChecklistRunner`.
-- Acceptance target: before or during Spike, a warning/tell event should be observable before the strongest threat response, and this should be captured in debug or regression evidence.
-- Secondary target: Release relief snapshot fields for calm duration, quiet breath, camera exhale, and objective whisper.
+- Next implementation target: Release relief telemetry in `GameplayRhythmDirector`, `DreadScreenOverlayRuntime`, `PlayerVitalSystem`, `ObjectiveWhisperRuntime`, and `RegressionChecklistRunner`.
+- Acceptance target: during Release, at least two non-text relief channels should be observable long enough to feel like an exhale, and this should be captured in debug or regression evidence.
+- Secondary target: tune Spike warning lead time or chase timing only if the new Spike fairness telemetry reports an unfair warning -> threat chain.

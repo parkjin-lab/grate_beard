@@ -50,6 +50,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Range(0f, 0.18f)] private float spikeCameraImpulse = 0.08f;
         [SerializeField, Min(0.05f)] private float spikeImpulseDuration = 0.12f;
         [SerializeField, Min(0.05f)] private float spikeClutchMinimumRemainingSeconds = 0.45f;
+        [SerializeField, Min(0.1f)] private float spikeFairWarningMemorySeconds = 4.25f;
         [SerializeField, Min(0.1f)] private float referenceResolveInterval = 0.8f;
 
         private GameplayRhythmPhase currentPhase = GameplayRhythmPhase.Calm;
@@ -62,6 +63,12 @@ namespace LostBreadcrumbs.Runtime.Managers
         private float lastAppliedPressureMultiplier = 1f;
         private bool spikeTellRaisedThisBuild;
         private bool releaseEndTellRaisedThisRelease;
+        private float lastLockOnWarningRealtime = -999f;
+        private float lastChaseStartedRealtime = -999f;
+        private float lastSpikeEnteredRealtime = -999f;
+        private float lastSpikeWarningLeadSeconds = -1f;
+        private bool lastSpikeHadWarningBeforeEntry;
+        private bool lastSpikeChaseHadPriorWarning;
 
         public GameplayRhythmPhase CurrentPhase => currentPhase;
         public string CurrentPhaseLabel => currentPhase.ToString();
@@ -75,16 +82,25 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float CurrentContextPressure => lastContextPressure;
         public float CurrentPressureMultiplier => lastAppliedPressureMultiplier;
         public bool RuntimeRhythmEnabled => enableRuntimeRhythm;
+        public bool LastSpikeHadWarningBeforeEntry => lastSpikeHadWarningBeforeEntry;
+        public bool LastSpikeChaseHadPriorWarning => lastSpikeChaseHadPriorWarning;
+        public float LastSpikeWarningLeadSeconds => lastSpikeWarningLeadSeconds;
+        public float LastLockOnWarningAgeSeconds => lastLockOnWarningRealtime > 0f ? Mathf.Max(0f, Time.realtimeSinceStartup - lastLockOnWarningRealtime) : -1f;
+        public float LastChaseStartedAgeSeconds => lastChaseStartedRealtime > 0f ? Mathf.Max(0f, Time.realtimeSinceStartup - lastChaseStartedRealtime) : -1f;
+        public string SpikeFairnessSummary => BuildSpikeFairnessSummary();
 
         private void OnEnable()
         {
             ResolveReferences(force: true);
             SubscribeMap();
+            RuntimeEventBus.EventRaised -= HandleRuntimeEvent;
+            RuntimeEventBus.EventRaised += HandleRuntimeEvent;
             EnterPhase(GameplayRhythmPhase.Calm, raiseEvent: false, resetCycle: true);
         }
 
         private void OnDisable()
         {
+            RuntimeEventBus.EventRaised -= HandleRuntimeEvent;
             UnsubscribeMap();
         }
 
@@ -189,7 +205,7 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             RuntimeEventBus.Raise(
                 RuntimeEventType.Stage,
-                BuildSpikeClutchAdvanceMessage(advance, reason),
+                BuildSpikeClutchAdvanceMessageKo(advance, reason),
                 this,
                 mapSystem != null ? mapSystem.CurrentStage : 0,
                 semantic: RuntimeEventSemantic.EscapeRelief);
@@ -214,6 +230,10 @@ namespace LostBreadcrumbs.Runtime.Managers
             releaseEndTellRaisedThisRelease = false;
             lastAppliedPressureMultiplier = GetPressureMultiplierForPhase(phase);
             lastBeatLabel = BuildBeatLabel(phase);
+            if (phase == GameplayRhythmPhase.Spike)
+            {
+                RegisterSpikeEntryFairness();
+            }
 
             if (Application.isPlaying)
             {
@@ -242,7 +262,7 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             RuntimeEventBus.Raise(
                 RuntimeEventType.Stage,
-                BuildRhythmShiftMessage(lastBeatLabel, currentPhaseDuration),
+                BuildRhythmShiftMessageKo(lastBeatLabel, currentPhaseDuration),
                 this,
                 mapSystem != null ? mapSystem.CurrentStage : 0,
                 semantic: RuntimeEventSemantic.RhythmShift);
@@ -348,10 +368,67 @@ namespace LostBreadcrumbs.Runtime.Managers
             spikeTellRaisedThisBuild = true;
             RuntimeEventBus.Raise(
                 RuntimeEventType.Stage,
-                BuildSpikeIncomingMessage(remaining),
+                BuildSpikeIncomingMessageKo(remaining),
                 this,
                 mapSystem != null ? mapSystem.CurrentStage : 0,
                 semantic: RuntimeEventSemantic.LockOnWarning);
+        }
+
+        private void HandleRuntimeEvent(RuntimeEventRecord record)
+        {
+            if (RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                return;
+            }
+
+            switch (record.Semantic)
+            {
+                case RuntimeEventSemantic.LockOnWarning:
+                    lastLockOnWarningRealtime = record.RealtimeSinceStartup;
+                    if (currentPhase == GameplayRhythmPhase.Spike && lastSpikeEnteredRealtime > 0f)
+                    {
+                        lastSpikeHadWarningBeforeEntry |= record.RealtimeSinceStartup <= lastSpikeEnteredRealtime;
+                    }
+
+                    break;
+                case RuntimeEventSemantic.ChaseStarted:
+                    lastChaseStartedRealtime = record.RealtimeSinceStartup;
+                    if (currentPhase == GameplayRhythmPhase.Spike)
+                    {
+                        lastSpikeChaseHadPriorWarning = HasRecentWarningBefore(record.RealtimeSinceStartup);
+                    }
+
+                    break;
+            }
+        }
+
+        private void RegisterSpikeEntryFairness()
+        {
+            float now = Time.realtimeSinceStartup;
+            lastSpikeEnteredRealtime = now;
+            lastSpikeHadWarningBeforeEntry = HasRecentWarningBefore(now);
+            lastSpikeWarningLeadSeconds = lastSpikeHadWarningBeforeEntry
+                ? Mathf.Max(0f, now - lastLockOnWarningRealtime)
+                : -1f;
+            lastSpikeChaseHadPriorWarning = false;
+        }
+
+        private bool HasRecentWarningBefore(float realtime)
+        {
+            return lastLockOnWarningRealtime > 0f
+                   && lastLockOnWarningRealtime <= realtime
+                   && realtime - lastLockOnWarningRealtime <= Mathf.Max(0.1f, spikeFairWarningMemorySeconds);
+        }
+
+        private string BuildSpikeFairnessSummary()
+        {
+            string entry = lastSpikeHadWarningBeforeEntry
+                ? $"entryWarn=YES lead={lastSpikeWarningLeadSeconds:0.00}s"
+                : "entryWarn=NO";
+            string chase = lastChaseStartedRealtime > 0f
+                ? $"chaseWarn={(lastSpikeChaseHadPriorWarning ? "YES" : "NO")} chaseAge={LastChaseStartedAgeSeconds:0.00}s"
+                : "chaseWarn=none";
+            return $"{entry}, {chase}, lockAge={LastLockOnWarningAgeSeconds:0.00}s";
         }
 
         private void TryRaiseReleaseEndTell()
@@ -375,10 +452,43 @@ namespace LostBreadcrumbs.Runtime.Managers
             releaseEndTellRaisedThisRelease = true;
             RuntimeEventBus.Raise(
                 RuntimeEventType.Stage,
-                BuildReleaseEndTellMessage(remaining),
+                BuildReleaseEndTellMessageKo(remaining),
                 this,
                 mapSystem != null ? mapSystem.CurrentStage : 0,
                 semantic: RuntimeEventSemantic.RhythmShift);
+        }
+
+        private static string BuildSpikeClutchAdvanceMessageKo(float advanceSeconds, string reason)
+        {
+            string suffix = string.IsNullOrWhiteSpace(reason) ? string.Empty : $" / {reason.Trim()}";
+            return $"급습 단축{suffix} (-{Mathf.Max(0f, advanceSeconds):0.0}초)";
+        }
+
+        private static string BuildRhythmShiftMessageKo(string beatLabel, float durationSeconds)
+        {
+            return $"리듬 전환 {LocalizeRhythmBeatLabelKo(beatLabel)} ({Mathf.Max(0f, durationSeconds):0.0}초)";
+        }
+
+        private static string BuildSpikeIncomingMessageKo(float remainingSeconds)
+        {
+            return $"급습 임박 ({Mathf.Max(0f, remainingSeconds):0.0}초)";
+        }
+
+        private static string BuildReleaseEndTellMessageKo(float remainingSeconds)
+        {
+            return $"다시 빨라진다 ({Mathf.Max(0f, remainingSeconds):0.0}초)";
+        }
+
+        private static string LocalizeRhythmBeatLabelKo(string beatLabel)
+        {
+            return beatLabel switch
+            {
+                "Calm" => "고요",
+                "Build" => "고조",
+                "Spike" => "급습",
+                "Release" => "안도",
+                _ => string.IsNullOrWhiteSpace(beatLabel) ? "미정" : beatLabel
+            };
         }
 
         private static string BuildSpikeClutchAdvanceMessage(float advanceSeconds, string reason)

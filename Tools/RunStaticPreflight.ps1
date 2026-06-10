@@ -482,10 +482,16 @@ if (Test-Path $gameplayRhythmPath) {
         'currentPhase != GameplayRhythmPhase.Build',
         'spikeTellRaisedThisBuild',
         'RuntimeEventSemantic.LockOnWarning',
+        'RuntimeEventSemantic.ChaseStarted',
+        'HandleRuntimeEvent',
+        'RegisterSpikeEntryFairness',
+        'SpikeFairnessSummary',
+        'LastSpikeHadWarningBeforeEntry',
+        'LastSpikeChaseHadPriorWarning',
         'raiseReleaseEndTellEvent',
         'releaseEndTellRaisedThisRelease',
         'RuntimeEventSemantic.RhythmShift',
-        'BuildSpikeIncomingMessage'
+        'BuildSpikeIncomingMessageKo'
     )
     foreach ($hook in $spikeTellHooks) {
         if (-not $gameplayRhythmText.Contains($hook)) {
@@ -517,6 +523,44 @@ if (Test-Path $audioManagerPath) {
     $spikeFairnessMissing.Add('AudioManager.cs missing')
 }
 $results.Add((Add-Result 'code.spikeFairnessCueBudgetHooks' ($(if ($spikeFairnessMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($spikeFairnessMissing -join ', ')"))
+
+$spikeFairnessTelemetryMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $regressionPath) {
+    $regressionText = Get-Content $regressionPath -Raw
+    $spikeRegressionHooks = @(
+        'Rhythm.SpikeFairnessTelemetry',
+        'SpikeFairnessSummary',
+        'LastSpikeWarningLeadSeconds',
+        'LastLockOnWarningAgeSeconds',
+        'LastChaseStartedAgeSeconds'
+    )
+    foreach ($hook in $spikeRegressionHooks) {
+        if (-not $regressionText.Contains($hook)) {
+            $spikeFairnessTelemetryMissing.Add("RegressionChecklistRunner:$hook")
+        }
+    }
+} else {
+    $spikeFairnessTelemetryMissing.Add('RegressionChecklistRunner.cs missing')
+}
+
+if (Test-Path $debugOverlayPath) {
+    $debugOverlayText = Get-Content $debugOverlayPath -Raw
+    $spikeDebugHooks = @(
+        'Spike Fairness:',
+        'SpikeFairness:',
+        'SpikeFairnessFlags:',
+        'LastSpikeHadWarningBeforeEntry',
+        'LastSpikeChaseHadPriorWarning'
+    )
+    foreach ($hook in $spikeDebugHooks) {
+        if (-not $debugOverlayText.Contains($hook)) {
+            $spikeFairnessTelemetryMissing.Add("DebugOverlay:$hook")
+        }
+    }
+} else {
+    $spikeFairnessTelemetryMissing.Add('DebugOverlay.cs missing')
+}
+$results.Add((Add-Result 'code.spikeFairnessTelemetryHooks' ($(if ($spikeFairnessTelemetryMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($spikeFairnessTelemetryMissing -join ', ')"))
 
 $rhythmUiWordingMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $eventFeedbackPath) {
@@ -695,11 +739,11 @@ if (Test-Path $playerControllerPath) {
 if (Test-Path $gameplayRhythmPath) {
     $gameplayRhythmText = Get-Content $gameplayRhythmPath -Raw
     $gameplayRhythmWordingHooks = @(
-        'BuildSpikeClutchAdvanceMessage',
-        'BuildRhythmShiftMessage',
-        'BuildSpikeIncomingMessage',
-        'BuildReleaseEndTellMessage',
-        'LocalizeRhythmBeatLabel'
+        'BuildSpikeClutchAdvanceMessageKo',
+        'BuildRhythmShiftMessageKo',
+        'BuildSpikeIncomingMessageKo',
+        'BuildReleaseEndTellMessageKo',
+        'LocalizeRhythmBeatLabelKo'
     )
     foreach ($hook in $gameplayRhythmWordingHooks) {
         if (-not $gameplayRhythmText.Contains($hook)) {
