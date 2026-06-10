@@ -981,6 +981,7 @@ $trackedVendorAssetDetail = $(if ($trackedVendorAssets.Count -eq 0) { 'tracked=0
 $results.Add((Add-Result 'repo.vendorAssetTrackedGuards' $trackedVendorAssetStatus $trackedVendorAssetDetail))
 
 $requiredDocPatterns = @(
+    'AUTONOMOUS_OPERATIONS_PLAYBOOK_*.md',
     'AUTONOMOUS_NEXT_WORK_CHECKLIST_*.md',
     'RESOURCE_REQUIREMENTS_UPDATE_*.md',
     'RHYTHM_VALIDATION_PLAYBOOK_*.md',

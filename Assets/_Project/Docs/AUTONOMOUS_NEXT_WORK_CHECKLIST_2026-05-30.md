@@ -68,9 +68,15 @@
 3. Improve generated placeholder feedback only when it does not require new licensed assets. `[done: semantic stinger clip slots and placeholder rhythm pass]`
 4. Keep vendor assets ignored until explicitly approved.
 5. Run static preflight after each code change and commit only scoped files.
+6. Follow `AUTONOMOUS_OPERATIONS_PLAYBOOK_2026-06-10.md` when the creator is absent: choose one small task, verify with static evidence, and hand off the next action.
 
 ## Next Priority
-The next best autonomous task is to reduce the need for human play validation:
+The next best autonomous task is Spike fairness instrumentation:
+- Prove that Spike has a readable tell before the strongest threat response.
+- Capture a lightweight warning -> threat -> response chain in debug or regression evidence.
+- Keep Release relief as the second priority: snapshot whether stamina/calm/quiet breath/camera exhale/objective whisper are active long enough to feel like an exhale.
+
+The continuing autonomous validation policy is:
 - Prefer static/preflight checks, deterministic runtime counters, and debug snapshots over repeated manual runs.
 - Add small guardrails that catch missing rhythm phases, malformed machine-readable summaries, missing stinger assignments, spawn safety regressions, invalid state transitions, spike fairness regressions, build temptation regressions, release relief contract regressions, rhythm set-piece alignment regressions, vendor import regressions, validation artifact leakage, missing planning/handoff artifacts, and validation-policy drift. `[in progress: validation, machine summary/readback/schema/git context/duration warning, conflict-scan performance, player wall-spawn recovery, spawn safety, rhythm state, spike fairness, build temptation, release relief, rhythm set-piece alignment, vendor ignore/tracking, log artifact, stinger slot, planning/handoff artifact, and low-touch validation policy preflight checks added]`
 - Keep human rhythm notes plain: `scary but fair`, `unfair`, `felt relief`, `no relief`, `tempted`, or `flat` is enough.
