@@ -9,6 +9,7 @@ namespace LostBreadcrumbs.Runtime.UI
     {
         [Header("References")]
         [SerializeField] private ThreatReadabilityDirector threatReadabilityDirector;
+        [SerializeField] private GameplayRhythmDirector gameplayRhythmDirector;
         [SerializeField] private Canvas targetCanvas;
 
         [Header("Build")]
@@ -32,6 +33,14 @@ namespace LostBreadcrumbs.Runtime.UI
         [SerializeField, Min(0.1f)] private float fadeInSpeed = 2.2f;
         [SerializeField, Min(0.1f)] private float fadeOutSpeed = 3.6f;
         [SerializeField, Min(0.1f)] private float missingReferenceResolveInterval = 0.75f;
+
+        [Header("Rhythm Response")]
+        [SerializeField] private bool enableRhythmResponse = true;
+        [SerializeField, Range(0f, 0.18f)] private float spikeRhythmExtraAlpha = 0.075f;
+        [SerializeField, Range(0f, 0.35f)] private float spikeRhythmRedBoost = 0.2f;
+        [SerializeField, Range(0f, 0.22f)] private float releaseRhythmAlphaRelief = 0.11f;
+        [SerializeField, Range(0f, 0.35f)] private float releaseRhythmRedRelief = 0.18f;
+        [SerializeField, Min(0.1f)] private float rhythmPulseSpeed = 1.18f;
 
         [Header("Color")]
         [SerializeField] private Color lowPressureEdgeColor = new(0.006f, 0.007f, 0.012f, 1f);
@@ -143,11 +152,15 @@ namespace LostBreadcrumbs.Runtime.UI
             }
 
             float closePressure = Mathf.Max(nearbyThreat, tunnelVision);
+            float rhythmSpike = EvaluateSpikeRhythm01();
+            float rhythmRelease = EvaluateReleaseRhythm01();
             float combinedPressure = Mathf.Clamp01(
                 pressure
                 + flashlightDread * flashlightDreadWeight
                 + nearbyThreat * nearbyThreatWeight
-                + tunnelVision * tunnelVisionWeight);
+                + tunnelVision * tunnelVisionWeight
+                + rhythmSpike * 0.12f
+                - rhythmRelease * 0.08f);
             float pressureFade = Mathf.InverseLerp(
                 Mathf.Min(pressureFadeStart, pressureFadeFull),
                 Mathf.Max(pressureFadeStart + 0.01f, pressureFadeFull),
@@ -159,19 +172,32 @@ namespace LostBreadcrumbs.Runtime.UI
             float targetAlpha = pressureFade * maxEdgeAlpha
                                 + pressureFade * breath * breathAlpha
                                 + nearbyThreat * closeThreatExtraAlpha
-                                + tunnelVision * tunnelVisionExtraAlpha;
+                                + tunnelVision * tunnelVisionExtraAlpha
+                                + rhythmSpike * spikeRhythmExtraAlpha
+                                - rhythmRelease * releaseRhythmAlphaRelief;
             targetAlpha = Mathf.Clamp(targetAlpha, 0f, maxEdgeAlpha + breathAlpha + closeThreatExtraAlpha + tunnelVisionExtraAlpha);
 
             float speed = targetAlpha > currentAlpha ? fadeInSpeed : fadeOutSpeed;
             float t = 1f - Mathf.Exp(-Mathf.Max(0.1f, speed) * Time.unscaledDeltaTime);
             currentAlpha = Mathf.Lerp(currentAlpha, targetAlpha, t);
 
-            ApplyOverlay(currentAlpha, Mathf.Clamp01(pressureFade + flashlightDread * 0.25f + closePressure * 0.32f));
+            float redBlend = Mathf.Clamp01(
+                pressureFade
+                + flashlightDread * 0.25f
+                + closePressure * 0.32f
+                + rhythmSpike * spikeRhythmRedBoost
+                - rhythmRelease * releaseRhythmRedRelief);
+            ApplyOverlay(currentAlpha, redBlend);
         }
 
         public void SetThreatSourceForEditor(ThreatReadabilityDirector director)
         {
             threatReadabilityDirector = director;
+        }
+
+        public void SetRhythmSourceForEditor(GameplayRhythmDirector director)
+        {
+            gameplayRhythmDirector = director;
         }
 
         public void SetTargetCanvasForEditor(Canvas canvasRef)
@@ -195,9 +221,33 @@ namespace LostBreadcrumbs.Runtime.UI
             return value is float tunnel ? Mathf.Clamp01(tunnel) : Mathf.Clamp01(fallback);
         }
 
+        private float EvaluateSpikeRhythm01()
+        {
+            if (!enableRhythmResponse || gameplayRhythmDirector == null || gameplayRhythmDirector.CurrentPhase != GameplayRhythmPhase.Spike)
+            {
+                return 0f;
+            }
+
+            float intensity = Mathf.Clamp01(gameplayRhythmDirector.CurrentRhythmIntensity);
+            float pulse = (Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f * rhythmPulseSpeed) + 1f) * 0.5f;
+            return Mathf.Clamp01(intensity * Mathf.Lerp(0.72f, 1f, pulse));
+        }
+
+        private float EvaluateReleaseRhythm01()
+        {
+            if (!enableRhythmResponse || gameplayRhythmDirector == null || gameplayRhythmDirector.CurrentPhase != GameplayRhythmPhase.Release)
+            {
+                return 0f;
+            }
+
+            float progress = gameplayRhythmDirector.CurrentPhaseProgress;
+            float exhale = 1f - Mathf.SmoothStep(0f, 1f, progress);
+            return Mathf.Clamp01(exhale * Mathf.Lerp(0.65f, 1f, gameplayRhythmDirector.CurrentRhythmIntensity));
+        }
+
         private void TryResolveReferences(bool force = false)
         {
-            if (!force && threatReadabilityDirector != null)
+            if (!force && threatReadabilityDirector != null && gameplayRhythmDirector != null)
             {
                 return;
             }
@@ -212,6 +262,11 @@ namespace LostBreadcrumbs.Runtime.UI
             if (threatReadabilityDirector == null)
             {
                 threatReadabilityDirector = FindFirstObjectByType<ThreatReadabilityDirector>();
+            }
+
+            if (gameplayRhythmDirector == null)
+            {
+                gameplayRhythmDirector = FindFirstObjectByType<GameplayRhythmDirector>();
             }
         }
 

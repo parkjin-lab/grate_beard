@@ -44,6 +44,7 @@
 - Stage pressure and set-piece shift alerts now use Korean-first helper messages so pressure changes and authored beats read as horror rhythm cues.
 - Stage generation, loadout, and manual echo scan alerts now use Korean-first helper messages so system events do not leak English debug labels.
 - Rhythm shift/spike tell, pressure wave, safe-haven thinning, haunted-room, enemy lock-on, and breadcrumb count alerts now use Korean-first helper messages.
+- Dread overlay now responds to rhythm phase directly: Spike adds pulsing edge/red pressure, while early Release eases the vignette toward a visible exhale.
 - Stage set-pieces now align to BuildCrest or SpikeEntry rhythm windows when possible, expose rhythm alignment labels in the debug overlay, write set-piece rhythm evidence into rhythm snapshots, and have static preflight hooks to preserve that timing policy.
 - Rhythm snapshots now include QuickRead/JudgmentPrompt lines so rare human checks can quickly classify Build, Spike, Release, or Calm without broad playtest notes.
 - Static preflight now checks that ignored vendor Asset Store import paths remain protected in `.gitignore`.

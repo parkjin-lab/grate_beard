@@ -61,6 +61,7 @@ $gitignorePath = Join-Path $ProjectRoot '.gitignore'
 $setupPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Editor/LostBreadcrumbsProjectSetup.cs'
 $regressionPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/RegressionChecklistRunner.cs'
 $debugOverlayPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/DebugOverlay.cs'
+$dreadOverlayPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/DreadScreenOverlayRuntime.cs'
 $eventFeedbackPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/EventFeedbackRuntime.cs'
 $gameplayHudPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/GameplayHudRuntime.cs'
 $audioManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioManager.cs'
@@ -869,6 +870,39 @@ if (Test-Path $threatReadabilityPath) {
     $releaseReliefMissing.Add('ThreatReadabilityDirector.cs missing')
 }
 $results.Add((Add-Result 'code.releaseReliefContractHooks' ($(if ($releaseReliefMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($releaseReliefMissing -join ', ')"))
+
+$rhythmOverlayMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $dreadOverlayPath) {
+    $dreadOverlayText = Get-Content $dreadOverlayPath -Raw
+    $dreadOverlayHooks = @(
+        'SetRhythmSourceForEditor',
+        'EvaluateSpikeRhythm01',
+        'EvaluateReleaseRhythm01',
+        'GameplayRhythmPhase.Spike',
+        'GameplayRhythmPhase.Release',
+        'spikeRhythmExtraAlpha',
+        'releaseRhythmAlphaRelief',
+        'spikeRhythmRedBoost',
+        'releaseRhythmRedRelief'
+    )
+    foreach ($hook in $dreadOverlayHooks) {
+        if (-not $dreadOverlayText.Contains($hook)) {
+            $rhythmOverlayMissing.Add("DreadScreenOverlayRuntime:$hook")
+        }
+    }
+} else {
+    $rhythmOverlayMissing.Add('DreadScreenOverlayRuntime.cs missing')
+}
+
+if (Test-Path $setupPath) {
+    $setupText = Get-Content $setupPath -Raw
+    if (-not $setupText.Contains('SetRhythmSourceForEditor')) {
+        $rhythmOverlayMissing.Add('LostBreadcrumbsProjectSetup:SetRhythmSourceForEditor')
+    }
+} else {
+    $rhythmOverlayMissing.Add('LostBreadcrumbsProjectSetup.cs missing')
+}
+$results.Add((Add-Result 'code.rhythmOverlayResponseHooks' ($(if ($rhythmOverlayMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmOverlayMissing -join ', ')"))
 
 $rhythmSetPieceMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $stageSetPiecePath) {

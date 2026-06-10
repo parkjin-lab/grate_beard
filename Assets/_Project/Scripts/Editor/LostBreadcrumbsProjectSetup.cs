@@ -726,6 +726,7 @@ namespace LostBreadcrumbs.EditorTools
             AddOrGet<GameplayFlowGuideRuntime>(EnsureChild(uiRoot, "FlowGuide"));
             DreadScreenOverlayRuntime dreadOverlay = AddOrGet<DreadScreenOverlayRuntime>(EnsureChild(uiRoot, "DreadScreenOverlay"));
             dreadOverlay.SetThreatSourceForEditor(threatReadabilityDirector);
+            dreadOverlay.SetRhythmSourceForEditor(gameplayRhythmDirector);
             GameObject alertsObject = EnsureChild(uiRoot, "Alerts");
             EventFeedbackRuntime eventFeedback = AddOrGet<EventFeedbackRuntime>(alertsObject);
             eventFeedback.SetCameraForEditor(cameraFollow);
