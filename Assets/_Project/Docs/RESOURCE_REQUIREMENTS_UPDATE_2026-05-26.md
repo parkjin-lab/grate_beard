@@ -63,6 +63,7 @@
 - `Tools\Summarize-RhythmSnapshots.cmd` now summarizes rhythm snapshot phase counts, Calm readability status, Build temptation status, Spike fairness status, and Release relief channel status for low-touch validation.
 - The rhythm snapshot summary tool can now write JSON through `-OutputJsonPath` so automation can read phase status fields without terminal text parsing.
 - `Tools\Write-RhythmSnapshotSummary.cmd` now writes the default JSON summary path for heartbeat automation.
+- Rhythm snapshot JSON now includes an overall evidence status so automation can distinguish missing evidence from tuning failures.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

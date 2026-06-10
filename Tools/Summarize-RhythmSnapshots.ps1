@@ -233,19 +233,27 @@ $calmEvidenceStatus = if (-not $hasCalmEvidence) { 'NO_CALM_SNAPSHOTS' } elseif 
 $buildEvidenceStatus = if (-not $hasBuildEvidence) { 'NO_BUILD_SNAPSHOTS' } elseif ($allBuildSnapshotsPass) { 'PASS' } else { 'FLAT' }
 $releaseEvidenceStatus = if (-not $hasReleaseEvidence) { 'NO_RELEASE_SNAPSHOTS' } elseif ($allReleaseSnapshotsPass) { 'PASS' } else { 'WEAK' }
 $spikeEvidenceStatus = if (-not $hasSpikeEvidence) { 'NO_SPIKE_SNAPSHOTS' } elseif ($allSpikeSnapshotsPass) { 'PASS' } else { 'UNFAIR' }
-$exitCode = if (-not $hasCalmEvidence -and -not $hasBuildEvidence -and -not $hasReleaseEvidence -and -not $hasSpikeEvidence) {
-    0
-} elseif ($allCalmSnapshotsPass -and $allBuildSnapshotsPass -and $allReleaseSnapshotsPass -and $allSpikeSnapshotsPass) {
-    0
+$phaseEvidenceComplete = $hasCalmEvidence -and $hasBuildEvidence -and $hasSpikeEvidence -and $hasReleaseEvidence
+$hasAnyEvidence = $hasCalmEvidence -or $hasBuildEvidence -or $hasSpikeEvidence -or $hasReleaseEvidence
+$allObservedEvidencePasses = $allCalmSnapshotsPass -and $allBuildSnapshotsPass -and $allSpikeSnapshotsPass -and $allReleaseSnapshotsPass
+$overallEvidenceStatus = if (-not $hasAnyEvidence) {
+    'NO_EVIDENCE'
+} elseif (-not $allObservedEvidencePasses) {
+    'NEEDS_TUNING'
+} elseif (-not $phaseEvidenceComplete) {
+    'PARTIAL_EVIDENCE'
 } else {
-    2
+    'PASS'
 }
+$exitCode = if ($overallEvidenceStatus -eq 'NEEDS_TUNING') { 2 } else { 0 }
 
 Write-Host 'LostBreadcrumbs Rhythm Snapshot Summary'
 Write-Host "InputDirectory: $InputDirectory"
 Write-Host "DirectoryExists: $exists"
 Write-Host "SnapshotCount: $total"
 Write-Host "PhaseCounts: $phaseSummary"
+Write-Host "OverallEvidenceStatus: $overallEvidenceStatus"
+Write-Host "PhaseEvidenceComplete: $phaseEvidenceComplete"
 Write-Host "CalmSnapshots: total=$calmTotal pass=$calmPass rushed=$calmRushed missingPressure=$calmMissingPressure maxStagePressure=$maxCalmPressure maxReadability=$maxCalmReadability"
 Write-Host "CalmEvidenceStatus: $calmEvidenceStatus"
 Write-Host "LastCalmSnapshot: $(if ([string]::IsNullOrWhiteSpace($lastCalmFile)) { 'none' } else { $lastCalmFile })"
@@ -291,6 +299,8 @@ if (-not [string]::IsNullOrWhiteSpace($OutputJsonPath)) {
         directoryExists = $exists
         snapshotCount = $total
         exitCode = $exitCode
+        overallEvidenceStatus = $overallEvidenceStatus
+        phaseEvidenceComplete = $phaseEvidenceComplete
         phaseCounts = $phaseCounts
         thresholds = [ordered]@{
             minimumReleaseChannels = $minimum

@@ -13,6 +13,7 @@ Validate that the game is not only harder or darker, but rhythmically readable: 
 - After snapshots are captured, run `Tools\Summarize-RhythmSnapshots.cmd` to summarize phase counts, whether Calm stayed readable, whether Build had a temptation choice, whether Spike had a readable warning chain, and whether Release kept at least two relief channels active.
 - For automation-readable output, add `-OutputJsonPath Logs\RhythmValidation\rhythm_snapshot_summary_last.json`.
 - For the default automation path, run `Tools\Write-RhythmSnapshotSummary.cmd`; it writes `Logs\RhythmValidation\rhythm_snapshot_summary_last.json`.
+- Read `OverallEvidenceStatus` first: `NO_EVIDENCE` means capture snapshots, `PARTIAL_EVIDENCE` means capture missing phases, `NEEDS_TUNING` means tune the flagged phase, and `PASS` means the snapshot evidence is currently clean.
 - A pass only proves that all phases occurred; it does not prove they felt good. Use the manual notes below for that.
 
 ## Minimal Human Pass
