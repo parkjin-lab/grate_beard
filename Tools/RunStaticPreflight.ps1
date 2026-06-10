@@ -91,6 +91,8 @@ $jsonSummaryPath = Join-Path $releaseSoakDir 'local_static_preflight_last_summar
 $unityPreflightSummaryPath = Join-Path $releaseSoakDir 'auto_soak_preflight_last_summary.txt'
 $tracePath = Join-Path $releaseSoakDir 'auto_soak_flow_trace.log'
 $statusPath = Join-Path $releaseSoakDir 'auto_soak_flow_last_status.txt'
+$rhythmSnapshotSummaryScriptPath = Join-Path $ProjectRoot 'Tools/Summarize-RhythmSnapshots.ps1'
+$rhythmSnapshotSummaryCmdPath = Join-Path $ProjectRoot 'Tools/Summarize-RhythmSnapshots.cmd'
 
 $coreTypes = @(
     'LostBreadcrumbs.Runtime.Systems.SpawnSystem',
@@ -329,6 +331,36 @@ if (Test-Path $debugOverlayPath) {
 } else {
     $results.Add((Add-Result 'code.lowTouchRhythmValidationHooks' 'FAIL' 'DebugOverlay.cs is missing.'))
 }
+
+$rhythmSnapshotToolMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $rhythmSnapshotSummaryScriptPath) {
+    $rhythmSnapshotToolText = Get-Content $rhythmSnapshotSummaryScriptPath -Raw
+    $rhythmSnapshotToolHooks = @(
+        'MinimumReleaseChannels',
+        'ReleaseReliefFlags',
+        'ReleaseEvidenceStatus',
+        'NO_RELEASE_SNAPSHOTS',
+        'WeakReleaseFiles',
+        'Read-FlagNumber'
+    )
+    foreach ($hook in $rhythmSnapshotToolHooks) {
+        if (-not $rhythmSnapshotToolText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Summarize-RhythmSnapshots.ps1:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Summarize-RhythmSnapshots.ps1 missing')
+}
+
+if (Test-Path $rhythmSnapshotSummaryCmdPath) {
+    $rhythmSnapshotCmdText = Get-Content $rhythmSnapshotSummaryCmdPath -Raw
+    if (-not $rhythmSnapshotCmdText.Contains('Summarize-RhythmSnapshots.ps1')) {
+        $rhythmSnapshotToolMissing.Add('Summarize-RhythmSnapshots.cmd:Summarize-RhythmSnapshots.ps1')
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Summarize-RhythmSnapshots.cmd missing')
+}
+$results.Add((Add-Result 'tools.rhythmSnapshotSummaryHooks' ($(if ($rhythmSnapshotToolMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmSnapshotToolMissing -join ', ')"))
 
 if (Test-Path $audioManagerPath) {
     $audioManagerText = Get-Content $audioManagerPath -Raw

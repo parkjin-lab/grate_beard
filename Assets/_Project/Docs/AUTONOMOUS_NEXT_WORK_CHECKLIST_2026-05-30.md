@@ -52,6 +52,7 @@
 | Spike fairness telemetry | Spike should be scary but explainable in snapshots, not only judged by feel | Rhythm now records LockOnWarning and ChaseStarted timing, reports entry/chase warning status in DebugOverlay snapshots, and has regression/static hooks |
 | Release relief telemetry | Release should be felt through active relief channels, not only through copy | Release now reports calm window, camera exhale, quiet breath, objective whisper, and stamina recovery channels in DebugOverlay snapshots, regression checks, and static hooks |
 | Release first tuning pass | Release relief should last long enough for the player to notice the rhythm reset | Lengthened calm window, quiet breath, camera exhale, objective whisper, and overlay relief defaults, with scene calm/quiet values updated |
+| Rhythm snapshot summary tool | Automation needs to read snapshot evidence without terminal archaeology | Added `Tools\Summarize-RhythmSnapshots.cmd` to summarize phase counts and Release relief channel pass/weak status |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |
@@ -76,6 +77,7 @@
 ## Next Priority
 The next best autonomous task is Release relief tuning from telemetry:
 - Use `ReleaseRelief` snapshot lines to verify whether at least two relief channels stay active through the early/mid Release window.
+- Prefer `Tools\Summarize-RhythmSnapshots.cmd` once snapshots exist; it should report `ReleaseEvidenceStatus: PASS` before claiming relief is proven.
 - If snapshots still show weak relief, tune intensity/fade shape next rather than adding new assets.
 - Keep Spike fairness tuning as the second priority: use warning -> threat -> response telemetry to adjust tell lead time or chase timing only when snapshots show an unfair spike.
 
