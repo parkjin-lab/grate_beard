@@ -183,7 +183,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Range(40f, 260f)] private float escapeReliefAudioFrequency = 118f;
         [SerializeField, Range(0f, 1f)] private float escapeReliefAudioSpatialBlend = 0.2f;
         [SerializeField] private bool enableEscapeReliefCalmWindow = true;
-        [SerializeField, Min(0.1f)] private float escapeReliefCalmSeconds = 2.8f;
+        [SerializeField, Min(0.1f)] private float escapeReliefCalmSeconds = 3.25f;
         [SerializeField, Range(0f, 0.75f)] private float escapeReliefPressureDip = 0.28f;
         [SerializeField, Range(0f, 1f)] private float escapeReliefCueSuppression = 0.86f;
         [SerializeField] private bool enableEscapeReliefEnemyTrail = true;
@@ -194,7 +194,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private Color escapeReliefTrailColor = new(0.18f, 1f, 0.78f, 0.38f);
         [SerializeField] private int escapeReliefTrailSortingOrder = 37;
         [SerializeField] private bool enableEscapeReliefQuietBreath = true;
-        [SerializeField, Min(0.1f)] private float escapeReliefQuietBreathSeconds = 2.6f;
+        [SerializeField, Min(0.1f)] private float escapeReliefQuietBreathSeconds = 3.15f;
         [SerializeField, Range(0.2f, 1f)] private float escapeReliefFootstepNoiseMultiplier = 0.46f;
         [SerializeField, Range(0.2f, 1f)] private float escapeReliefSprintNoiseMultiplier = 0.62f;
         [SerializeField] private bool enableEscapeReliefBreathSnap = true;
@@ -228,16 +228,16 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField] private bool enableRhythmReleaseRelief = true;
         [SerializeField, Min(0.5f)] private float rhythmReleaseReliefCooldownSeconds = 2.5f;
         [SerializeField, Min(0f)] private float rhythmReleaseStaminaRecover = 0.28f;
-        [SerializeField, Range(0f, 1f)] private float rhythmReleaseReliefIntensityFloor = 0.42f;
+        [SerializeField, Range(0f, 1f)] private float rhythmReleaseReliefIntensityFloor = 0.5f;
         [SerializeField, Range(0f, 1f)] private float rhythmReleaseReliefPressureBonus = 0.24f;
-        [SerializeField, Range(0.2f, 1.5f)] private float rhythmReleaseFogRadiusMultiplier = 0.85f;
-        [SerializeField, Range(0.2f, 1.5f)] private float rhythmReleaseQuietBreathMultiplier = 1.08f;
+        [SerializeField, Range(0.2f, 1.5f)] private float rhythmReleaseFogRadiusMultiplier = 0.95f;
+        [SerializeField, Range(0.2f, 1.5f)] private float rhythmReleaseQuietBreathMultiplier = 1.22f;
         [SerializeField, Range(0.5f, 2f)] private float rhythmReleaseObjectiveWhisperDistanceMultiplier = 1.22f;
-        [SerializeField, Range(0.5f, 2f)] private float rhythmReleaseObjectiveWhisperDurationMultiplier = 1.34f;
+        [SerializeField, Range(0.5f, 2f)] private float rhythmReleaseObjectiveWhisperDurationMultiplier = 1.55f;
         [SerializeField, Range(0.5f, 1.8f)] private float rhythmReleaseObjectiveWhisperWidthMultiplier = 1.14f;
         [SerializeField] private bool enableRhythmReleaseCameraExhale = true;
-        [SerializeField, Min(0.1f)] private float rhythmReleaseCameraExhaleSeconds = 2.2f;
-        [SerializeField, Min(0f)] private float rhythmReleaseCameraExhaleZoomBonus = 0.22f;
+        [SerializeField, Min(0.1f)] private float rhythmReleaseCameraExhaleSeconds = 2.85f;
+        [SerializeField, Min(0f)] private float rhythmReleaseCameraExhaleZoomBonus = 0.28f;
         [SerializeField, Range(0.5f, 1.2f)] private float rhythmReleaseCameraExhaleLookAheadMultiplier = 0.76f;
         [SerializeField, Range(0.5f, 1.3f)] private float rhythmReleaseCameraExhaleSmoothMultiplier = 0.88f;
 

@@ -59,6 +59,7 @@
 - Static preflight now labels stale release-soak logs with freshness days and refresh-required status so old evidence is not mistaken for current validation.
 - Spike fairness telemetry now records warning-to-spike/chase timing in rhythm snapshots and regression checks, making unfair spikes easier to identify without broad playtesting.
 - Release relief telemetry now records active calm, camera exhale, quiet breath, objective whisper, and stamina recovery channels so weak relief can be tuned from snapshot evidence first.
+- Release relief defaults now hold the exhale longer by extending calm, quiet breath, camera exhale, objective whisper duration, and overlay relief before requesting new art or audio.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |
@@ -83,7 +84,7 @@
 - Release phase resources should briefly clear visual/audio pressure so the player can feel the rhythm reset.
 
 ## Immediate Next Work Without Planner Input
-1. Use Release relief telemetry snapshots to tune camera exhale length, calm duration, quiet breath, or objective whisper before requesting new assets.
+1. Use Release relief telemetry snapshots to check whether the first tuning pass keeps at least two non-text relief channels active through early/mid Release.
 2. Decide whether the ignored vendor folders should stay local-only or be re-imported as smaller scoped packages.
 3. Minimize human Play Mode validation; use debug rhythm snapshots only for anomalies or final spot checks.
 4. Replace one placeholder semantic SFX group at a time, starting with `ChaseStarted`, `LockOnWarning`, and `EscapeRelief`.

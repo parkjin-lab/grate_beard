@@ -38,8 +38,8 @@ namespace LostBreadcrumbs.Runtime.UI
         [SerializeField] private bool enableRhythmResponse = true;
         [SerializeField, Range(0f, 0.18f)] private float spikeRhythmExtraAlpha = 0.075f;
         [SerializeField, Range(0f, 0.35f)] private float spikeRhythmRedBoost = 0.2f;
-        [SerializeField, Range(0f, 0.22f)] private float releaseRhythmAlphaRelief = 0.11f;
-        [SerializeField, Range(0f, 0.35f)] private float releaseRhythmRedRelief = 0.18f;
+        [SerializeField, Range(0f, 0.22f)] private float releaseRhythmAlphaRelief = 0.14f;
+        [SerializeField, Range(0f, 0.35f)] private float releaseRhythmRedRelief = 0.22f;
         [SerializeField, Min(0.1f)] private float rhythmPulseSpeed = 1.18f;
 
         [Header("Color")]

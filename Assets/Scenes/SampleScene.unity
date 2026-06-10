@@ -475,7 +475,7 @@ MonoBehaviour:
   escapeReliefAudioFrequency: 118
   escapeReliefAudioSpatialBlend: 0.2
   enableEscapeReliefCalmWindow: 1
-  escapeReliefCalmSeconds: 2.8
+  escapeReliefCalmSeconds: 3.25
   escapeReliefPressureDip: 0.28
   escapeReliefCueSuppression: 0.86
   enableEscapeReliefEnemyTrail: 1
@@ -486,7 +486,7 @@ MonoBehaviour:
   escapeReliefTrailColor: {r: 0.18, g: 1, b: 0.78, a: 0.38}
   escapeReliefTrailSortingOrder: 37
   enableEscapeReliefQuietBreath: 1
-  escapeReliefQuietBreathSeconds: 2.6
+  escapeReliefQuietBreathSeconds: 3.15
   escapeReliefFootstepNoiseMultiplier: 0.46
   escapeReliefSprintNoiseMultiplier: 0.62
   enableEscapeReliefBreathSnap: 1
