@@ -426,6 +426,7 @@ namespace LostBreadcrumbs.Runtime.UI
                 GUILayout.Label($"Readability Art/PulseCD: {(readabilityDirector.RuntimeArtGradeEnabled ? "On" : "Off")}/{readabilityDirector.ThreatPulseCooldownRemaining:0.00}s");
                 GUILayout.Label($"Readability Tunnel/Close: {readabilityDirector.CurrentThreatTunnelVision:0.00}/{readabilityDirector.CurrentCloseThreatDistance:0.0}m -> cam {readabilityDirector.CurrentCameraTargetOrthoSize:0.00}");
                 GUILayout.Label($"Readability BreathSnap: strain={readabilityDirector.CurrentQuietBreathStrain:0.00} cd={readabilityDirector.BreathSnapCooldownRemaining:0.00}s");
+                GUILayout.Label($"Release Relief: {readabilityDirector.ReleaseReliefSummary}");
                 if (readabilityDirector.HasBaseCameraOrthoSize)
                 {
                     GUILayout.Label($"Readability Camera BaseSize: {readabilityDirector.BaseCameraOrthoSize:0.00}");
@@ -839,6 +840,8 @@ namespace LostBreadcrumbs.Runtime.UI
                 builder.AppendLine($"ReadabilityPressure_NearStageFinal: {readabilityDirector.CurrentNearbyThreat:0.000}/{readabilityDirector.CurrentStagePressure:0.000}/{readabilityDirector.CurrentReadabilityPressure:0.000}");
                 builder.AppendLine($"ReadabilityTunnelClose: {readabilityDirector.CurrentThreatTunnelVision:0.000}/{readabilityDirector.CurrentCloseThreatDistance:0.00}");
                 builder.AppendLine($"QuietBreathStrain: {readabilityDirector.CurrentQuietBreathStrain:0.000}");
+                builder.AppendLine($"ReleaseRelief: {readabilityDirector.ReleaseReliefSummary}");
+                builder.AppendLine($"ReleaseReliefFlags: channels={readabilityDirector.CurrentReleaseReliefChannelCount}, calm={readabilityDirector.CurrentEscapeReliefCalm:0.000}, calmRemaining={readabilityDirector.EscapeReliefCalmRemainingSeconds:0.000}, camera={readabilityDirector.CurrentRhythmReleaseCameraExhale:0.000}, cameraRemaining={readabilityDirector.RhythmReleaseCameraExhaleRemainingSeconds:0.000}, whisperRemaining={readabilityDirector.ReleaseReliefObjectiveWhisperRemainingSeconds:0.000}, staminaRecovered={readabilityDirector.LastRhythmReleaseStaminaRecovered:0.000}");
             }
 
             AudioManager audioManager = AudioManager.Instance;
@@ -882,7 +885,7 @@ namespace LostBreadcrumbs.Runtime.UI
             {
                 GameplayRhythmPhase.Build => $"Build check: tempted vs flat; phase={phaseLabel} {progress:0.00}, setPiece={setPiece}, pressure={FormatSnapshotFloat(pressure)}",
                 GameplayRhythmPhase.Spike => $"Spike check: scary but fair vs unfair; phase={phaseLabel} {progress:0.00}, fair={rhythmDirector?.SpikeFairnessSummary ?? "n/a"}, closeThreat={FormatSnapshotFloat(closeThreat)}, setPiece={setPiece}",
-                GameplayRhythmPhase.Release => $"Release check: felt relief vs no relief; phase={phaseLabel} {progress:0.00}, quietBreath={relief:0.00}s, pressure={FormatSnapshotFloat(pressure)}",
+                GameplayRhythmPhase.Release => $"Release check: felt relief vs no relief; phase={phaseLabel} {progress:0.00}, relief={readabilityDirector?.ReleaseReliefSummary ?? "n/a"}, quietBreath={relief:0.00}s, pressure={FormatSnapshotFloat(pressure)}",
                 _ => $"Calm check: readable route vs early pressure; phase={phaseLabel} {progress:0.00}, pressure={FormatSnapshotFloat(pressure)}, missing={GetMissingRhythmPhaseLabel()}"
             };
         }

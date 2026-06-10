@@ -58,6 +58,7 @@
 - The rhythm validation playbook now includes a Korean-first judgment card for fair Spike, felt Release, and tempting Build notes.
 - Static preflight now labels stale release-soak logs with freshness days and refresh-required status so old evidence is not mistaken for current validation.
 - Spike fairness telemetry now records warning-to-spike/chase timing in rhythm snapshots and regression checks, making unfair spikes easier to identify without broad playtesting.
+- Release relief telemetry now records active calm, camera exhale, quiet breath, objective whisper, and stamina recovery channels so weak relief can be tuned from snapshot evidence first.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |
@@ -82,7 +83,7 @@
 - Release phase resources should briefly clear visual/audio pressure so the player can feel the rhythm reset.
 
 ## Immediate Next Work Without Planner Input
-1. Add Release relief telemetry for calm duration, quiet breath, camera exhale, stamina recovery, and objective whisper.
+1. Use Release relief telemetry snapshots to tune camera exhale length, calm duration, quiet breath, or objective whisper before requesting new assets.
 2. Decide whether the ignored vendor folders should stay local-only or be re-imported as smaller scoped packages.
 3. Minimize human Play Mode validation; use debug rhythm snapshots only for anomalies or final spot checks.
 4. Replace one placeholder semantic SFX group at a time, starting with `ChaseStarted`, `LockOnWarning`, and `EscapeRelief`.

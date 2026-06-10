@@ -901,6 +901,11 @@ if (Test-Path $threatReadabilityPath) {
         'PlayEscapeReliefAudio',
         'StartEscapeReliefCalmWindow',
         'ApplyRhythmReleaseQuietBreath',
+        'ReleaseReliefSummary',
+        'CurrentReleaseReliefChannelCount',
+        'CurrentRhythmReleaseCameraExhale',
+        'ReleaseReliefObjectiveWhisperRemainingSeconds',
+        'LastRhythmReleaseStaminaRecovered',
         'BuildEscapeReliefRewardMessage',
         'BuildRhythmReleaseReliefMessage',
         'RuntimeEventSemantic.EscapeRelief'
@@ -914,6 +919,45 @@ if (Test-Path $threatReadabilityPath) {
     $releaseReliefMissing.Add('ThreatReadabilityDirector.cs missing')
 }
 $results.Add((Add-Result 'code.releaseReliefContractHooks' ($(if ($releaseReliefMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($releaseReliefMissing -join ', ')"))
+
+$releaseReliefTelemetryMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $regressionPath) {
+    $regressionText = Get-Content $regressionPath -Raw
+    $releaseRegressionHooks = @(
+        'Rhythm.ReleaseReliefTelemetry',
+        'ReleaseReliefSummary',
+        'CurrentReleaseReliefChannelCount',
+        'CurrentRhythmReleaseCameraExhale',
+        'ReleaseReliefObjectiveWhisperRemainingSeconds',
+        'LastRhythmReleaseStaminaRecovered'
+    )
+    foreach ($hook in $releaseRegressionHooks) {
+        if (-not $regressionText.Contains($hook)) {
+            $releaseReliefTelemetryMissing.Add("RegressionChecklistRunner:$hook")
+        }
+    }
+} else {
+    $releaseReliefTelemetryMissing.Add('RegressionChecklistRunner.cs missing')
+}
+
+if (Test-Path $debugOverlayPath) {
+    $debugOverlayText = Get-Content $debugOverlayPath -Raw
+    $releaseDebugHooks = @(
+        'Release Relief:',
+        'ReleaseRelief:',
+        'ReleaseReliefFlags:',
+        'CurrentReleaseReliefChannelCount',
+        'RhythmReleaseCameraExhaleRemainingSeconds'
+    )
+    foreach ($hook in $releaseDebugHooks) {
+        if (-not $debugOverlayText.Contains($hook)) {
+            $releaseReliefTelemetryMissing.Add("DebugOverlay:$hook")
+        }
+    }
+} else {
+    $releaseReliefTelemetryMissing.Add('DebugOverlay.cs missing')
+}
+$results.Add((Add-Result 'code.releaseReliefTelemetryHooks' ($(if ($releaseReliefTelemetryMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($releaseReliefTelemetryMissing -join ', ')"))
 
 $rhythmOverlayMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $dreadOverlayPath) {

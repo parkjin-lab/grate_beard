@@ -2094,11 +2094,19 @@ namespace LostBreadcrumbs.Runtime.Managers
                 && rhythmDirector.LastSpikeWarningLeadSeconds >= -1f
                 && rhythmDirector.LastLockOnWarningAgeSeconds >= -1f
                 && rhythmDirector.LastChaseStartedAgeSeconds >= -1f;
+            bool releaseReliefTelemetryPass = readabilityDirector != null
+                && !string.IsNullOrWhiteSpace(readabilityDirector.ReleaseReliefSummary)
+                && readabilityDirector.CurrentReleaseReliefChannelCount >= 0
+                && readabilityDirector.CurrentRhythmReleaseCameraExhale >= 0f
+                && readabilityDirector.EscapeReliefCalmRemainingSeconds >= 0f
+                && readabilityDirector.ReleaseReliefObjectiveWhisperRemainingSeconds >= 0f
+                && readabilityDirector.LastRhythmReleaseStaminaRecovered >= 0f;
 
             AddResult("Rhythm.Enabled", enabledPass, enabledPass ? "runtime rhythm enabled" : "runtime rhythm disabled");
             AddResult("Rhythm.PressureShape", pressureShapePass, $"calm={calm:0.00}, build={build:0.00}, spike={spike:0.00}, release={release:0.00}");
             AddResult("Rhythm.Telemetry", telemetryPass, $"phase={rhythmDirector.CurrentPhaseLabel}, beat={rhythmDirector.LastBeatLabel}, duration={rhythmDirector.CurrentPhaseDuration:0.0}s");
             AddResult("Rhythm.SpikeFairnessTelemetry", spikeFairnessTelemetryPass, rhythmDirector.SpikeFairnessSummary);
+            AddResult("Rhythm.ReleaseReliefTelemetry", releaseReliefTelemetryPass, readabilityDirector != null ? readabilityDirector.ReleaseReliefSummary : "missing readability director");
         }
 
         private List<int> BuildMatrixStages()

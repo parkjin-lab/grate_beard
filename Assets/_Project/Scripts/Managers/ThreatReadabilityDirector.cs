@@ -345,6 +345,9 @@ namespace LostBreadcrumbs.Runtime.Managers
         private float rhythmReleaseCameraExhaleStartedRealtime;
         private float rhythmReleaseCameraExhaleDuration;
         private float rhythmReleaseCameraExhaleIntensity;
+        private float lastRhythmReleaseReliefRealtime = -999f;
+        private float lastRhythmReleaseStaminaRecovered;
+        private float lastRhythmReleaseObjectiveWhisperUntilRealtime;
         private float escapeReliefCalmStartedRealtime;
         private float escapeReliefCalmUntilRealtime;
         private float escapeReliefCalmDuration;
@@ -370,6 +373,13 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float EscapeReliefCooldownRemaining => Mathf.Max(0f, nextEscapeReliefRewardRealtime - Time.realtimeSinceStartup);
         public float RhythmReleaseReliefCooldownRemaining => Mathf.Max(0f, nextRhythmReleaseReliefRealtime - Time.realtimeSinceStartup);
         public float CurrentEscapeReliefCalm => EvaluateEscapeReliefCalm01();
+        public float EscapeReliefCalmRemainingSeconds => Mathf.Max(0f, escapeReliefCalmUntilRealtime - Time.realtimeSinceStartup);
+        public float CurrentRhythmReleaseCameraExhale => EvaluateRhythmReleaseCameraExhale01();
+        public float RhythmReleaseCameraExhaleRemainingSeconds => Mathf.Max(0f, rhythmReleaseCameraExhaleUntilRealtime - Time.realtimeSinceStartup);
+        public float ReleaseReliefObjectiveWhisperRemainingSeconds => Mathf.Max(0f, lastRhythmReleaseObjectiveWhisperUntilRealtime - Time.realtimeSinceStartup);
+        public float LastRhythmReleaseStaminaRecovered => Mathf.Max(0f, lastRhythmReleaseStaminaRecovered);
+        public int CurrentReleaseReliefChannelCount => CountActiveReleaseReliefChannels();
+        public string ReleaseReliefSummary => BuildReleaseReliefSummary();
         public float CurrentQuietBreathStrain => Mathf.Clamp01(quietBreathStrainElapsed / Mathf.Max(0.05f, escapeReliefBreathSnapStrainSeconds));
         public float BreathSnapCooldownRemaining => Mathf.Max(0f, nextEscapeReliefBreathSnapRealtime - Time.realtimeSinceStartup);
         public float MajorThreatCueCooldownRemaining => Mathf.Max(0f, nextMajorThreatCueTime - Time.time);
@@ -1360,6 +1370,8 @@ namespace LostBreadcrumbs.Runtime.Managers
             float intensity = Mathf.Clamp01(Mathf.Max(rhythmReleaseReliefIntensityFloor, 0.36f + safePressure * rhythmReleaseReliefPressureBonus));
             float recovered = controller.RecoverStamina(rhythmReleaseStaminaRecover * Mathf.Lerp(0.75f, 1.25f, intensity));
             Vector2 rewardPosition = controller.transform.position;
+            lastRhythmReleaseReliefRealtime = now;
+            lastRhythmReleaseStaminaRecovered = recovered;
 
             if (escapeReliefRevealFog && fogOfWar != null)
             {
@@ -1370,12 +1382,15 @@ namespace LostBreadcrumbs.Runtime.Managers
             }
 
             SpawnEscapeReliefPulse(rewardPosition, intensity);
-            TrySpawnEscapeReliefObjectiveWhisper(
+            bool whispered = TrySpawnEscapeReliefObjectiveWhisper(
                 rewardPosition,
                 intensity,
                 rhythmReleaseObjectiveWhisperDistanceMultiplier,
                 rhythmReleaseObjectiveWhisperDurationMultiplier,
                 rhythmReleaseObjectiveWhisperWidthMultiplier);
+            lastRhythmReleaseObjectiveWhisperUntilRealtime = whispered
+                ? now + Mathf.Max(0.1f, escapeReliefObjectiveWhisperDuration * Mathf.Max(0.1f, rhythmReleaseObjectiveWhisperDurationMultiplier))
+                : 0f;
             PlayEscapeReliefAudio(rewardPosition, intensity * 0.82f);
             StartEscapeReliefCalmWindow(intensity);
             ApplyRhythmReleaseQuietBreath(controller, intensity);
@@ -1433,6 +1448,48 @@ namespace LostBreadcrumbs.Runtime.Managers
             float progress = Mathf.Clamp01((Time.realtimeSinceStartup - rhythmReleaseCameraExhaleStartedRealtime) / duration);
             float fade = 1f - Mathf.SmoothStep(0f, 1f, progress);
             return Mathf.Clamp01(fade * Mathf.Lerp(0.72f, 1f, rhythmReleaseCameraExhaleIntensity));
+        }
+
+        private int CountActiveReleaseReliefChannels()
+        {
+            PlayerDummyController controller = ResolvePlayerController();
+            int count = 0;
+            if (CurrentEscapeReliefCalm > 0.05f)
+            {
+                count++;
+            }
+
+            if (CurrentRhythmReleaseCameraExhale > 0.05f)
+            {
+                count++;
+            }
+
+            if (controller != null && controller.TemporaryNoiseDampeningRemaining > 0.05f)
+            {
+                count++;
+            }
+
+            if (ReleaseReliefObjectiveWhisperRemainingSeconds > 0.05f)
+            {
+                count++;
+            }
+
+            float reliefAge = Time.realtimeSinceStartup - lastRhythmReleaseReliefRealtime;
+            if (lastRhythmReleaseStaminaRecovered > 0.001f
+                && reliefAge >= 0f
+                && reliefAge <= Mathf.Max(0.5f, escapeReliefCalmDuration))
+            {
+                count++;
+            }
+
+            return count;
+        }
+
+        private string BuildReleaseReliefSummary()
+        {
+            PlayerDummyController controller = ResolvePlayerController();
+            float quietRemaining = controller != null ? controller.TemporaryNoiseDampeningRemaining : 0f;
+            return $"channels={CurrentReleaseReliefChannelCount}, calm={CurrentEscapeReliefCalm:0.00}/{EscapeReliefCalmRemainingSeconds:0.00}s, camera={CurrentRhythmReleaseCameraExhale:0.00}/{RhythmReleaseCameraExhaleRemainingSeconds:0.00}s, quiet={quietRemaining:0.00}s, whisper={ReleaseReliefObjectiveWhisperRemainingSeconds:0.00}s, stamina=+{LastRhythmReleaseStaminaRecovered:0.00}";
         }
 
         private void SpawnEscapeReliefPulse(Vector2 position, float intensity)
@@ -1642,7 +1699,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             return escapeReliefTrailMaterial;
         }
 
-        private void TrySpawnEscapeReliefObjectiveWhisper(
+        private bool TrySpawnEscapeReliefObjectiveWhisper(
             Vector2 playerPosition,
             float intensity,
             float distanceMultiplier = 1f,
@@ -1651,25 +1708,25 @@ namespace LostBreadcrumbs.Runtime.Managers
         {
             if (!enableEscapeReliefObjectiveWhisper)
             {
-                return;
+                return false;
             }
 
             StageLoopDirector stageLoop = StageLoopDirector.Instance;
             if (stageLoop == null)
             {
-                return;
+                return false;
             }
 
             if (!stageLoop.TryGetNextObjectiveTarget(playerPosition, out Vector3 target, out bool targetIsExit))
             {
-                return;
+                return false;
             }
 
             Vector2 toTarget = (Vector2)target - playerPosition;
             float distance = toTarget.magnitude;
             if (distance <= 0.35f)
             {
-                return;
+                return false;
             }
 
             float safeDistanceMultiplier = Mathf.Max(0.1f, distanceMultiplier);
@@ -1730,6 +1787,7 @@ namespace LostBreadcrumbs.Runtime.Managers
                 1,
                 0f,
                 escapeReliefObjectiveWhisperSortingOrder);
+            return true;
         }
 
         private Vector3[] BuildEscapeReliefObjectiveWhisperPoints(Vector2 origin, Vector2 target, float intensity)
@@ -2470,6 +2528,9 @@ namespace LostBreadcrumbs.Runtime.Managers
             rhythmReleaseCameraExhaleStartedRealtime = 0f;
             rhythmReleaseCameraExhaleDuration = 0f;
             rhythmReleaseCameraExhaleIntensity = 0f;
+            lastRhythmReleaseReliefRealtime = -999f;
+            lastRhythmReleaseStaminaRecovered = 0f;
+            lastRhythmReleaseObjectiveWhisperUntilRealtime = 0f;
             nextMajorThreatCueTime = 0f;
             nextMinorThreatCueTime = 0f;
             suppressedThreatCueCount = 0;
