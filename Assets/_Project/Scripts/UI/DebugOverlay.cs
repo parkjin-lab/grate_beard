@@ -797,10 +797,13 @@ namespace LostBreadcrumbs.Runtime.UI
             StageLoopDirector stageLoop = StageLoopDirector.Instance;
             if (stageLoop != null)
             {
+                int buildTemptationScore = CalculateBuildTemptationScore(stageLoop);
                 builder.AppendLine($"Stage: {stageLoop.CurrentStage}");
                 builder.AppendLine($"Breadcrumbs: {stageLoop.CollectedBreadcrumbs}/{stageLoop.RequiredBreadcrumbs}");
                 builder.AppendLine($"ExitUnlocked: {stageLoop.ExitUnlocked}");
                 builder.AppendLine($"SafeHavens: {stageLoop.ActiveSafeHavenCount}");
+                builder.AppendLine($"BuildTemptation: score={buildTemptationScore}, riskCaches={stageLoop.ActiveRiskCacheCount}, momentum={stageLoop.BreadcrumbMomentumLevel}, exitChoice={stageLoop.ExitChoiceCacheActive}, activeBreadcrumbs={stageLoop.ActiveBreadcrumbCount}");
+                builder.AppendLine($"BuildTemptationFlags: score={buildTemptationScore}, riskCaches={stageLoop.ActiveRiskCacheCount}, momentumLevel={stageLoop.BreadcrumbMomentumLevel}, momentumRemaining={stageLoop.BreadcrumbMomentumRemaining:0.000}, exitChoice={stageLoop.ExitChoiceCacheActive}, activeBreadcrumbs={stageLoop.ActiveBreadcrumbCount}, collected={stageLoop.CollectedBreadcrumbs}, required={stageLoop.RequiredBreadcrumbs}, exitUnlocked={stageLoop.ExitUnlocked}");
             }
 
             if (rhythmDirector != null)
@@ -883,11 +886,53 @@ namespace LostBreadcrumbs.Runtime.UI
 
             return phase switch
             {
-                GameplayRhythmPhase.Build => $"Build check: tempted vs flat; phase={phaseLabel} {progress:0.00}, setPiece={setPiece}, pressure={FormatSnapshotFloat(pressure)}",
+                GameplayRhythmPhase.Build => $"Build check: tempted vs flat; phase={phaseLabel} {progress:0.00}, temptation={FormatBuildTemptationQuickRead()}, setPiece={setPiece}, pressure={FormatSnapshotFloat(pressure)}",
                 GameplayRhythmPhase.Spike => $"Spike check: scary but fair vs unfair; phase={phaseLabel} {progress:0.00}, fair={rhythmDirector?.SpikeFairnessSummary ?? "n/a"}, closeThreat={FormatSnapshotFloat(closeThreat)}, setPiece={setPiece}",
                 GameplayRhythmPhase.Release => $"Release check: felt relief vs no relief; phase={phaseLabel} {progress:0.00}, relief={readabilityDirector?.ReleaseReliefSummary ?? "n/a"}, quietBreath={relief:0.00}s, pressure={FormatSnapshotFloat(pressure)}",
                 _ => $"Calm check: readable route vs early pressure; phase={phaseLabel} {progress:0.00}, pressure={FormatSnapshotFloat(pressure)}, missing={GetMissingRhythmPhaseLabel()}"
             };
+        }
+
+        private static int CalculateBuildTemptationScore(StageLoopDirector stageLoop)
+        {
+            if (stageLoop == null)
+            {
+                return 0;
+            }
+
+            int score = 0;
+            if (stageLoop.ActiveRiskCacheCount > 0)
+            {
+                score++;
+            }
+
+            if (stageLoop.BreadcrumbMomentumLevel > 1 && stageLoop.BreadcrumbMomentumRemaining > 0.05f)
+            {
+                score++;
+            }
+
+            if (stageLoop.ExitChoiceCacheActive)
+            {
+                score++;
+            }
+
+            if (!stageLoop.ExitUnlocked && stageLoop.ActiveBreadcrumbCount >= 2)
+            {
+                score++;
+            }
+
+            return score;
+        }
+
+        private static string FormatBuildTemptationQuickRead()
+        {
+            StageLoopDirector stageLoop = StageLoopDirector.Instance;
+            if (stageLoop == null)
+            {
+                return "n/a";
+            }
+
+            return $"score={CalculateBuildTemptationScore(stageLoop)}, risk={stageLoop.ActiveRiskCacheCount}, momentum={stageLoop.BreadcrumbMomentumLevel}, exitChoice={stageLoop.ExitChoiceCacheActive}, breadcrumbs={stageLoop.ActiveBreadcrumbCount}";
         }
 
         private string BuildRhythmJudgmentPrompt()

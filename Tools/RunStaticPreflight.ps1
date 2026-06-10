@@ -321,8 +321,11 @@ if (Test-Path $debugOverlayPath) {
         'BuildRhythmValidationSnapshotText',
         'RhythmQuickRead:',
         'RhythmJudgmentPrompt:',
+        'BuildTemptation:',
+        'BuildTemptationFlags:',
         'BuildRhythmSnapshotQuickRead',
         'BuildRhythmJudgmentPrompt',
+        'CalculateBuildTemptationScore',
         'GetMissingRhythmPhaseLabel',
         'MissingPhases'
     )
@@ -337,12 +340,17 @@ if (Test-Path $rhythmSnapshotSummaryScriptPath) {
     $rhythmSnapshotToolText = Get-Content $rhythmSnapshotSummaryScriptPath -Raw
     $rhythmSnapshotToolHooks = @(
         'MinimumReleaseChannels',
+        'MinimumBuildTemptationScore',
+        'BuildTemptationFlags',
         'ReleaseReliefFlags',
         'SpikeFairnessFlags',
+        'BuildEvidenceStatus',
         'ReleaseEvidenceStatus',
         'SpikeEvidenceStatus',
+        'NO_BUILD_SNAPSHOTS',
         'NO_RELEASE_SNAPSHOTS',
         'NO_SPIKE_SNAPSHOTS',
+        'FlatBuildFiles',
         'WeakReleaseFiles',
         'UnfairSpikeFiles',
         'Read-FlagBool',

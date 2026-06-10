@@ -1,6 +1,7 @@
 param(
     [string]$InputDirectory = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path 'Logs/RhythmValidation'),
-    [int]$MinimumReleaseChannels = 2
+    [int]$MinimumReleaseChannels = 2,
+    [int]$MinimumBuildTemptationScore = 1
 )
 
 $ErrorActionPreference = 'Stop'
@@ -62,6 +63,7 @@ function Read-FlagBool {
 }
 
 $minimum = [Math]::Max(0, $MinimumReleaseChannels)
+$minimumBuild = [Math]::Max(0, $MinimumBuildTemptationScore)
 $exists = Test-Path -LiteralPath $InputDirectory
 $files = @()
 if ($exists) {
@@ -78,13 +80,20 @@ $spikeTotal = 0
 $spikePass = 0
 $spikeUnfair = 0
 $spikeMissingFlags = 0
+$buildTotal = 0
+$buildPass = 0
+$buildFlat = 0
+$buildMissingFlags = 0
 $phaseCounts = @{}
 $lastReleaseSummary = ''
 $lastReleaseFile = ''
 $lastSpikeSummary = ''
 $lastSpikeFile = ''
+$lastBuildSummary = ''
+$lastBuildFile = ''
 $weakFiles = New-Object System.Collections.Generic.List[string]
 $unfairSpikeFiles = New-Object System.Collections.Generic.List[string]
+$flatBuildFiles = New-Object System.Collections.Generic.List[string]
 
 foreach ($file in $files) {
     $total++
@@ -98,6 +107,25 @@ foreach ($file in $files) {
         $phaseCounts[$phase] = 0
     }
     $phaseCounts[$phase]++
+
+    if ($phase -eq 'Build') {
+        $buildTotal++
+        $buildFlags = Read-SnapshotValue -Lines $lines -Key 'BuildTemptationFlags'
+        $buildSummary = Read-SnapshotValue -Lines $lines -Key 'BuildTemptation'
+        $score = Read-FlagNumber -Flags $buildFlags -Name 'score'
+        $lastBuildSummary = if ([string]::IsNullOrWhiteSpace($buildSummary)) { $buildFlags } else { $buildSummary }
+        $lastBuildFile = $file.Name
+
+        if ($null -eq $score) {
+            $buildMissingFlags++
+            $flatBuildFiles.Add($file.Name)
+        } elseif ($score -ge $minimumBuild) {
+            $buildPass++
+        } else {
+            $buildFlat++
+            $flatBuildFiles.Add("$($file.Name): score=$score")
+        }
+    }
 
     if ($phase -eq 'Spike') {
         $spikeTotal++
@@ -154,12 +182,18 @@ $hasReleaseEvidence = $releaseTotal -gt 0
 $allReleaseSnapshotsPass = -not $hasReleaseEvidence -or ($releaseWeak -eq 0 -and $releaseMissingFlags -eq 0)
 $hasSpikeEvidence = $spikeTotal -gt 0
 $allSpikeSnapshotsPass = -not $hasSpikeEvidence -or ($spikeUnfair -eq 0 -and $spikeMissingFlags -eq 0)
+$hasBuildEvidence = $buildTotal -gt 0
+$allBuildSnapshotsPass = -not $hasBuildEvidence -or ($buildFlat -eq 0 -and $buildMissingFlags -eq 0)
 
 Write-Host 'LostBreadcrumbs Rhythm Snapshot Summary'
 Write-Host "InputDirectory: $InputDirectory"
 Write-Host "DirectoryExists: $exists"
 Write-Host "SnapshotCount: $total"
 Write-Host "PhaseCounts: $phaseSummary"
+Write-Host "BuildSnapshots: total=$buildTotal pass=$buildPass flat=$buildFlat missingFlags=$buildMissingFlags minimumScore=$minimumBuild"
+Write-Host "BuildEvidenceStatus: $(if (-not $hasBuildEvidence) { 'NO_BUILD_SNAPSHOTS' } elseif ($allBuildSnapshotsPass) { 'PASS' } else { 'FLAT' })"
+Write-Host "LastBuildSnapshot: $(if ([string]::IsNullOrWhiteSpace($lastBuildFile)) { 'none' } else { $lastBuildFile })"
+Write-Host "LastBuildTemptation: $(if ([string]::IsNullOrWhiteSpace($lastBuildSummary)) { 'none' } else { $lastBuildSummary })"
 Write-Host "ReleaseSnapshots: total=$releaseTotal pass=$releasePass weak=$releaseWeak missingFlags=$releaseMissingFlags minimumChannels=$minimum"
 Write-Host "ReleaseEvidenceStatus: $(if (-not $hasReleaseEvidence) { 'NO_RELEASE_SNAPSHOTS' } elseif ($allReleaseSnapshotsPass) { 'PASS' } else { 'WEAK' })"
 Write-Host "LastReleaseSnapshot: $(if ([string]::IsNullOrWhiteSpace($lastReleaseFile)) { 'none' } else { $lastReleaseFile })"
@@ -173,15 +207,19 @@ if ($weakFiles.Count -gt 0) {
     Write-Host "WeakReleaseFiles: $($weakFiles -join '; ')"
 }
 
+if ($flatBuildFiles.Count -gt 0) {
+    Write-Host "FlatBuildFiles: $($flatBuildFiles -join '; ')"
+}
+
 if ($unfairSpikeFiles.Count -gt 0) {
     Write-Host "UnfairSpikeFiles: $($unfairSpikeFiles -join '; ')"
 }
 
-if (-not $hasReleaseEvidence -and -not $hasSpikeEvidence) {
+if (-not $hasBuildEvidence -and -not $hasReleaseEvidence -and -not $hasSpikeEvidence) {
     exit 0
 }
 
-if ($allReleaseSnapshotsPass -and $allSpikeSnapshotsPass) {
+if ($allBuildSnapshotsPass -and $allReleaseSnapshotsPass -and $allSpikeSnapshotsPass) {
     exit 0
 }
 
