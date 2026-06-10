@@ -338,9 +338,14 @@ if (Test-Path $rhythmSnapshotSummaryScriptPath) {
     $rhythmSnapshotToolHooks = @(
         'MinimumReleaseChannels',
         'ReleaseReliefFlags',
+        'SpikeFairnessFlags',
         'ReleaseEvidenceStatus',
+        'SpikeEvidenceStatus',
         'NO_RELEASE_SNAPSHOTS',
+        'NO_SPIKE_SNAPSHOTS',
         'WeakReleaseFiles',
+        'UnfairSpikeFiles',
+        'Read-FlagBool',
         'Read-FlagNumber'
     )
     foreach ($hook in $rhythmSnapshotToolHooks) {

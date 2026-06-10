@@ -10,7 +10,7 @@ Validate that the game is not only harder or darker, but rhythmically readable: 
 - Press `F8` or use `Write Rhythm Snapshot` in the overlay to save the current phase, pressure, stinger, and player state to `Logs/RhythmValidation/`.
 - Rhythm snapshots include `QuickRead` and `JudgmentPrompt` lines so a short note can classify the current moment without a broad playtest pass.
 - The overlay and snapshot report missing rhythm phases, so a test run can quickly show whether Calm, Build, Spike, or Release still needs observation.
-- After snapshots are captured, run `Tools\Summarize-RhythmSnapshots.cmd` to summarize phase counts and whether Release snapshots kept at least two relief channels active.
+- After snapshots are captured, run `Tools\Summarize-RhythmSnapshots.cmd` to summarize phase counts, whether Spike had a readable warning chain, and whether Release kept at least two relief channels active.
 - A pass only proves that all phases occurred; it does not prove they felt good. Use the manual notes below for that.
 
 ## Minimal Human Pass
