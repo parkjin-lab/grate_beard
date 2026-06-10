@@ -1,7 +1,9 @@
 param(
     [string]$InputDirectory = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path 'Logs/RhythmValidation'),
     [int]$MinimumReleaseChannels = 2,
-    [int]$MinimumBuildTemptationScore = 1
+    [int]$MinimumBuildTemptationScore = 1,
+    [double]$MaximumCalmPressure = 0.45,
+    [double]$MaximumCalmReadabilityPressure = 0.5
 )
 
 $ErrorActionPreference = 'Stop'
@@ -64,6 +66,8 @@ function Read-FlagBool {
 
 $minimum = [Math]::Max(0, $MinimumReleaseChannels)
 $minimumBuild = [Math]::Max(0, $MinimumBuildTemptationScore)
+$maxCalmPressure = [Math]::Max(0.0, $MaximumCalmPressure)
+$maxCalmReadability = [Math]::Max(0.0, $MaximumCalmReadabilityPressure)
 $exists = Test-Path -LiteralPath $InputDirectory
 $files = @()
 if ($exists) {
@@ -84,7 +88,13 @@ $buildTotal = 0
 $buildPass = 0
 $buildFlat = 0
 $buildMissingFlags = 0
+$calmTotal = 0
+$calmPass = 0
+$calmRushed = 0
+$calmMissingPressure = 0
 $phaseCounts = @{}
+$lastCalmSummary = ''
+$lastCalmFile = ''
 $lastReleaseSummary = ''
 $lastReleaseFile = ''
 $lastSpikeSummary = ''
@@ -94,6 +104,7 @@ $lastBuildFile = ''
 $weakFiles = New-Object System.Collections.Generic.List[string]
 $unfairSpikeFiles = New-Object System.Collections.Generic.List[string]
 $flatBuildFiles = New-Object System.Collections.Generic.List[string]
+$rushedCalmFiles = New-Object System.Collections.Generic.List[string]
 
 foreach ($file in $files) {
     $total++
@@ -107,6 +118,37 @@ foreach ($file in $files) {
         $phaseCounts[$phase] = 0
     }
     $phaseCounts[$phase]++
+
+    if ($phase -eq 'Calm') {
+        $calmTotal++
+        $stagePressure = Read-SnapshotValue -Lines $lines -Key 'StagePressureTotal'
+        $readabilityParts = Read-SnapshotValue -Lines $lines -Key 'ReadabilityPressure_NearStageFinal'
+        $stagePressureValue = if ([string]::IsNullOrWhiteSpace($stagePressure)) { $null } else { [double]::Parse($stagePressure, [Globalization.CultureInfo]::InvariantCulture) }
+        $readabilityValue = $null
+        if (-not [string]::IsNullOrWhiteSpace($readabilityParts)) {
+            $parts = $readabilityParts -split '/'
+            if ($parts.Count -ge 3) {
+                $readabilityValue = [double]::Parse($parts[2], [Globalization.CultureInfo]::InvariantCulture)
+            }
+        }
+
+        $lastCalmSummary = "stagePressure=$stagePressure, readability=$readabilityValue"
+        $lastCalmFile = $file.Name
+
+        if ($null -eq $stagePressureValue -and $null -eq $readabilityValue) {
+            $calmMissingPressure++
+            $rushedCalmFiles.Add($file.Name)
+        } else {
+            $calmPressureTooHigh = $null -ne $stagePressureValue -and $stagePressureValue -gt $maxCalmPressure
+            $calmReadabilityTooHigh = $null -ne $readabilityValue -and $readabilityValue -gt $maxCalmReadability
+            if ($calmPressureTooHigh -or $calmReadabilityTooHigh) {
+            $calmRushed++
+            $rushedCalmFiles.Add("$($file.Name): stagePressure=$stagePressureValue readability=$readabilityValue")
+            } else {
+                $calmPass++
+            }
+        }
+    }
 
     if ($phase -eq 'Build') {
         $buildTotal++
@@ -184,12 +226,18 @@ $hasSpikeEvidence = $spikeTotal -gt 0
 $allSpikeSnapshotsPass = -not $hasSpikeEvidence -or ($spikeUnfair -eq 0 -and $spikeMissingFlags -eq 0)
 $hasBuildEvidence = $buildTotal -gt 0
 $allBuildSnapshotsPass = -not $hasBuildEvidence -or ($buildFlat -eq 0 -and $buildMissingFlags -eq 0)
+$hasCalmEvidence = $calmTotal -gt 0
+$allCalmSnapshotsPass = -not $hasCalmEvidence -or ($calmRushed -eq 0 -and $calmMissingPressure -eq 0)
 
 Write-Host 'LostBreadcrumbs Rhythm Snapshot Summary'
 Write-Host "InputDirectory: $InputDirectory"
 Write-Host "DirectoryExists: $exists"
 Write-Host "SnapshotCount: $total"
 Write-Host "PhaseCounts: $phaseSummary"
+Write-Host "CalmSnapshots: total=$calmTotal pass=$calmPass rushed=$calmRushed missingPressure=$calmMissingPressure maxStagePressure=$maxCalmPressure maxReadability=$maxCalmReadability"
+Write-Host "CalmEvidenceStatus: $(if (-not $hasCalmEvidence) { 'NO_CALM_SNAPSHOTS' } elseif ($allCalmSnapshotsPass) { 'PASS' } else { 'RUSHED' })"
+Write-Host "LastCalmSnapshot: $(if ([string]::IsNullOrWhiteSpace($lastCalmFile)) { 'none' } else { $lastCalmFile })"
+Write-Host "LastCalmRead: $(if ([string]::IsNullOrWhiteSpace($lastCalmSummary)) { 'none' } else { $lastCalmSummary })"
 Write-Host "BuildSnapshots: total=$buildTotal pass=$buildPass flat=$buildFlat missingFlags=$buildMissingFlags minimumScore=$minimumBuild"
 Write-Host "BuildEvidenceStatus: $(if (-not $hasBuildEvidence) { 'NO_BUILD_SNAPSHOTS' } elseif ($allBuildSnapshotsPass) { 'PASS' } else { 'FLAT' })"
 Write-Host "LastBuildSnapshot: $(if ([string]::IsNullOrWhiteSpace($lastBuildFile)) { 'none' } else { $lastBuildFile })"
@@ -211,15 +259,19 @@ if ($flatBuildFiles.Count -gt 0) {
     Write-Host "FlatBuildFiles: $($flatBuildFiles -join '; ')"
 }
 
+if ($rushedCalmFiles.Count -gt 0) {
+    Write-Host "RushedCalmFiles: $($rushedCalmFiles -join '; ')"
+}
+
 if ($unfairSpikeFiles.Count -gt 0) {
     Write-Host "UnfairSpikeFiles: $($unfairSpikeFiles -join '; ')"
 }
 
-if (-not $hasBuildEvidence -and -not $hasReleaseEvidence -and -not $hasSpikeEvidence) {
+if (-not $hasCalmEvidence -and -not $hasBuildEvidence -and -not $hasReleaseEvidence -and -not $hasSpikeEvidence) {
     exit 0
 }
 
-if ($allBuildSnapshotsPass -and $allReleaseSnapshotsPass -and $allSpikeSnapshotsPass) {
+if ($allCalmSnapshotsPass -and $allBuildSnapshotsPass -and $allReleaseSnapshotsPass -and $allSpikeSnapshotsPass) {
     exit 0
 }
 
