@@ -61,6 +61,7 @@
 - Release relief telemetry now records active calm, camera exhale, quiet breath, objective whisper, and stamina recovery channels so weak relief can be tuned from snapshot evidence first.
 - Release relief defaults now hold the exhale longer by extending calm, quiet breath, camera exhale, objective whisper duration, and overlay relief before requesting new art or audio.
 - `Tools\Summarize-RhythmSnapshots.cmd` now summarizes rhythm snapshot phase counts, Calm readability status, Build temptation status, Spike fairness status, and Release relief channel status for low-touch validation.
+- The rhythm snapshot summary tool can now write JSON through `-OutputJsonPath` so automation can read phase status fields without terminal text parsing.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

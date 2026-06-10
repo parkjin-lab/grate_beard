@@ -3,7 +3,8 @@ param(
     [int]$MinimumReleaseChannels = 2,
     [int]$MinimumBuildTemptationScore = 1,
     [double]$MaximumCalmPressure = 0.45,
-    [double]$MaximumCalmReadabilityPressure = 0.5
+    [double]$MaximumCalmReadabilityPressure = 0.5,
+    [string]$OutputJsonPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -142,8 +143,8 @@ foreach ($file in $files) {
             $calmPressureTooHigh = $null -ne $stagePressureValue -and $stagePressureValue -gt $maxCalmPressure
             $calmReadabilityTooHigh = $null -ne $readabilityValue -and $readabilityValue -gt $maxCalmReadability
             if ($calmPressureTooHigh -or $calmReadabilityTooHigh) {
-            $calmRushed++
-            $rushedCalmFiles.Add("$($file.Name): stagePressure=$stagePressureValue readability=$readabilityValue")
+                $calmRushed++
+                $rushedCalmFiles.Add("$($file.Name): stagePressure=$stagePressureValue readability=$readabilityValue")
             } else {
                 $calmPass++
             }
@@ -228,6 +229,17 @@ $hasBuildEvidence = $buildTotal -gt 0
 $allBuildSnapshotsPass = -not $hasBuildEvidence -or ($buildFlat -eq 0 -and $buildMissingFlags -eq 0)
 $hasCalmEvidence = $calmTotal -gt 0
 $allCalmSnapshotsPass = -not $hasCalmEvidence -or ($calmRushed -eq 0 -and $calmMissingPressure -eq 0)
+$calmEvidenceStatus = if (-not $hasCalmEvidence) { 'NO_CALM_SNAPSHOTS' } elseif ($allCalmSnapshotsPass) { 'PASS' } else { 'RUSHED' }
+$buildEvidenceStatus = if (-not $hasBuildEvidence) { 'NO_BUILD_SNAPSHOTS' } elseif ($allBuildSnapshotsPass) { 'PASS' } else { 'FLAT' }
+$releaseEvidenceStatus = if (-not $hasReleaseEvidence) { 'NO_RELEASE_SNAPSHOTS' } elseif ($allReleaseSnapshotsPass) { 'PASS' } else { 'WEAK' }
+$spikeEvidenceStatus = if (-not $hasSpikeEvidence) { 'NO_SPIKE_SNAPSHOTS' } elseif ($allSpikeSnapshotsPass) { 'PASS' } else { 'UNFAIR' }
+$exitCode = if (-not $hasCalmEvidence -and -not $hasBuildEvidence -and -not $hasReleaseEvidence -and -not $hasSpikeEvidence) {
+    0
+} elseif ($allCalmSnapshotsPass -and $allBuildSnapshotsPass -and $allReleaseSnapshotsPass -and $allSpikeSnapshotsPass) {
+    0
+} else {
+    2
+}
 
 Write-Host 'LostBreadcrumbs Rhythm Snapshot Summary'
 Write-Host "InputDirectory: $InputDirectory"
@@ -235,19 +247,19 @@ Write-Host "DirectoryExists: $exists"
 Write-Host "SnapshotCount: $total"
 Write-Host "PhaseCounts: $phaseSummary"
 Write-Host "CalmSnapshots: total=$calmTotal pass=$calmPass rushed=$calmRushed missingPressure=$calmMissingPressure maxStagePressure=$maxCalmPressure maxReadability=$maxCalmReadability"
-Write-Host "CalmEvidenceStatus: $(if (-not $hasCalmEvidence) { 'NO_CALM_SNAPSHOTS' } elseif ($allCalmSnapshotsPass) { 'PASS' } else { 'RUSHED' })"
+Write-Host "CalmEvidenceStatus: $calmEvidenceStatus"
 Write-Host "LastCalmSnapshot: $(if ([string]::IsNullOrWhiteSpace($lastCalmFile)) { 'none' } else { $lastCalmFile })"
 Write-Host "LastCalmRead: $(if ([string]::IsNullOrWhiteSpace($lastCalmSummary)) { 'none' } else { $lastCalmSummary })"
 Write-Host "BuildSnapshots: total=$buildTotal pass=$buildPass flat=$buildFlat missingFlags=$buildMissingFlags minimumScore=$minimumBuild"
-Write-Host "BuildEvidenceStatus: $(if (-not $hasBuildEvidence) { 'NO_BUILD_SNAPSHOTS' } elseif ($allBuildSnapshotsPass) { 'PASS' } else { 'FLAT' })"
+Write-Host "BuildEvidenceStatus: $buildEvidenceStatus"
 Write-Host "LastBuildSnapshot: $(if ([string]::IsNullOrWhiteSpace($lastBuildFile)) { 'none' } else { $lastBuildFile })"
 Write-Host "LastBuildTemptation: $(if ([string]::IsNullOrWhiteSpace($lastBuildSummary)) { 'none' } else { $lastBuildSummary })"
 Write-Host "ReleaseSnapshots: total=$releaseTotal pass=$releasePass weak=$releaseWeak missingFlags=$releaseMissingFlags minimumChannels=$minimum"
-Write-Host "ReleaseEvidenceStatus: $(if (-not $hasReleaseEvidence) { 'NO_RELEASE_SNAPSHOTS' } elseif ($allReleaseSnapshotsPass) { 'PASS' } else { 'WEAK' })"
+Write-Host "ReleaseEvidenceStatus: $releaseEvidenceStatus"
 Write-Host "LastReleaseSnapshot: $(if ([string]::IsNullOrWhiteSpace($lastReleaseFile)) { 'none' } else { $lastReleaseFile })"
 Write-Host "LastReleaseRelief: $(if ([string]::IsNullOrWhiteSpace($lastReleaseSummary)) { 'none' } else { $lastReleaseSummary })"
 Write-Host "SpikeSnapshots: total=$spikeTotal pass=$spikePass unfair=$spikeUnfair missingFlags=$spikeMissingFlags"
-Write-Host "SpikeEvidenceStatus: $(if (-not $hasSpikeEvidence) { 'NO_SPIKE_SNAPSHOTS' } elseif ($allSpikeSnapshotsPass) { 'PASS' } else { 'UNFAIR' })"
+Write-Host "SpikeEvidenceStatus: $spikeEvidenceStatus"
 Write-Host "LastSpikeSnapshot: $(if ([string]::IsNullOrWhiteSpace($lastSpikeFile)) { 'none' } else { $lastSpikeFile })"
 Write-Host "LastSpikeFairness: $(if ([string]::IsNullOrWhiteSpace($lastSpikeSummary)) { 'none' } else { $lastSpikeSummary })"
 
@@ -267,12 +279,68 @@ if ($unfairSpikeFiles.Count -gt 0) {
     Write-Host "UnfairSpikeFiles: $($unfairSpikeFiles -join '; ')"
 }
 
-if (-not $hasCalmEvidence -and -not $hasBuildEvidence -and -not $hasReleaseEvidence -and -not $hasSpikeEvidence) {
-    exit 0
+if (-not [string]::IsNullOrWhiteSpace($OutputJsonPath)) {
+    $jsonDirectory = Split-Path -Parent $OutputJsonPath
+    if (-not [string]::IsNullOrWhiteSpace($jsonDirectory)) {
+        New-Item -ItemType Directory -Force -Path $jsonDirectory | Out-Null
+    }
+
+    $jsonSummary = [ordered]@{
+        schemaVersion = 1
+        inputDirectory = $InputDirectory
+        directoryExists = $exists
+        snapshotCount = $total
+        exitCode = $exitCode
+        phaseCounts = $phaseCounts
+        thresholds = [ordered]@{
+            minimumReleaseChannels = $minimum
+            minimumBuildTemptationScore = $minimumBuild
+            maximumCalmPressure = $maxCalmPressure
+            maximumCalmReadabilityPressure = $maxCalmReadability
+        }
+        calm = [ordered]@{
+            status = $calmEvidenceStatus
+            total = $calmTotal
+            pass = $calmPass
+            rushed = $calmRushed
+            missingPressure = $calmMissingPressure
+            lastSnapshot = $lastCalmFile
+            lastSummary = $lastCalmSummary
+            rushedFiles = @($rushedCalmFiles)
+        }
+        build = [ordered]@{
+            status = $buildEvidenceStatus
+            total = $buildTotal
+            pass = $buildPass
+            flat = $buildFlat
+            missingFlags = $buildMissingFlags
+            lastSnapshot = $lastBuildFile
+            lastSummary = $lastBuildSummary
+            flatFiles = @($flatBuildFiles)
+        }
+        spike = [ordered]@{
+            status = $spikeEvidenceStatus
+            total = $spikeTotal
+            pass = $spikePass
+            unfair = $spikeUnfair
+            missingFlags = $spikeMissingFlags
+            lastSnapshot = $lastSpikeFile
+            lastSummary = $lastSpikeSummary
+            unfairFiles = @($unfairSpikeFiles)
+        }
+        release = [ordered]@{
+            status = $releaseEvidenceStatus
+            total = $releaseTotal
+            pass = $releasePass
+            weak = $releaseWeak
+            missingFlags = $releaseMissingFlags
+            lastSnapshot = $lastReleaseFile
+            lastSummary = $lastReleaseSummary
+            weakFiles = @($weakFiles)
+        }
+    }
+
+    $jsonSummary | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $OutputJsonPath -Encoding UTF8
 }
 
-if ($allCalmSnapshotsPass -and $allBuildSnapshotsPass -and $allReleaseSnapshotsPass -and $allSpikeSnapshotsPass) {
-    exit 0
-}
-
-exit 2
+exit $exitCode

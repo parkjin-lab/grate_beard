@@ -53,6 +53,7 @@
 | Release relief telemetry | Release should be felt through active relief channels, not only through copy | Release now reports calm window, camera exhale, quiet breath, objective whisper, and stamina recovery channels in DebugOverlay snapshots, regression checks, and static hooks |
 | Release first tuning pass | Release relief should last long enough for the player to notice the rhythm reset | Lengthened calm window, quiet breath, camera exhale, objective whisper, and overlay relief defaults, with scene calm/quiet values updated |
 | Rhythm snapshot summary tool | Automation needs to read snapshot evidence without terminal archaeology | Added `Tools\Summarize-RhythmSnapshots.cmd` to summarize phase counts, Calm readable/rushed status, Build temptation pass/flat status, Spike fairness pass/unfair status, and Release relief channel pass/weak status |
+| Rhythm snapshot JSON summary | Automation should read rhythm evidence without parsing terminal text | Added `-OutputJsonPath` support to write schemaVersion, thresholds, phase statuses, counts, and weak evidence files as JSON |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |
@@ -78,6 +79,7 @@
 The next best autonomous task is Release relief tuning from telemetry:
 - Use `ReleaseRelief` snapshot lines to verify whether at least two relief channels stay active through the early/mid Release window.
 - Prefer `Tools\Summarize-RhythmSnapshots.cmd` once snapshots exist; it should report `CalmEvidenceStatus: PASS`, `BuildEvidenceStatus: PASS`, `SpikeEvidenceStatus: PASS`, and `ReleaseEvidenceStatus: PASS` before claiming rhythm feel is proven.
+- For autonomous runs, write JSON with `-OutputJsonPath Logs\RhythmValidation\rhythm_snapshot_summary_last.json` and read the four phase status fields from that file.
 - If snapshots still show weak relief, tune intensity/fade shape next rather than adding new assets.
 - Keep Spike fairness tuning as the second priority: use warning -> threat -> response telemetry to adjust tell lead time or chase timing only when snapshots show an unfair spike.
 
