@@ -154,6 +154,8 @@ $autonomousHeartbeatStatusScriptPath = Join-Path $ProjectRoot 'Tools/Write-Auton
 $autonomousHeartbeatStatusCmdPath = Join-Path $ProjectRoot 'Tools/Write-AutonomousHeartbeatStatus.cmd'
 $autonomousHeartbeatReadStatusScriptPath = Join-Path $ProjectRoot 'Tools/Get-AutonomousHeartbeatStatus.ps1'
 $autonomousHeartbeatReadStatusCmdPath = Join-Path $ProjectRoot 'Tools/Get-AutonomousHeartbeatStatus.cmd'
+$autonomousHeartbeatReadStatusTestScriptPath = Join-Path $ProjectRoot 'Tools/Test-AutonomousHeartbeatStatus.ps1'
+$autonomousHeartbeatReadStatusTestCmdPath = Join-Path $ProjectRoot 'Tools/Test-AutonomousHeartbeatStatus.cmd'
 
 $coreTypes = @(
     'LostBreadcrumbs.Runtime.Systems.SpawnSystem',
@@ -704,6 +706,33 @@ if (Test-Path $autonomousHeartbeatReadStatusCmdPath) {
 } else {
     $rhythmSnapshotToolMissing.Add('Get-AutonomousHeartbeatStatus.cmd missing')
 }
+
+if (Test-Path $autonomousHeartbeatReadStatusTestScriptPath) {
+    $autonomousHeartbeatReadStatusTestText = Get-Content $autonomousHeartbeatReadStatusTestScriptPath -Raw
+    $autonomousHeartbeatReadStatusTestHooks = @(
+        'CAPTURE_RHYTHM_SNAPSHOTS',
+        'MISSING_RHYTHM_SNAPSHOTS',
+        'StaticPreflight: pass=33 warn=3 fail=0',
+        'RhythmNextActionExists: False',
+        'Autonomous heartbeat status tests passed.'
+    )
+    foreach ($hook in $autonomousHeartbeatReadStatusTestHooks) {
+        if (-not $autonomousHeartbeatReadStatusTestText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Test-AutonomousHeartbeatStatus.ps1:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Test-AutonomousHeartbeatStatus.ps1 missing')
+}
+
+if (Test-Path $autonomousHeartbeatReadStatusTestCmdPath) {
+    $autonomousHeartbeatReadStatusTestCmdText = Get-Content $autonomousHeartbeatReadStatusTestCmdPath -Raw
+    if (-not $autonomousHeartbeatReadStatusTestCmdText.Contains('Test-AutonomousHeartbeatStatus.ps1')) {
+        $rhythmSnapshotToolMissing.Add('Test-AutonomousHeartbeatStatus.cmd:Test-AutonomousHeartbeatStatus.ps1')
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Test-AutonomousHeartbeatStatus.cmd missing')
+}
 $results.Add((Add-Result 'tools.rhythmSnapshotSummaryHooks' ($(if ($rhythmSnapshotToolMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmSnapshotToolMissing -join ', ')"))
 
 if (Test-Path $rhythmNextActionTestCmdPath) {
@@ -714,6 +743,16 @@ if (Test-Path $rhythmNextActionTestCmdPath) {
     $results.Add((Add-Result 'tools.rhythmNextActionBranchTests' ($(if ($nextActionTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$nextActionTestExit last='$nextActionTestTail'"))
 } else {
     $results.Add((Add-Result 'tools.rhythmNextActionBranchTests' 'FAIL' 'Test-RhythmNextAction.cmd missing.'))
+}
+
+if (Test-Path $autonomousHeartbeatReadStatusTestCmdPath) {
+    $heartbeatStatusTestOutput = & cmd /c "`"$autonomousHeartbeatReadStatusTestCmdPath`"" 2>&1
+    $heartbeatStatusTestExit = $LASTEXITCODE
+    $heartbeatStatusTestPassed = $heartbeatStatusTestExit -eq 0 -and (($heartbeatStatusTestOutput -join "`n").Contains('Autonomous heartbeat status tests passed.'))
+    $heartbeatStatusTestTail = (@($heartbeatStatusTestOutput) | Select-Object -Last 1) -join ' '
+    $results.Add((Add-Result 'tools.autonomousHeartbeatStatusTests' ($(if ($heartbeatStatusTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$heartbeatStatusTestExit last='$heartbeatStatusTestTail'"))
+} else {
+    $results.Add((Add-Result 'tools.autonomousHeartbeatStatusTests' 'FAIL' 'Test-AutonomousHeartbeatStatus.cmd missing.'))
 }
 
 if (Test-Path $audioManagerPath) {

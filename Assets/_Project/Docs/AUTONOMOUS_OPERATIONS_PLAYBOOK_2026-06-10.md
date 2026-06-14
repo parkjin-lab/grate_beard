@@ -31,6 +31,7 @@ Keep development moving when the creator is busy or absent, without broad manual
 - Use `Tools\Write-RhythmNextAction.cmd` to refresh rhythm summary JSON and convert it into the next autonomous action.
 - Use `Tools\Get-AutonomousHeartbeatStatus.cmd` to inspect current rhythm/preflight status without mutating logs.
 - Use `Tools\Write-AutonomousHeartbeatStatus.cmd` after static preflight when a heartbeat needs one concise progress/validation/blocked-state artifact.
+- Use `Tools\Test-AutonomousHeartbeatStatus.cmd` before committing changes to heartbeat status output; `Tools\RunStaticPreflight.ps1` also runs it.
 - Use `Tools\Test-RhythmNextAction.cmd` before committing changes to rhythm next-action branching; `Tools\RunStaticPreflight.ps1` also runs it.
 - Keep stale validation evidence visible but do not block non-release commits on it.
 
