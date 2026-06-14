@@ -29,6 +29,7 @@ Keep development moving when the creator is busy or absent, without broad manual
 - Separate player-facing Korean copy from developer/debug English.
 - Add lightweight scripts that read existing evidence without mutating logs.
 - Use `Tools\Write-RhythmNextAction.cmd` to refresh rhythm summary JSON and convert it into the next autonomous action.
+- Use `Tools\Test-RhythmNextAction.cmd` before committing changes to rhythm next-action branching.
 - Keep stale validation evidence visible but do not block non-release commits on it.
 
 ## Validation Rules

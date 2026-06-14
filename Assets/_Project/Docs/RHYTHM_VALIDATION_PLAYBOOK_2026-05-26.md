@@ -20,6 +20,7 @@ Validate that the game is not only harder or darker, but rhythmically readable: 
 - If the next-action helper reports `requiresHumanCapture=True`, keep the pass tiny: capture only the missing phase snapshots, then rerun the summary.
 - Use `blockedReason` and `resumeCondition` in the next-action JSON to decide whether automation should wait, tune, or continue.
 - For handoff automation, prefer the helper's `humanCaptureSteps` array over free-form instructions.
+- After editing next-action logic, run `Tools\Test-RhythmNextAction.cmd` to verify all evidence-status branches.
 - A pass only proves that all phases occurred; it does not prove they felt good. Use the manual notes below for that.
 
 ## Minimal Human Pass

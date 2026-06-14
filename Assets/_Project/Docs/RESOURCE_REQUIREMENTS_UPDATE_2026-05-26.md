@@ -72,6 +72,7 @@
 - `Tools\Write-RhythmNextAction.cmd` now refreshes rhythm summary evidence and writes the default next-action JSON file for heartbeat automation.
 - `Tools\Write-RhythmCaptureHandoff.cmd` now writes a concise Markdown capture handoff from the next-action JSON.
 - Rhythm next-action output now includes blocked reason and resume condition fields so repeated automation can explain why rhythm tuning is paused.
+- `Tools\Test-RhythmNextAction.cmd` now validates the four rhythm next-action evidence branches without requiring Play Mode.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |
