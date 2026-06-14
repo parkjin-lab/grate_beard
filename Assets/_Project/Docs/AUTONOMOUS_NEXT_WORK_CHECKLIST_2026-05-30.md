@@ -59,6 +59,7 @@
 | Rhythm next-action helper | Heartbeats should choose capture, tuning, or variation work from evidence instead of guessing | Added `Tools\Get-RhythmNextAction.cmd` to read the default summary JSON and print the next autonomous action |
 | Rhythm snapshot hotkey guardrail | Snapshot capture should not trigger gameplay/debug side effects while gathering evidence | Moved the rhythm snapshot hotkey from `F8` to `F13`, keeping the overlay button as the fallback path |
 | Rhythm snapshot hotkey isolation | Future validation key changes should fail fast if they collide with gameplay or debug keys | Added static preflight parsing for the snapshot key against loadout, save, regression, audio, debug, and map tuning hotkeys |
+| Rhythm capture handoff status | Automation should know when evidence capture needs a person instead of pretending tuning can continue | Added `requiresHumanCapture` and `automationCanProceed` to `Tools\Get-RhythmNextAction.cmd` output and JSON |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |
@@ -87,6 +88,7 @@ The next best autonomous task is Release relief tuning from telemetry:
 - For autonomous runs, call `Tools\Write-RhythmSnapshotSummary.cmd` and read the four phase status fields from `Logs\RhythmValidation\rhythm_snapshot_summary_last.json`.
 - Start with `overallEvidenceStatus`: `NO_EVIDENCE` means capture snapshots first, `PARTIAL_EVIDENCE` means capture missing phases, `NEEDS_TUNING` means tune the listed weak phase, and `PASS` means do not retune from old evidence.
 - Use `Tools\Get-RhythmNextAction.cmd` after writing the summary JSON; it prints `NextAction` and `TargetPhases` for the next autonomous pass.
+- If `requiresHumanCapture=True` and `automationCanProceed=False`, stop rhythm tuning and wait for phase snapshots instead of changing feel values without evidence.
 - If snapshots still show weak relief, tune intensity/fade shape next rather than adding new assets.
 - Keep Spike fairness tuning as the second priority: use warning -> threat -> response telemetry to adjust tell lead time or chase timing only when snapshots show an unfair spike.
 

@@ -11,6 +11,8 @@ $phaseEvidenceComplete = $false
 $sourceExitCode = 0
 $targetPhases = @()
 $nextAction = 'REFRESH_SUMMARY'
+$requiresHumanCapture = $false
+$automationCanProceed = $true
 $rationale = 'Rhythm snapshot summary JSON is missing, so automation should refresh it before choosing tuning work.'
 $suggestedCommand = 'Tools\Write-RhythmSnapshotSummary.cmd'
 
@@ -36,12 +38,16 @@ if ($summaryExists) {
         'NO_EVIDENCE' {
             $nextAction = 'CAPTURE_RHYTHM_SNAPSHOTS'
             $targetPhases = @('Calm', 'Build', 'Spike', 'Release')
+            $requiresHumanCapture = $true
+            $automationCanProceed = $false
             $rationale = 'No rhythm snapshots exist yet. Capture one lightweight snapshot per phase before retuning feel.'
             $suggestedCommand = 'Enter Play Mode, use Write Rhythm Snapshot or press F13 once during each rhythm phase, then run Tools\Write-RhythmSnapshotSummary.cmd.'
         }
         'PARTIAL_EVIDENCE' {
             $nextAction = 'CAPTURE_MISSING_PHASES'
             $targetPhases = $missingPhases
+            $requiresHumanCapture = $true
+            $automationCanProceed = $false
             $rationale = 'Some phases have clean evidence, but the rhythm cycle is not fully covered yet.'
             $suggestedCommand = "Capture missing phase snapshots: $($missingPhases -join ', ')."
         }
@@ -72,6 +78,8 @@ $result = [ordered]@{
     sourceExitCode = $sourceExitCode
     nextAction = $nextAction
     targetPhases = @($targetPhases)
+    requiresHumanCapture = $requiresHumanCapture
+    automationCanProceed = $automationCanProceed
     rationale = $rationale
     suggestedCommand = $suggestedCommand
 }
@@ -83,6 +91,8 @@ Write-Host "OverallEvidenceStatus: $status"
 Write-Host "PhaseEvidenceComplete: $phaseEvidenceComplete"
 Write-Host "NextAction: $nextAction"
 Write-Host "TargetPhases: $(@($targetPhases) -join ', ')"
+Write-Host "RequiresHumanCapture: $requiresHumanCapture"
+Write-Host "AutomationCanProceed: $automationCanProceed"
 Write-Host "Rationale: $rationale"
 Write-Host "SuggestedCommand: $suggestedCommand"
 

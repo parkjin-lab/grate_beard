@@ -8,10 +8,11 @@ Keep development moving when the creator is busy or absent, without broad manual
 2. Pick one small, human-free task that improves fun, reliability, validation, or documentation.
 3. Prefer static evidence: `git diff --check` and `Tools/RunStaticPreflight.ps1`.
 4. For rhythm work, run `Tools\Write-RhythmSnapshotSummary.cmd` and then `Tools\Get-RhythmNextAction.cmd` before choosing capture, tuning, or variation work.
-5. Treat `FAIL` as blocking. Treat stale log `WARN` as a refresh signal unless claiming release readiness.
-6. Commit only explicit files. Do not use `git add .`.
-7. Push successful commits to `origin/main`.
-8. End with the current evidence, remaining risk, and the next 1-3 autonomous actions.
+5. If rhythm next action reports `requiresHumanCapture=True` and `automationCanProceed=False`, do not retune rhythm feel from stale or missing evidence.
+6. Treat `FAIL` as blocking. Treat stale log `WARN` as a refresh signal unless claiming release readiness.
+7. Commit only explicit files. Do not use `git add .`.
+8. Push successful commits to `origin/main`.
+9. End with the current evidence, remaining risk, and the next 1-3 autonomous actions.
 
 ## Current Autonomous Priority
 1. Spike fairness instrumentation: prove warning, threat, and response windows are connected.

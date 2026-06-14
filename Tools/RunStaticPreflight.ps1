@@ -476,6 +476,8 @@ if (Test-Path $rhythmNextActionScriptPath) {
         'TUNE_WEAK_PHASES',
         'CONTINUE_NEXT_RHYTHM_VARIATION',
         'REFRESH_SUMMARY',
+        'requiresHumanCapture',
+        'automationCanProceed',
         'OutputJsonPath',
         'ConvertFrom-Json',
         'ConvertTo-Json',
