@@ -65,6 +65,7 @@
 | Rhythm capture handoff note | Busy creators should get a short readable capture note without parsing JSON | Added `Tools\Write-RhythmCaptureHandoff.cmd` to write `Logs\RhythmValidation\rhythm_capture_handoff_last.md` |
 | Rhythm blocked-state handoff | Repeated automation should explain why rhythm work cannot continue yet | Added `blockedReason` and `resumeCondition` to the next-action JSON and Markdown handoff |
 | Rhythm next-action branch tests | The automation should prove every evidence state maps to the intended next action | Added `Tools\Test-RhythmNextAction.cmd` to verify NO_EVIDENCE, PARTIAL_EVIDENCE, NEEDS_TUNING, and PASS branches |
+| Rhythm branch test preflight | Next-action branch regressions should fail the standard static gate | Static preflight now runs `Tools\Test-RhythmNextAction.cmd` and reports `tools.rhythmNextActionBranchTests` |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |
@@ -97,7 +98,7 @@ The next best autonomous task is Release relief tuning from telemetry:
 - Use `Tools\Write-RhythmCaptureHandoff.cmd` when notifying a person; it writes a short Markdown handoff from the next-action JSON.
 - If `requiresHumanCapture=True` and `automationCanProceed=False`, stop rhythm tuning and wait for phase snapshots instead of changing feel values without evidence.
 - Use `blockedReason` and `resumeCondition` to explain repeated heartbeat stalls without adding speculative tuning.
-- Run `Tools\Test-RhythmNextAction.cmd` after changing next-action logic.
+- Run `Tools\Test-RhythmNextAction.cmd` after changing next-action logic; static preflight also runs it as `tools.rhythmNextActionBranchTests`.
 - Read `humanCaptureSteps` from `Tools\Get-RhythmNextAction.cmd -OutputJsonPath ...` when handing the task to a person; it is the shortest acceptable capture path.
 - If snapshots still show weak relief, tune intensity/fade shape next rather than adding new assets.
 - Keep Spike fairness tuning as the second priority: use warning -> threat -> response telemetry to adjust tell lead time or chase timing only when snapshots show an unfair spike.

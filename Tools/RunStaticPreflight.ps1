@@ -600,6 +600,16 @@ if (Test-Path $rhythmNextActionTestCmdPath) {
 }
 $results.Add((Add-Result 'tools.rhythmSnapshotSummaryHooks' ($(if ($rhythmSnapshotToolMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmSnapshotToolMissing -join ', ')"))
 
+if (Test-Path $rhythmNextActionTestCmdPath) {
+    $nextActionTestOutput = & cmd /c "`"$rhythmNextActionTestCmdPath`"" 2>&1
+    $nextActionTestExit = $LASTEXITCODE
+    $nextActionTestPassed = $nextActionTestExit -eq 0 -and (($nextActionTestOutput -join "`n").Contains('Rhythm next-action tests passed.'))
+    $nextActionTestTail = (@($nextActionTestOutput) | Select-Object -Last 1) -join ' '
+    $results.Add((Add-Result 'tools.rhythmNextActionBranchTests' ($(if ($nextActionTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$nextActionTestExit last='$nextActionTestTail'"))
+} else {
+    $results.Add((Add-Result 'tools.rhythmNextActionBranchTests' 'FAIL' 'Test-RhythmNextAction.cmd missing.'))
+}
+
 if (Test-Path $audioManagerPath) {
     $audioManagerText = Get-Content $audioManagerPath -Raw
     $audioManagerHooks = @(

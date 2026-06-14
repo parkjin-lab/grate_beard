@@ -73,6 +73,7 @@
 - `Tools\Write-RhythmCaptureHandoff.cmd` now writes a concise Markdown capture handoff from the next-action JSON.
 - Rhythm next-action output now includes blocked reason and resume condition fields so repeated automation can explain why rhythm tuning is paused.
 - `Tools\Test-RhythmNextAction.cmd` now validates the four rhythm next-action evidence branches without requiring Play Mode.
+- Static preflight now runs the rhythm next-action branch tests so the standard gate catches evidence-routing regressions.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |
