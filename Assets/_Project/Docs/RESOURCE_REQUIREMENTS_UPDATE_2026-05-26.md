@@ -71,6 +71,7 @@
 - Rhythm next-action JSON now includes capture hotkey, minimum capture count, and human capture steps for concise handoff.
 - `Tools\Write-RhythmNextAction.cmd` now refreshes rhythm summary evidence and writes the default next-action JSON file for heartbeat automation.
 - `Tools\Write-RhythmCaptureHandoff.cmd` now writes a concise Markdown capture handoff from the next-action JSON.
+- Rhythm next-action output now includes blocked reason and resume condition fields so repeated automation can explain why rhythm tuning is paused.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

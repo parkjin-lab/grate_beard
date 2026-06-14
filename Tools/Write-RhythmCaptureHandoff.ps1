@@ -24,6 +24,8 @@ $lines.Add("- AutomationCanProceed: $($nextAction.automationCanProceed)")
 $lines.Add("- CaptureHotkey: $($nextAction.captureHotkey)")
 $lines.Add("- MinimumCaptureCount: $($nextAction.minimumCaptureCount)")
 $lines.Add("- TargetPhases: $($targetPhases -join ', ')")
+$lines.Add("- BlockedReason: $($nextAction.blockedReason)")
+$lines.Add("- ResumeCondition: $($nextAction.resumeCondition)")
 $lines.Add('')
 $lines.Add('## Tiny Capture Pass')
 if ($steps.Count -eq 0) {

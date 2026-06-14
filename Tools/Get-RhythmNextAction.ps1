@@ -16,6 +16,8 @@ $automationCanProceed = $true
 $captureHotkey = 'F13'
 $minimumCaptureCount = 0
 $humanCaptureSteps = @()
+$blockedReason = ''
+$resumeCondition = 'Run Tools\Write-RhythmNextAction.cmd again after refreshing rhythm evidence.'
 $rationale = 'Rhythm snapshot summary JSON is missing, so automation should refresh it before choosing tuning work.'
 $suggestedCommand = 'Tools\Write-RhythmSnapshotSummary.cmd'
 
@@ -44,6 +46,8 @@ if ($summaryExists) {
             $requiresHumanCapture = $true
             $automationCanProceed = $false
             $minimumCaptureCount = 4
+            $blockedReason = 'MISSING_RHYTHM_SNAPSHOTS'
+            $resumeCondition = 'Capture at least one Calm, Build, Spike, and Release rhythm snapshot, then rerun Tools\Write-RhythmNextAction.cmd.'
             $humanCaptureSteps = @(
                 'Enter Play Mode.',
                 'Use Write Rhythm Snapshot or press F13 once during Calm.',
@@ -61,6 +65,8 @@ if ($summaryExists) {
             $requiresHumanCapture = $true
             $automationCanProceed = $false
             $minimumCaptureCount = $missingPhases.Count
+            $blockedReason = 'MISSING_RHYTHM_PHASE_SNAPSHOTS'
+            $resumeCondition = "Capture snapshots for missing phases: $($missingPhases -join ', '), then rerun Tools\Write-RhythmNextAction.cmd."
             $humanCaptureSteps = @(
                 'Enter Play Mode.',
                 "Use Write Rhythm Snapshot or press F13 once during each missing phase: $($missingPhases -join ', ').",
@@ -101,6 +107,8 @@ $result = [ordered]@{
     captureHotkey = $captureHotkey
     minimumCaptureCount = $minimumCaptureCount
     humanCaptureSteps = @($humanCaptureSteps)
+    blockedReason = $blockedReason
+    resumeCondition = $resumeCondition
     rationale = $rationale
     suggestedCommand = $suggestedCommand
 }
@@ -116,6 +124,8 @@ Write-Host "RequiresHumanCapture: $requiresHumanCapture"
 Write-Host "AutomationCanProceed: $automationCanProceed"
 Write-Host "CaptureHotkey: $captureHotkey"
 Write-Host "MinimumCaptureCount: $minimumCaptureCount"
+Write-Host "BlockedReason: $(if ([string]::IsNullOrWhiteSpace($blockedReason)) { 'none' } else { $blockedReason })"
+Write-Host "ResumeCondition: $resumeCondition"
 if ($humanCaptureSteps.Count -gt 0) {
     Write-Host "HumanCaptureSteps: $($humanCaptureSteps -join ' | ')"
 }
