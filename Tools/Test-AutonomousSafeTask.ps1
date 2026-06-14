@@ -77,6 +77,7 @@ function Invoke-SafeTaskCase {
         [string]$ExpectedBlockedReason,
         [int]$ExpectedTargetPhaseCount,
         [string]$ExpectedCaptureHotkey,
+        [string]$ExpectedHumanActionSummary,
         [int]$ExpectedForbiddenActionCount
     )
 
@@ -92,6 +93,7 @@ function Invoke-SafeTaskCase {
     Assert-Contains $Name $output "AutomationMode: $ExpectedAutomationMode"
     Assert-Contains $Name $output "BlockedReason: $(if ([string]::IsNullOrWhiteSpace($ExpectedBlockedReason)) { 'none' } else { $ExpectedBlockedReason })"
     Assert-Contains $Name $output "CaptureHotkey: $ExpectedCaptureHotkey"
+    Assert-Contains $Name $output "HumanActionSummary: $ExpectedHumanActionSummary"
     Assert-Contains $Name $output "OutputJsonPath: $outputPath"
 
     $actualJson = Get-Content -LiteralPath $outputPath -Raw | ConvertFrom-Json
@@ -128,6 +130,10 @@ function Invoke-SafeTaskCase {
         throw "$Name captureHotkey JSON expected=$ExpectedCaptureHotkey actual=$($actualJson.captureHotkey)"
     }
 
+    if ("$($actualJson.humanActionSummary)" -ne $ExpectedHumanActionSummary) {
+        throw "$Name humanActionSummary JSON expected=$ExpectedHumanActionSummary actual=$($actualJson.humanActionSummary)"
+    }
+
     if (@($actualJson.forbiddenAutomationActions).Count -ne $ExpectedForbiddenActionCount) {
         throw "$Name forbiddenAutomationActions.Count expected=$ExpectedForbiddenActionCount actual=$(@($actualJson.forbiddenAutomationActions).Count)"
     }
@@ -142,10 +148,10 @@ try {
     $failedPreflight = Write-PreflightCase 'failed' 2
     $missingPath = Join-Path $tempRoot 'missing.json'
 
-    Invoke-SafeTaskCase 'FAILED_PREFLIGHT' $blockedRhythm $failedPreflight 'FIX_STATIC_PREFLIGHT_FAILURES' 'False' 'False' 'FIX_FAILURES_ONLY' 'MISSING_RHYTHM_SNAPSHOTS' 4 'F13' 2
-    Invoke-SafeTaskCase 'CAPTURE_BLOCKED' $blockedRhythm $cleanPreflight 'IMPROVE_GUARDRAILS_OR_DOCUMENTATION' 'False' 'True' 'SAFE_ALTERNATE_ONLY' 'MISSING_RHYTHM_SNAPSHOTS' 4 'F13' 3
-    Invoke-SafeTaskCase 'RHYTHM_TUNING_ALLOWED' $tuningRhythm $cleanPreflight 'TUNE_WEAK_PHASES' 'True' 'False' 'RHYTHM_TUNING_ALLOWED' '' 4 'F13' 0
-    Invoke-SafeTaskCase 'MISSING_STATUS' $missingPath $missingPath 'REFRESH_STATUS_EVIDENCE' 'False' 'False' 'REFRESH_STATUS' '' 0 '' 0
+    Invoke-SafeTaskCase 'FAILED_PREFLIGHT' $blockedRhythm $failedPreflight 'FIX_STATIC_PREFLIGHT_FAILURES' 'False' 'False' 'FIX_FAILURES_ONLY' 'MISSING_RHYTHM_SNAPSHOTS' 4 'F13' 'No human play capture is needed; fix static preflight FAIL results first.' 2
+    Invoke-SafeTaskCase 'CAPTURE_BLOCKED' $blockedRhythm $cleanPreflight 'IMPROVE_GUARDRAILS_OR_DOCUMENTATION' 'False' 'True' 'SAFE_ALTERNATE_ONLY' 'MISSING_RHYTHM_SNAPSHOTS' 4 'F13' 'Capture 4 rhythm snapshots with F13: Calm, Build, Spike, Release.' 3
+    Invoke-SafeTaskCase 'RHYTHM_TUNING_ALLOWED' $tuningRhythm $cleanPreflight 'TUNE_WEAK_PHASES' 'True' 'False' 'RHYTHM_TUNING_ALLOWED' '' 4 'F13' 'No human capture is required by the current safe-task state.' 0
+    Invoke-SafeTaskCase 'MISSING_STATUS' $missingPath $missingPath 'REFRESH_STATUS_EVIDENCE' 'False' 'False' 'REFRESH_STATUS' '' 0 '' 'Refresh status evidence before choosing gameplay or tuning work.' 0
 
     Write-Host 'Autonomous safe-task tests passed.'
 } finally {

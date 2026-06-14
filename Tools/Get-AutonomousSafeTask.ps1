@@ -35,12 +35,14 @@ $canTuneRhythm = $false
 $humanRequired = $false
 $forbiddenAutomationActions = @()
 $automationMode = 'REFRESH_STATUS'
+$humanActionSummary = 'Refresh status evidence before choosing gameplay or tuning work.'
 
 if ($preflightFailCount -gt 0) {
     $recommendedTask = 'FIX_STATIC_PREFLIGHT_FAILURES'
     $recommendedCommand = 'Tools\RunStaticPreflight.ps1'
     $reason = 'Static preflight has FAIL results; fix those before feature or tuning work.'
     $automationMode = 'FIX_FAILURES_ONLY'
+    $humanActionSummary = 'No human play capture is needed; fix static preflight FAIL results first.'
     $forbiddenAutomationActions = @(
         'Do not tune rhythm feel while static preflight has FAIL results.',
         'Do not claim release readiness until FAIL results are fixed.'
@@ -51,6 +53,7 @@ if ($preflightFailCount -gt 0) {
     $reason = "Rhythm tuning is blocked by $($rhythm.blockedReason); choose only non-tuning work until snapshots exist."
     $humanRequired = $true
     $automationMode = 'SAFE_ALTERNATE_ONLY'
+    $humanActionSummary = "Capture $minimumCaptureCount rhythm snapshots with ${captureHotkey}: $($targetPhases -join ', ')."
     $forbiddenAutomationActions = @(
         'Do not retune rhythm feel without Calm, Build, Spike, and Release snapshots.',
         'Do not claim Spike fairness or Release relief is proven from missing evidence.',
@@ -62,6 +65,7 @@ if ($preflightFailCount -gt 0) {
     $reason = 'Rhythm evidence allows automation to proceed with the reported next action.'
     $canTuneRhythm = $rhythm.nextAction -eq 'TUNE_WEAK_PHASES'
     $automationMode = $(if ($canTuneRhythm) { 'RHYTHM_TUNING_ALLOWED' } else { 'RHYTHM_AUTOMATION_ALLOWED' })
+    $humanActionSummary = 'No human capture is required by the current safe-task state.'
 }
 
 Write-Host 'LostBreadcrumbs Autonomous Safe Task'
@@ -78,6 +82,7 @@ Write-Host "ResumeCondition: $resumeCondition"
 Write-Host "TargetPhases: $($targetPhases -join ', ')"
 Write-Host "CaptureHotkey: $captureHotkey"
 Write-Host "MinimumCaptureCount: $minimumCaptureCount"
+Write-Host "HumanActionSummary: $humanActionSummary"
 Write-Host "RecommendedTask: $recommendedTask"
 Write-Host "RecommendedCommand: $recommendedCommand"
 Write-Host "Reason: $reason"
@@ -112,6 +117,7 @@ if (-not [string]::IsNullOrWhiteSpace($OutputJsonPath)) {
         targetPhases = $targetPhases
         captureHotkey = $captureHotkey
         minimumCaptureCount = $minimumCaptureCount
+        humanActionSummary = $humanActionSummary
         recommendedTask = $recommendedTask
         recommendedCommand = $recommendedCommand
         reason = $reason

@@ -69,6 +69,7 @@ if ($null -ne $safeTask) {
     $lines.Add("- TargetPhases: $(@($safeTask.targetPhases) -join ', ')")
     $lines.Add("- CaptureHotkey: $($safeTask.captureHotkey)")
     $lines.Add("- MinimumCaptureCount: $($safeTask.minimumCaptureCount)")
+    $lines.Add("- HumanActionSummary: $($safeTask.humanActionSummary)")
     $lines.Add("- Reason: $($safeTask.reason)")
 } else {
     $lines.Add('- Safe task JSON is missing; run Tools\Get-AutonomousSafeTask.cmd.')

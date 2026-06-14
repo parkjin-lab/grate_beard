@@ -794,6 +794,7 @@ if (Test-Path $autonomousSafeTaskScriptPath) {
         'TargetPhases',
         'CaptureHotkey',
         'MinimumCaptureCount',
+        'HumanActionSummary',
         'ForbiddenAutomationActions',
         'forbiddenAutomationActions',
         'humanRequired',
@@ -803,6 +804,7 @@ if (Test-Path $autonomousSafeTaskScriptPath) {
         'targetPhases',
         'captureHotkey',
         'minimumCaptureCount',
+        'humanActionSummary',
         'RecommendedTask',
         'SafeAlternateAutomationActions'
     )
@@ -848,6 +850,7 @@ if (Test-Path $autonomousSafeTaskTestScriptPath) {
         'blockedReason',
         'targetPhases',
         'captureHotkey',
+        'humanActionSummary',
         'SAFE_ALTERNATE_ONLY',
         'FIX_FAILURES_ONLY',
         'RHYTHM_TUNING_ALLOWED',
