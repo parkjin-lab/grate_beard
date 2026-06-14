@@ -20,8 +20,13 @@ $rhythm = Read-OptionalJson $RhythmNextActionJsonPath
 $preflight = Read-OptionalJson $StaticPreflightJsonPath
 $preflightFailCount = if ($null -ne $preflight) { [int]$preflight.summary.fail } else { -1 }
 $safeActions = if ($null -ne $rhythm) { @($rhythm.safeAlternateAutomationActions) } else { @() }
+[string[]]$targetPhases = if ($null -ne $rhythm) { @($rhythm.targetPhases) } else { @() }
 $requiresHumanCapture = $null -ne $rhythm -and [bool]$rhythm.requiresHumanCapture
 $automationCanProceed = $null -ne $rhythm -and [bool]$rhythm.automationCanProceed
+$blockedReason = if ($null -ne $rhythm) { "$($rhythm.blockedReason)" } else { '' }
+$resumeCondition = if ($null -ne $rhythm) { "$($rhythm.resumeCondition)" } else { 'Refresh rhythm next-action evidence.' }
+$captureHotkey = if ($null -ne $rhythm) { "$($rhythm.captureHotkey)" } else { '' }
+$minimumCaptureCount = if ($null -ne $rhythm) { [int]$rhythm.minimumCaptureCount } else { 0 }
 
 $recommendedTask = 'REFRESH_STATUS_EVIDENCE'
 $recommendedCommand = 'Tools\RunStaticPreflight.ps1'
@@ -68,6 +73,11 @@ Write-Host "AutomationCanProceed: $automationCanProceed"
 Write-Host "CanTuneRhythm: $canTuneRhythm"
 Write-Host "HumanRequired: $humanRequired"
 Write-Host "AutomationMode: $automationMode"
+Write-Host "BlockedReason: $(if ([string]::IsNullOrWhiteSpace($blockedReason)) { 'none' } else { $blockedReason })"
+Write-Host "ResumeCondition: $resumeCondition"
+Write-Host "TargetPhases: $($targetPhases -join ', ')"
+Write-Host "CaptureHotkey: $captureHotkey"
+Write-Host "MinimumCaptureCount: $minimumCaptureCount"
 Write-Host "RecommendedTask: $recommendedTask"
 Write-Host "RecommendedCommand: $recommendedCommand"
 Write-Host "Reason: $reason"
@@ -97,6 +107,11 @@ if (-not [string]::IsNullOrWhiteSpace($OutputJsonPath)) {
         canTuneRhythm = $canTuneRhythm
         humanRequired = $humanRequired
         automationMode = $automationMode
+        blockedReason = $blockedReason
+        resumeCondition = $resumeCondition
+        targetPhases = $targetPhases
+        captureHotkey = $captureHotkey
+        minimumCaptureCount = $minimumCaptureCount
         recommendedTask = $recommendedTask
         recommendedCommand = $recommendedCommand
         reason = $reason

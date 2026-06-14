@@ -32,9 +32,13 @@ function Write-RhythmCase {
     $path = Join-Path $tempRoot "$Name.rhythm.json"
     [ordered]@{
         nextAction = $NextAction
+        targetPhases = @('Calm', 'Build', 'Spike', 'Release')
+        captureHotkey = 'F13'
+        minimumCaptureCount = $(if ($RequiresHumanCapture) { 4 } else { 0 })
         requiresHumanCapture = $RequiresHumanCapture
         automationCanProceed = $AutomationCanProceed
         blockedReason = $BlockedReason
+        resumeCondition = 'Capture at least one Calm, Build, Spike, and Release rhythm snapshot, then rerun Tools\Write-RhythmNextAction.cmd.'
         safeAlternateAutomationActions = @(
             'Run Tools\RunStaticPreflight.ps1 and fix FAIL results only.',
             'Improve static guardrails or documentation that does not retune rhythm feel.',
@@ -70,6 +74,9 @@ function Invoke-SafeTaskCase {
         [string]$ExpectedCanTuneRhythm,
         [string]$ExpectedHumanRequired,
         [string]$ExpectedAutomationMode,
+        [string]$ExpectedBlockedReason,
+        [int]$ExpectedTargetPhaseCount,
+        [string]$ExpectedCaptureHotkey,
         [int]$ExpectedForbiddenActionCount
     )
 
@@ -83,6 +90,8 @@ function Invoke-SafeTaskCase {
     Assert-Contains $Name $output "CanTuneRhythm: $ExpectedCanTuneRhythm"
     Assert-Contains $Name $output "HumanRequired: $ExpectedHumanRequired"
     Assert-Contains $Name $output "AutomationMode: $ExpectedAutomationMode"
+    Assert-Contains $Name $output "BlockedReason: $(if ([string]::IsNullOrWhiteSpace($ExpectedBlockedReason)) { 'none' } else { $ExpectedBlockedReason })"
+    Assert-Contains $Name $output "CaptureHotkey: $ExpectedCaptureHotkey"
     Assert-Contains $Name $output "OutputJsonPath: $outputPath"
 
     $actualJson = Get-Content -LiteralPath $outputPath -Raw | ConvertFrom-Json
@@ -106,6 +115,19 @@ function Invoke-SafeTaskCase {
         throw "$Name automationMode JSON expected=$ExpectedAutomationMode actual=$($actualJson.automationMode)"
     }
 
+    if ("$($actualJson.blockedReason)" -ne $ExpectedBlockedReason) {
+        throw "$Name blockedReason JSON expected=$ExpectedBlockedReason actual=$($actualJson.blockedReason)"
+    }
+
+    $actualTargetPhaseCount = if ($null -eq $actualJson.targetPhases -or [string]::IsNullOrWhiteSpace("$($actualJson.targetPhases)")) { 0 } else { @($actualJson.targetPhases).Count }
+    if ($actualTargetPhaseCount -ne $ExpectedTargetPhaseCount) {
+        throw "$Name targetPhases.Count JSON expected=$ExpectedTargetPhaseCount actual=$actualTargetPhaseCount"
+    }
+
+    if ("$($actualJson.captureHotkey)" -ne $ExpectedCaptureHotkey) {
+        throw "$Name captureHotkey JSON expected=$ExpectedCaptureHotkey actual=$($actualJson.captureHotkey)"
+    }
+
     if (@($actualJson.forbiddenAutomationActions).Count -ne $ExpectedForbiddenActionCount) {
         throw "$Name forbiddenAutomationActions.Count expected=$ExpectedForbiddenActionCount actual=$(@($actualJson.forbiddenAutomationActions).Count)"
     }
@@ -120,10 +142,10 @@ try {
     $failedPreflight = Write-PreflightCase 'failed' 2
     $missingPath = Join-Path $tempRoot 'missing.json'
 
-    Invoke-SafeTaskCase 'FAILED_PREFLIGHT' $blockedRhythm $failedPreflight 'FIX_STATIC_PREFLIGHT_FAILURES' 'False' 'False' 'FIX_FAILURES_ONLY' 2
-    Invoke-SafeTaskCase 'CAPTURE_BLOCKED' $blockedRhythm $cleanPreflight 'IMPROVE_GUARDRAILS_OR_DOCUMENTATION' 'False' 'True' 'SAFE_ALTERNATE_ONLY' 3
-    Invoke-SafeTaskCase 'RHYTHM_TUNING_ALLOWED' $tuningRhythm $cleanPreflight 'TUNE_WEAK_PHASES' 'True' 'False' 'RHYTHM_TUNING_ALLOWED' 0
-    Invoke-SafeTaskCase 'MISSING_STATUS' $missingPath $missingPath 'REFRESH_STATUS_EVIDENCE' 'False' 'False' 'REFRESH_STATUS' 0
+    Invoke-SafeTaskCase 'FAILED_PREFLIGHT' $blockedRhythm $failedPreflight 'FIX_STATIC_PREFLIGHT_FAILURES' 'False' 'False' 'FIX_FAILURES_ONLY' 'MISSING_RHYTHM_SNAPSHOTS' 4 'F13' 2
+    Invoke-SafeTaskCase 'CAPTURE_BLOCKED' $blockedRhythm $cleanPreflight 'IMPROVE_GUARDRAILS_OR_DOCUMENTATION' 'False' 'True' 'SAFE_ALTERNATE_ONLY' 'MISSING_RHYTHM_SNAPSHOTS' 4 'F13' 3
+    Invoke-SafeTaskCase 'RHYTHM_TUNING_ALLOWED' $tuningRhythm $cleanPreflight 'TUNE_WEAK_PHASES' 'True' 'False' 'RHYTHM_TUNING_ALLOWED' '' 4 'F13' 0
+    Invoke-SafeTaskCase 'MISSING_STATUS' $missingPath $missingPath 'REFRESH_STATUS_EVIDENCE' 'False' 'False' 'REFRESH_STATUS' '' 0 '' 0
 
     Write-Host 'Autonomous safe-task tests passed.'
 } finally {

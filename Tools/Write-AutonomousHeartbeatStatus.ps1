@@ -64,6 +64,11 @@ if ($null -ne $safeTask) {
     $lines.Add("- CanTuneRhythm: $($safeTask.canTuneRhythm)")
     $lines.Add("- HumanRequired: $($safeTask.humanRequired)")
     $lines.Add("- AutomationMode: $($safeTask.automationMode)")
+    $lines.Add("- BlockedReason: $($safeTask.blockedReason)")
+    $lines.Add("- ResumeCondition: $($safeTask.resumeCondition)")
+    $lines.Add("- TargetPhases: $(@($safeTask.targetPhases) -join ', ')")
+    $lines.Add("- CaptureHotkey: $($safeTask.captureHotkey)")
+    $lines.Add("- MinimumCaptureCount: $($safeTask.minimumCaptureCount)")
     $lines.Add("- Reason: $($safeTask.reason)")
 } else {
     $lines.Add('- Safe task JSON is missing; run Tools\Get-AutonomousSafeTask.cmd.')
