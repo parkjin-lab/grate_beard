@@ -70,13 +70,29 @@ function Invoke-SafeTaskCase {
         [string]$ExpectedCanTuneRhythm
     )
 
-    $output = (& powershell -NoProfile -ExecutionPolicy Bypass -File $scriptPath -RhythmNextActionJsonPath $RhythmPath -StaticPreflightJsonPath $PreflightPath) -join "`n"
+    $outputPath = Join-Path $tempRoot "$Name.safe-task.json"
+    $output = (& powershell -NoProfile -ExecutionPolicy Bypass -File $scriptPath -RhythmNextActionJsonPath $RhythmPath -StaticPreflightJsonPath $PreflightPath -OutputJsonPath $outputPath) -join "`n"
     if ($LASTEXITCODE -ne 0) {
         throw "Get-AutonomousSafeTask failed for $Name with exit code $LASTEXITCODE"
     }
 
     Assert-Contains $Name $output "RecommendedTask: $ExpectedTask"
     Assert-Contains $Name $output "CanTuneRhythm: $ExpectedCanTuneRhythm"
+    Assert-Contains $Name $output "OutputJsonPath: $outputPath"
+
+    $actualJson = Get-Content -LiteralPath $outputPath -Raw | ConvertFrom-Json
+    if ($actualJson.schemaVersion -ne 1) {
+        throw "$Name schemaVersion expected=1 actual=$($actualJson.schemaVersion)"
+    }
+
+    if ("$($actualJson.recommendedTask)" -ne $ExpectedTask) {
+        throw "$Name recommendedTask JSON expected=$ExpectedTask actual=$($actualJson.recommendedTask)"
+    }
+
+    if ("$($actualJson.canTuneRhythm)" -ne $ExpectedCanTuneRhythm) {
+        throw "$Name canTuneRhythm JSON expected=$ExpectedCanTuneRhythm actual=$($actualJson.canTuneRhythm)"
+    }
+
     Write-Host "[PASS] $Name -> $ExpectedTask"
 }
 

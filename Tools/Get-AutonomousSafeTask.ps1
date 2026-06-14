@@ -1,6 +1,7 @@
 param(
     [string]$RhythmNextActionJsonPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path 'Logs/RhythmValidation/rhythm_next_action_last.json'),
-    [string]$StaticPreflightJsonPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path 'Logs/ReleaseSoak/local_static_preflight_last_summary.json')
+    [string]$StaticPreflightJsonPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path 'Logs/ReleaseSoak/local_static_preflight_last_summary.json'),
+    [string]$OutputJsonPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -57,4 +58,28 @@ if ($safeActions.Count -gt 0) {
     Write-Host "SafeAlternateAutomationActions: $($safeActions -join ' | ')"
 } else {
     Write-Host 'SafeAlternateAutomationActions: none'
+}
+
+if (-not [string]::IsNullOrWhiteSpace($OutputJsonPath)) {
+    $directory = Split-Path -Parent $OutputJsonPath
+    if (-not [string]::IsNullOrWhiteSpace($directory)) {
+        New-Item -ItemType Directory -Force -Path $directory | Out-Null
+    }
+
+    [ordered]@{
+        schemaVersion = 1
+        rhythmNextActionJsonPath = $RhythmNextActionJsonPath
+        staticPreflightJsonPath = $StaticPreflightJsonPath
+        rhythmNextActionExists = $null -ne $rhythm
+        staticPreflightExists = $null -ne $preflight
+        staticPreflightFailCount = $preflightFailCount
+        requiresHumanCapture = $requiresHumanCapture
+        automationCanProceed = $automationCanProceed
+        canTuneRhythm = $canTuneRhythm
+        recommendedTask = $recommendedTask
+        recommendedCommand = $recommendedCommand
+        reason = $reason
+        safeAlternateAutomationActions = $safeActions
+    } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $OutputJsonPath -Encoding UTF8
+    Write-Host "OutputJsonPath: $OutputJsonPath"
 }

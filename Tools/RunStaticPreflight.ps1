@@ -742,6 +742,9 @@ if (Test-Path $autonomousSafeTaskScriptPath) {
     $autonomousSafeTaskText = Get-Content $autonomousSafeTaskScriptPath -Raw
     $autonomousSafeTaskHooks = @(
         'LostBreadcrumbs Autonomous Safe Task',
+        'OutputJsonPath',
+        'ConvertTo-Json',
+        'schemaVersion',
         'FIX_STATIC_PREFLIGHT_FAILURES',
         'IMPROVE_GUARDRAILS_OR_DOCUMENTATION',
         'REFRESH_STATUS_EVIDENCE',
@@ -764,7 +767,9 @@ if (Test-Path $autonomousSafeTaskCmdPath) {
     $autonomousSafeTaskCmdHooks = @(
         'Get-AutonomousSafeTask.ps1',
         'rhythm_next_action_last.json',
-        'local_static_preflight_last_summary.json'
+        'local_static_preflight_last_summary.json',
+        'autonomous_safe_task_last.json',
+        '-OutputJsonPath'
     )
     foreach ($hook in $autonomousSafeTaskCmdHooks) {
         if (-not $autonomousSafeTaskCmdText.Contains($hook)) {
@@ -782,6 +787,9 @@ if (Test-Path $autonomousSafeTaskTestScriptPath) {
         'CAPTURE_BLOCKED',
         'RHYTHM_TUNING_ALLOWED',
         'MISSING_STATUS',
+        'schemaVersion',
+        'recommendedTask',
+        'canTuneRhythm',
         'Autonomous safe-task tests passed.'
     )
     foreach ($hook in $autonomousSafeTaskTestHooks) {

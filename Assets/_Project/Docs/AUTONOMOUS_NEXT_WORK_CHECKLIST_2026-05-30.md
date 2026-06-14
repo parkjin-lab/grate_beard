@@ -71,7 +71,7 @@
 | Autonomous heartbeat status | Repeated heartbeats should share progress, validation, blocked state, and safe next steps | Added `Tools\Write-AutonomousHeartbeatStatus.cmd` to refresh rhythm handoff and write `Logs\Autonomous\autonomous_heartbeat_status_last.md` from latest preflight evidence |
 | Autonomous heartbeat read-only status | Heartbeats sometimes need status without touching local evidence files | Added `Tools\Get-AutonomousHeartbeatStatus.cmd` to read the latest rhythm next-action and static preflight JSON without writing logs |
 | Autonomous heartbeat status tests | Read-only heartbeat status should not silently drop blocked-state or validation fields | Added `Tools\Test-AutonomousHeartbeatStatus.cmd`; static preflight now runs it as `tools.autonomousHeartbeatStatusTests` |
-| Autonomous safe-task selector | Repeated heartbeats should pick safe work from evidence instead of retuning while capture-blocked | Added `Tools\Get-AutonomousSafeTask.cmd` plus `Tools\Test-AutonomousSafeTask.cmd`; static preflight now runs it as `tools.autonomousSafeTaskTests` |
+| Autonomous safe-task selector | Repeated heartbeats should pick safe work from evidence instead of retuning while capture-blocked | Added `Tools\Get-AutonomousSafeTask.cmd` plus `Tools\Test-AutonomousSafeTask.cmd`; the selector writes `Logs\Autonomous\autonomous_safe_task_last.json`, and static preflight runs it as `tools.autonomousSafeTaskTests` |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |
@@ -107,7 +107,7 @@ The next best autonomous task is Release relief tuning from telemetry:
 - If rhythm is capture-blocked, use `safeAlternateAutomationActions` for non-tuning work only.
 - Run `Tools\RunStaticPreflight.ps1`, then use `Tools\Write-AutonomousHeartbeatStatus.cmd` to produce a single Markdown status file for repeated heartbeat handoff.
 - Use `Tools\Get-AutonomousHeartbeatStatus.cmd` when a heartbeat only needs to inspect the latest status without creating or changing local artifacts.
-- Use `Tools\Get-AutonomousSafeTask.cmd` to choose the next unattended task from current rhythm/preflight evidence.
+- Use `Tools\Get-AutonomousSafeTask.cmd` to choose the next unattended task from current rhythm/preflight evidence and write `Logs\Autonomous\autonomous_safe_task_last.json`.
 - Run `Tools\Test-AutonomousHeartbeatStatus.cmd` after changing heartbeat status output; static preflight also runs it as `tools.autonomousHeartbeatStatusTests`.
 - Run `Tools\Test-AutonomousSafeTask.cmd` after changing safe-task selection; static preflight also runs it as `tools.autonomousSafeTaskTests`.
 - Run `Tools\Test-RhythmNextAction.cmd` after changing next-action logic; static preflight also runs it as `tools.rhythmNextActionBranchTests`.
