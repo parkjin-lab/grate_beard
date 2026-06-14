@@ -133,6 +133,7 @@ $stageSetPiecePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/St
 $threatReadabilityPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/ThreatReadabilityDirector.cs'
 $docsRoot = Join-Path $ProjectRoot 'Assets/_Project/Docs'
 $rhythmPlaybookPath = Join-Path $docsRoot 'RHYTHM_VALIDATION_PLAYBOOK_2026-05-26.md'
+$autonomousOperationsPlaybookPath = Join-Path $docsRoot 'AUTONOMOUS_OPERATIONS_PLAYBOOK_2026-06-10.md'
 $handoffPattern = Join-Path $ProjectRoot 'HANDOFF_*.md'
 $releaseSoakDir = Join-Path $ProjectRoot 'Logs/ReleaseSoak'
 $summaryPath = Join-Path $releaseSoakDir 'local_static_preflight_last_summary.txt'
@@ -1659,6 +1660,32 @@ if (Test-Path $rhythmPlaybookPath) {
     $lowTouchValidationPolicyMissing.Add('RHYTHM_VALIDATION_PLAYBOOK_2026-05-26.md missing')
 }
 $results.Add((Add-Result 'docs.lowTouchValidationPolicy' ($(if ($lowTouchValidationPolicyMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($lowTouchValidationPolicyMissing -join ', ')"))
+
+$automationModePolicyMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $autonomousOperationsPlaybookPath) {
+    $autonomousOperationsPlaybookText = Get-Content $autonomousOperationsPlaybookPath -Raw
+    $automationModePolicyHooks = @(
+        'Automation Mode Policy',
+        'automationMode',
+        'Allowed work',
+        'Forbidden work',
+        'Exit condition',
+        'SAFE_ALTERNATE_ONLY',
+        'FIX_FAILURES_ONLY',
+        'RHYTHM_TUNING_ALLOWED',
+        'RHYTHM_AUTOMATION_ALLOWED',
+        'REFRESH_STATUS',
+        'no rhythm feel changes until capture evidence exists'
+    )
+    foreach ($hook in $automationModePolicyHooks) {
+        if (-not $autonomousOperationsPlaybookText.Contains($hook)) {
+            $automationModePolicyMissing.Add($hook)
+        }
+    }
+} else {
+    $automationModePolicyMissing.Add('AUTONOMOUS_OPERATIONS_PLAYBOOK_2026-06-10.md missing')
+}
+$results.Add((Add-Result 'docs.automationModePolicy' ($(if ($automationModePolicyMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($automationModePolicyMissing -join ', ')"))
 
 $results.Add((Add-LogArtifactResult 'logs.unityPreflightSummary' $unityPreflightSummaryPath))
 $results.Add((Add-LogArtifactResult 'logs.autoSoakTrace' $tracePath))
