@@ -62,6 +62,7 @@
 | Rhythm capture handoff status | Automation should know when evidence capture needs a person instead of pretending tuning can continue | Added `requiresHumanCapture` and `automationCanProceed` to `Tools\Get-RhythmNextAction.cmd` output and JSON |
 | Rhythm capture handoff steps | The next tiny human pass should be executable without reading prose docs | Added `captureHotkey`, `minimumCaptureCount`, and `humanCaptureSteps` to the next-action output and JSON |
 | Rhythm next-action default JSON | Heartbeats should read the same next-action file without reconstructing command arguments | Added `Tools\Write-RhythmNextAction.cmd` to refresh the summary and write `Logs\RhythmValidation\rhythm_next_action_last.json` |
+| Rhythm capture handoff note | Busy creators should get a short readable capture note without parsing JSON | Added `Tools\Write-RhythmCaptureHandoff.cmd` to write `Logs\RhythmValidation\rhythm_capture_handoff_last.md` |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |
@@ -91,6 +92,7 @@ The next best autonomous task is Release relief tuning from telemetry:
 - Start with `overallEvidenceStatus`: `NO_EVIDENCE` means capture snapshots first, `PARTIAL_EVIDENCE` means capture missing phases, `NEEDS_TUNING` means tune the listed weak phase, and `PASS` means do not retune from old evidence.
 - Use `Tools\Get-RhythmNextAction.cmd` after writing the summary JSON; it prints `NextAction` and `TargetPhases` for the next autonomous pass.
 - Prefer `Tools\Write-RhythmNextAction.cmd` for heartbeat runs; it refreshes both `rhythm_snapshot_summary_last.json` and `rhythm_next_action_last.json`.
+- Use `Tools\Write-RhythmCaptureHandoff.cmd` when notifying a person; it writes a short Markdown handoff from the next-action JSON.
 - If `requiresHumanCapture=True` and `automationCanProceed=False`, stop rhythm tuning and wait for phase snapshots instead of changing feel values without evidence.
 - Read `humanCaptureSteps` from `Tools\Get-RhythmNextAction.cmd -OutputJsonPath ...` when handing the task to a person; it is the shortest acceptable capture path.
 - If snapshots still show weak relief, tune intensity/fade shape next rather than adding new assets.

@@ -119,6 +119,8 @@ $rhythmSnapshotWriteSummaryCmdPath = Join-Path $ProjectRoot 'Tools/Write-RhythmS
 $rhythmNextActionScriptPath = Join-Path $ProjectRoot 'Tools/Get-RhythmNextAction.ps1'
 $rhythmNextActionCmdPath = Join-Path $ProjectRoot 'Tools/Get-RhythmNextAction.cmd'
 $rhythmWriteNextActionCmdPath = Join-Path $ProjectRoot 'Tools/Write-RhythmNextAction.cmd'
+$rhythmCaptureHandoffScriptPath = Join-Path $ProjectRoot 'Tools/Write-RhythmCaptureHandoff.ps1'
+$rhythmCaptureHandoffCmdPath = Join-Path $ProjectRoot 'Tools/Write-RhythmCaptureHandoff.cmd'
 
 $coreTypes = @(
     'LostBreadcrumbs.Runtime.Systems.SpawnSystem',
@@ -521,6 +523,42 @@ if (Test-Path $rhythmWriteNextActionCmdPath) {
     }
 } else {
     $rhythmSnapshotToolMissing.Add('Write-RhythmNextAction.cmd missing')
+}
+
+if (Test-Path $rhythmCaptureHandoffScriptPath) {
+    $rhythmCaptureHandoffText = Get-Content $rhythmCaptureHandoffScriptPath -Raw
+    $captureHandoffHooks = @(
+        'rhythm_next_action_last.json',
+        'rhythm_capture_handoff_last.md',
+        'humanCaptureSteps',
+        'MinimumCaptureCount',
+        'Tiny Capture Pass',
+        'Suggested Command',
+        'Set-Content'
+    )
+    foreach ($hook in $captureHandoffHooks) {
+        if (-not $rhythmCaptureHandoffText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Write-RhythmCaptureHandoff.ps1:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Write-RhythmCaptureHandoff.ps1 missing')
+}
+
+if (Test-Path $rhythmCaptureHandoffCmdPath) {
+    $rhythmCaptureHandoffCmdText = Get-Content $rhythmCaptureHandoffCmdPath -Raw
+    $captureHandoffCmdHooks = @(
+        'Write-RhythmNextAction.cmd',
+        'Write-RhythmCaptureHandoff.ps1',
+        'rhythm_capture_handoff_last.md'
+    )
+    foreach ($hook in $captureHandoffCmdHooks) {
+        if (-not $rhythmCaptureHandoffCmdText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Write-RhythmCaptureHandoff.cmd:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Write-RhythmCaptureHandoff.cmd missing')
 }
 $results.Add((Add-Result 'tools.rhythmSnapshotSummaryHooks' ($(if ($rhythmSnapshotToolMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmSnapshotToolMissing -join ', ')"))
 

@@ -14,6 +14,7 @@ Validate that the game is not only harder or darker, but rhythmically readable: 
 - For automation-readable output, add `-OutputJsonPath Logs\RhythmValidation\rhythm_snapshot_summary_last.json`.
 - For the default automation path, run `Tools\Write-RhythmSnapshotSummary.cmd`; it writes `Logs\RhythmValidation\rhythm_snapshot_summary_last.json`.
 - For the default next-action path, run `Tools\Write-RhythmNextAction.cmd`; it refreshes the summary and writes `Logs\RhythmValidation\rhythm_next_action_last.json`.
+- For a short human-readable capture note, run `Tools\Write-RhythmCaptureHandoff.cmd`; it writes `Logs\RhythmValidation\rhythm_capture_handoff_last.md`.
 - Read `OverallEvidenceStatus` first: `NO_EVIDENCE` means capture snapshots, `PARTIAL_EVIDENCE` means capture missing phases, `NEEDS_TUNING` means tune the flagged phase, and `PASS` means the snapshot evidence is currently clean.
 - Run `Tools\Get-RhythmNextAction.cmd` to turn the summary JSON into a concrete `NextAction` and `TargetPhases` line for heartbeat automation.
 - If the next-action helper reports `requiresHumanCapture=True`, keep the pass tiny: capture only the missing phase snapshots, then rerun the summary.
