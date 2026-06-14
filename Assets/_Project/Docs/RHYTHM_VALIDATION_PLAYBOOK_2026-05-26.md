@@ -7,7 +7,7 @@ Validate that the game is not only harder or darker, but rhythmically readable: 
 - `DebugOverlay` now shows `Rhythm Validation` when a `GameplayRhythmDirector` is present.
 - The gate marks Calm, Build, Spike, and Release after each phase remains active for at least 0.75 seconds.
 - Press `F9` to reset the phase observation gate during a fresh test run.
-- Press `F8` or use `Write Rhythm Snapshot` in the overlay to save the current phase, pressure, stinger, and player state to `Logs/RhythmValidation/`.
+- Press `F13` or use `Write Rhythm Snapshot` in the overlay to save the current phase, pressure, stinger, and player state to `Logs/RhythmValidation/`.
 - Rhythm snapshots include `QuickRead` and `JudgmentPrompt` lines so a short note can classify the current moment without a broad playtest pass.
 - The overlay and snapshot report missing rhythm phases, so a test run can quickly show whether Calm, Build, Spike, or Release still needs observation.
 - After snapshots are captured, run `Tools\Summarize-RhythmSnapshots.cmd` to summarize phase counts, whether Calm stayed readable, whether Build had a temptation choice, whether Spike had a readable warning chain, and whether Release kept at least two relief channels active.

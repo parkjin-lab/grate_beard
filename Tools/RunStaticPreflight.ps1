@@ -320,6 +320,7 @@ if (Test-Path $debugOverlayPath) {
     $debugOverlayText = Get-Content $debugOverlayPath -Raw
     $debugOverlayHooks = @(
         'writeRhythmSnapshotKey',
+        'KeyCode.F13',
         'WriteRhythmValidationSnapshot',
         'BuildRhythmValidationSnapshotText',
         'RhythmQuickRead:',

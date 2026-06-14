@@ -48,7 +48,7 @@ namespace LostBreadcrumbs.Runtime.UI
         [Header("Rhythm Validation")]
         [SerializeField] private bool showRhythmValidation = true;
         [SerializeField] private KeyCode resetRhythmValidationKey = KeyCode.F9;
-        [SerializeField] private KeyCode writeRhythmSnapshotKey = KeyCode.F8;
+        [SerializeField] private KeyCode writeRhythmSnapshotKey = KeyCode.F13;
         [SerializeField, Min(0.1f)] private float rhythmPhaseObservedSeconds = 0.75f;
 
         private int enemyIndex;

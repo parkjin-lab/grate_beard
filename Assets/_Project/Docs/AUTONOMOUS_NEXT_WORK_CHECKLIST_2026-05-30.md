@@ -14,7 +14,7 @@
 | Semantic stinger authoring | Only a small subset of stingers had authored clip slots | Expanded optional stinger clip slots so semantic tones can be replaced one by one |
 | Placeholder stinger rhythm | Several generated tones were functional but too similar in emotional shape | Tuned warning/chase/relief/breath/rhythm placeholders to make each cue easier to distinguish |
 | Stinger validation access | Only exit and chase stingers had direct context-menu test hooks | Added context-menu test hooks for the main semantic stinger set |
-| Rhythm test evidence | Human play checks should be minimized | Added `F8`/`Write Rhythm Snapshot` to DebugOverlay so rare checks produce reusable telemetry under `Logs/RhythmValidation/` |
+| Rhythm test evidence | Human play checks should be minimized | Added `F13`/`Write Rhythm Snapshot` to DebugOverlay so rare checks produce reusable telemetry under `Logs/RhythmValidation/` |
 | Rhythm phase coverage | Testers still had to infer which phases were missing from C/B/S/R flags | Added explicit missing-phase labels to the overlay and snapshot file |
 | Low-touch guardrails | Validation helpers could regress silently during later UI/audio edits | Added static preflight checks for rhythm snapshot/missing-phase hooks and semantic stinger test hooks |
 | Machine-readable preflight summary | Automation needs stable report files without reading terminal output | Added static preflight coverage for local text and JSON summary output hooks |
@@ -57,6 +57,7 @@
 | Rhythm snapshot default summary command | Heartbeats should not need to remember output paths | Added `Tools\Write-RhythmSnapshotSummary.cmd` to write `Logs\RhythmValidation\rhythm_snapshot_summary_last.json` with one command |
 | Rhythm snapshot overall status | Automation should distinguish missing evidence from tuning failures without custom parsing | Added `OverallEvidenceStatus`, `overallEvidenceStatus`, and `phaseEvidenceComplete` to the snapshot summary output and JSON |
 | Rhythm next-action helper | Heartbeats should choose capture, tuning, or variation work from evidence instead of guessing | Added `Tools\Get-RhythmNextAction.cmd` to read the default summary JSON and print the next autonomous action |
+| Rhythm snapshot hotkey guardrail | Snapshot capture should not trigger gameplay/debug side effects while gathering evidence | Moved the rhythm snapshot hotkey from `F8` to `F13`, keeping the overlay button as the fallback path |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |

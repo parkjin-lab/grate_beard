@@ -37,7 +37,7 @@ if ($summaryExists) {
             $nextAction = 'CAPTURE_RHYTHM_SNAPSHOTS'
             $targetPhases = @('Calm', 'Build', 'Spike', 'Release')
             $rationale = 'No rhythm snapshots exist yet. Capture one lightweight snapshot per phase before retuning feel.'
-            $suggestedCommand = 'Enter Play Mode, press F8 once during each rhythm phase, then run Tools\Write-RhythmSnapshotSummary.cmd.'
+            $suggestedCommand = 'Enter Play Mode, use Write Rhythm Snapshot or press F13 once during each rhythm phase, then run Tools\Write-RhythmSnapshotSummary.cmd.'
         }
         'PARTIAL_EVIDENCE' {
             $nextAction = 'CAPTURE_MISSING_PHASES'
