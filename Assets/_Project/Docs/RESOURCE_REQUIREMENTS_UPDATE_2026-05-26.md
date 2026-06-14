@@ -68,6 +68,7 @@
 - Rhythm snapshot capture now defaults to `F13` instead of `F8` so validation evidence capture does not unlock loadout selection.
 - Static preflight now checks that the rhythm snapshot hotkey stays isolated from loadout, save, regression, audio, debug, and map tuning hotkeys.
 - Rhythm next-action output now marks when missing evidence requires a tiny human capture pass before automation should retune rhythm feel.
+- Rhythm next-action JSON now includes capture hotkey, minimum capture count, and human capture steps for concise handoff.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

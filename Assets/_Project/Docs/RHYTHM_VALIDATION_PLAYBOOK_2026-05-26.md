@@ -16,6 +16,7 @@ Validate that the game is not only harder or darker, but rhythmically readable: 
 - Read `OverallEvidenceStatus` first: `NO_EVIDENCE` means capture snapshots, `PARTIAL_EVIDENCE` means capture missing phases, `NEEDS_TUNING` means tune the flagged phase, and `PASS` means the snapshot evidence is currently clean.
 - Run `Tools\Get-RhythmNextAction.cmd` to turn the summary JSON into a concrete `NextAction` and `TargetPhases` line for heartbeat automation.
 - If the next-action helper reports `requiresHumanCapture=True`, keep the pass tiny: capture only the missing phase snapshots, then rerun the summary.
+- For handoff automation, prefer the helper's `humanCaptureSteps` array over free-form instructions.
 - A pass only proves that all phases occurred; it does not prove they felt good. Use the manual notes below for that.
 
 ## Minimal Human Pass

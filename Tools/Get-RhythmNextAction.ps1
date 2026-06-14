@@ -13,6 +13,9 @@ $targetPhases = @()
 $nextAction = 'REFRESH_SUMMARY'
 $requiresHumanCapture = $false
 $automationCanProceed = $true
+$captureHotkey = 'F13'
+$minimumCaptureCount = 0
+$humanCaptureSteps = @()
 $rationale = 'Rhythm snapshot summary JSON is missing, so automation should refresh it before choosing tuning work.'
 $suggestedCommand = 'Tools\Write-RhythmSnapshotSummary.cmd'
 
@@ -40,6 +43,15 @@ if ($summaryExists) {
             $targetPhases = @('Calm', 'Build', 'Spike', 'Release')
             $requiresHumanCapture = $true
             $automationCanProceed = $false
+            $minimumCaptureCount = 4
+            $humanCaptureSteps = @(
+                'Enter Play Mode.',
+                'Use Write Rhythm Snapshot or press F13 once during Calm.',
+                'Use Write Rhythm Snapshot or press F13 once during Build.',
+                'Use Write Rhythm Snapshot or press F13 once during Spike.',
+                'Use Write Rhythm Snapshot or press F13 once during Release.',
+                'Run Tools\Write-RhythmSnapshotSummary.cmd, then rerun Tools\Get-RhythmNextAction.cmd.'
+            )
             $rationale = 'No rhythm snapshots exist yet. Capture one lightweight snapshot per phase before retuning feel.'
             $suggestedCommand = 'Enter Play Mode, use Write Rhythm Snapshot or press F13 once during each rhythm phase, then run Tools\Write-RhythmSnapshotSummary.cmd.'
         }
@@ -48,6 +60,12 @@ if ($summaryExists) {
             $targetPhases = $missingPhases
             $requiresHumanCapture = $true
             $automationCanProceed = $false
+            $minimumCaptureCount = $missingPhases.Count
+            $humanCaptureSteps = @(
+                'Enter Play Mode.',
+                "Use Write Rhythm Snapshot or press F13 once during each missing phase: $($missingPhases -join ', ').",
+                'Run Tools\Write-RhythmSnapshotSummary.cmd, then rerun Tools\Get-RhythmNextAction.cmd.'
+            )
             $rationale = 'Some phases have clean evidence, but the rhythm cycle is not fully covered yet.'
             $suggestedCommand = "Capture missing phase snapshots: $($missingPhases -join ', ')."
         }
@@ -80,6 +98,9 @@ $result = [ordered]@{
     targetPhases = @($targetPhases)
     requiresHumanCapture = $requiresHumanCapture
     automationCanProceed = $automationCanProceed
+    captureHotkey = $captureHotkey
+    minimumCaptureCount = $minimumCaptureCount
+    humanCaptureSteps = @($humanCaptureSteps)
     rationale = $rationale
     suggestedCommand = $suggestedCommand
 }
@@ -93,6 +114,11 @@ Write-Host "NextAction: $nextAction"
 Write-Host "TargetPhases: $(@($targetPhases) -join ', ')"
 Write-Host "RequiresHumanCapture: $requiresHumanCapture"
 Write-Host "AutomationCanProceed: $automationCanProceed"
+Write-Host "CaptureHotkey: $captureHotkey"
+Write-Host "MinimumCaptureCount: $minimumCaptureCount"
+if ($humanCaptureSteps.Count -gt 0) {
+    Write-Host "HumanCaptureSteps: $($humanCaptureSteps -join ' | ')"
+}
 Write-Host "Rationale: $rationale"
 Write-Host "SuggestedCommand: $suggestedCommand"
 
