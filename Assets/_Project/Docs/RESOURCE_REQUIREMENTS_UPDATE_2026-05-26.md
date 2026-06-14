@@ -69,6 +69,7 @@
 - Static preflight now checks that the rhythm snapshot hotkey stays isolated from loadout, save, regression, audio, debug, and map tuning hotkeys.
 - Rhythm next-action output now marks when missing evidence requires a tiny human capture pass before automation should retune rhythm feel.
 - Rhythm next-action JSON now includes capture hotkey, minimum capture count, and human capture steps for concise handoff.
+- `Tools\Write-RhythmNextAction.cmd` now refreshes rhythm summary evidence and writes the default next-action JSON file for heartbeat automation.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

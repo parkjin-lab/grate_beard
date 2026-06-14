@@ -118,6 +118,7 @@ $rhythmSnapshotSummaryCmdPath = Join-Path $ProjectRoot 'Tools/Summarize-RhythmSn
 $rhythmSnapshotWriteSummaryCmdPath = Join-Path $ProjectRoot 'Tools/Write-RhythmSnapshotSummary.cmd'
 $rhythmNextActionScriptPath = Join-Path $ProjectRoot 'Tools/Get-RhythmNextAction.ps1'
 $rhythmNextActionCmdPath = Join-Path $ProjectRoot 'Tools/Get-RhythmNextAction.cmd'
+$rhythmWriteNextActionCmdPath = Join-Path $ProjectRoot 'Tools/Write-RhythmNextAction.cmd'
 
 $coreTypes = @(
     'LostBreadcrumbs.Runtime.Systems.SpawnSystem',
@@ -502,6 +503,24 @@ if (Test-Path $rhythmNextActionCmdPath) {
     }
 } else {
     $rhythmSnapshotToolMissing.Add('Get-RhythmNextAction.cmd missing')
+}
+
+if (Test-Path $rhythmWriteNextActionCmdPath) {
+    $rhythmWriteNextActionCmdText = Get-Content $rhythmWriteNextActionCmdPath -Raw
+    $writeNextActionHooks = @(
+        'Write-RhythmSnapshotSummary.cmd',
+        'Get-RhythmNextAction.ps1',
+        'rhythm_snapshot_summary_last.json',
+        'rhythm_next_action_last.json',
+        '-OutputJsonPath'
+    )
+    foreach ($hook in $writeNextActionHooks) {
+        if (-not $rhythmWriteNextActionCmdText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Write-RhythmNextAction.cmd:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Write-RhythmNextAction.cmd missing')
 }
 $results.Add((Add-Result 'tools.rhythmSnapshotSummaryHooks' ($(if ($rhythmSnapshotToolMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmSnapshotToolMissing -join ', ')"))
 

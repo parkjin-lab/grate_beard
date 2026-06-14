@@ -7,7 +7,7 @@ Keep development moving when the creator is busy or absent, without broad manual
 1. Check `git status --short` first. Never revert or stage unrelated changes.
 2. Pick one small, human-free task that improves fun, reliability, validation, or documentation.
 3. Prefer static evidence: `git diff --check` and `Tools/RunStaticPreflight.ps1`.
-4. For rhythm work, run `Tools\Write-RhythmSnapshotSummary.cmd` and then `Tools\Get-RhythmNextAction.cmd` before choosing capture, tuning, or variation work.
+4. For rhythm work, run `Tools\Write-RhythmNextAction.cmd` before choosing capture, tuning, or variation work.
 5. If rhythm next action reports `requiresHumanCapture=True` and `automationCanProceed=False`, do not retune rhythm feel from stale or missing evidence.
 6. Treat `FAIL` as blocking. Treat stale log `WARN` as a refresh signal unless claiming release readiness.
 7. Commit only explicit files. Do not use `git add .`.
@@ -27,7 +27,7 @@ Keep development moving when the creator is busy or absent, without broad manual
 - Keep resource requirement docs updated when code creates a new art/audio need.
 - Separate player-facing Korean copy from developer/debug English.
 - Add lightweight scripts that read existing evidence without mutating logs.
-- Use `Tools\Get-RhythmNextAction.cmd` to convert rhythm summary JSON into the next autonomous action.
+- Use `Tools\Write-RhythmNextAction.cmd` to refresh rhythm summary JSON and convert it into the next autonomous action.
 - Keep stale validation evidence visible but do not block non-release commits on it.
 
 ## Validation Rules
