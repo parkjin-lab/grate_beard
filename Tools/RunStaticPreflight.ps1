@@ -94,6 +94,8 @@ $statusPath = Join-Path $releaseSoakDir 'auto_soak_flow_last_status.txt'
 $rhythmSnapshotSummaryScriptPath = Join-Path $ProjectRoot 'Tools/Summarize-RhythmSnapshots.ps1'
 $rhythmSnapshotSummaryCmdPath = Join-Path $ProjectRoot 'Tools/Summarize-RhythmSnapshots.cmd'
 $rhythmSnapshotWriteSummaryCmdPath = Join-Path $ProjectRoot 'Tools/Write-RhythmSnapshotSummary.cmd'
+$rhythmNextActionScriptPath = Join-Path $ProjectRoot 'Tools/Get-RhythmNextAction.ps1'
+$rhythmNextActionCmdPath = Join-Path $ProjectRoot 'Tools/Get-RhythmNextAction.cmd'
 
 $coreTypes = @(
     'LostBreadcrumbs.Runtime.Systems.SpawnSystem',
@@ -405,6 +407,39 @@ if (Test-Path $rhythmSnapshotWriteSummaryCmdPath) {
     }
 } else {
     $rhythmSnapshotToolMissing.Add('Write-RhythmSnapshotSummary.cmd missing')
+}
+
+if (Test-Path $rhythmNextActionScriptPath) {
+    $rhythmNextActionText = Get-Content $rhythmNextActionScriptPath -Raw
+    $nextActionHooks = @(
+        'overallEvidenceStatus',
+        'phaseEvidenceComplete',
+        'CAPTURE_RHYTHM_SNAPSHOTS',
+        'CAPTURE_MISSING_PHASES',
+        'TUNE_WEAK_PHASES',
+        'CONTINUE_NEXT_RHYTHM_VARIATION',
+        'REFRESH_SUMMARY',
+        'OutputJsonPath',
+        'ConvertFrom-Json',
+        'ConvertTo-Json',
+        'SuggestedCommand'
+    )
+    foreach ($hook in $nextActionHooks) {
+        if (-not $rhythmNextActionText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Get-RhythmNextAction.ps1:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Get-RhythmNextAction.ps1 missing')
+}
+
+if (Test-Path $rhythmNextActionCmdPath) {
+    $rhythmNextActionCmdText = Get-Content $rhythmNextActionCmdPath -Raw
+    if (-not $rhythmNextActionCmdText.Contains('Get-RhythmNextAction.ps1')) {
+        $rhythmSnapshotToolMissing.Add('Get-RhythmNextAction.cmd:Get-RhythmNextAction.ps1')
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Get-RhythmNextAction.cmd missing')
 }
 $results.Add((Add-Result 'tools.rhythmSnapshotSummaryHooks' ($(if ($rhythmSnapshotToolMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmSnapshotToolMissing -join ', ')"))
 

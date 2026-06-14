@@ -64,6 +64,7 @@
 - The rhythm snapshot summary tool can now write JSON through `-OutputJsonPath` so automation can read phase status fields without terminal text parsing.
 - `Tools\Write-RhythmSnapshotSummary.cmd` now writes the default JSON summary path for heartbeat automation.
 - Rhythm snapshot JSON now includes an overall evidence status so automation can distinguish missing evidence from tuning failures.
+- `Tools\Get-RhythmNextAction.cmd` now converts rhythm summary JSON into a concrete next action for low-touch automation.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

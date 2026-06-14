@@ -56,6 +56,7 @@
 | Rhythm snapshot JSON summary | Automation should read rhythm evidence without parsing terminal text | Added `-OutputJsonPath` support to write schemaVersion, thresholds, phase statuses, counts, and weak evidence files as JSON |
 | Rhythm snapshot default summary command | Heartbeats should not need to remember output paths | Added `Tools\Write-RhythmSnapshotSummary.cmd` to write `Logs\RhythmValidation\rhythm_snapshot_summary_last.json` with one command |
 | Rhythm snapshot overall status | Automation should distinguish missing evidence from tuning failures without custom parsing | Added `OverallEvidenceStatus`, `overallEvidenceStatus`, and `phaseEvidenceComplete` to the snapshot summary output and JSON |
+| Rhythm next-action helper | Heartbeats should choose capture, tuning, or variation work from evidence instead of guessing | Added `Tools\Get-RhythmNextAction.cmd` to read the default summary JSON and print the next autonomous action |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |
@@ -83,6 +84,7 @@ The next best autonomous task is Release relief tuning from telemetry:
 - Prefer `Tools\Summarize-RhythmSnapshots.cmd` once snapshots exist; it should report `CalmEvidenceStatus: PASS`, `BuildEvidenceStatus: PASS`, `SpikeEvidenceStatus: PASS`, and `ReleaseEvidenceStatus: PASS` before claiming rhythm feel is proven.
 - For autonomous runs, call `Tools\Write-RhythmSnapshotSummary.cmd` and read the four phase status fields from `Logs\RhythmValidation\rhythm_snapshot_summary_last.json`.
 - Start with `overallEvidenceStatus`: `NO_EVIDENCE` means capture snapshots first, `PARTIAL_EVIDENCE` means capture missing phases, `NEEDS_TUNING` means tune the listed weak phase, and `PASS` means do not retune from old evidence.
+- Use `Tools\Get-RhythmNextAction.cmd` after writing the summary JSON; it prints `NextAction` and `TargetPhases` for the next autonomous pass.
 - If snapshots still show weak relief, tune intensity/fade shape next rather than adding new assets.
 - Keep Spike fairness tuning as the second priority: use warning -> threat -> response telemetry to adjust tell lead time or chase timing only when snapshots show an unfair spike.
 
