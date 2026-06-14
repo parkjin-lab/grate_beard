@@ -52,6 +52,25 @@ function Add-LogArtifactResult {
     return Add-Result $Name $status "exists=True lastWrite=$lastWrite ageDays=$ageDays stale=$isStale freshnessDays=$FreshnessDays refreshRequired=$isStale"
 }
 
+function Get-KeyCodeDefault {
+    param(
+        [string]$Text,
+        [string]$FieldName
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return ''
+    }
+
+    $pattern = "(?m)\bKeyCode\s+$([regex]::Escape($FieldName))\s*=\s*KeyCode\.(?<key>[A-Za-z0-9_]+)"
+    $match = [regex]::Match($Text, $pattern)
+    if (-not $match.Success) {
+        return ''
+    }
+
+    return $match.Groups['key'].Value
+}
+
 $results = New-Object System.Collections.Generic.List[object]
 
 $scenePath = Join-Path $ProjectRoot 'Assets/Scenes/SampleScene.unity'
@@ -65,12 +84,15 @@ $dreadOverlayPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/DreadScre
 $eventFeedbackPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/EventFeedbackRuntime.cs'
 $gameplayHudPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/GameplayHudRuntime.cs'
 $audioManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioManager.cs'
+$debugManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/DebugManager.cs'
+$saveManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/SaveManager.cs'
 $playerControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDummyController.cs'
 $playerEchoPulsePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerEchoPulseAbility.cs'
 $playerDecoyPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDecoyAbility.cs'
 $playerSmokePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerSmokeAbility.cs'
 $playerVitalPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerVitalSystem.cs'
 $mapSystemPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/MapSystem.cs'
+$mapTuningPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/MapTuningDebugController.cs'
 $enemyControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/AI/EnemyController.cs'
 $enemySpawnDirectorPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/EnemySpawnDirector.cs'
 $stageLoopPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/StageLoopDirector.cs'
@@ -338,6 +360,40 @@ if (Test-Path $debugOverlayPath) {
 } else {
     $results.Add((Add-Result 'code.lowTouchRhythmValidationHooks' 'FAIL' 'DebugOverlay.cs is missing.'))
 }
+
+$hotkeyIssues = New-Object System.Collections.Generic.List[string]
+$debugOverlayHotkeyText = $(if (Test-Path $debugOverlayPath) { Get-Content $debugOverlayPath -Raw } else { '' })
+$runLoadoutHotkeyText = $(if (Test-Path $runLoadoutPath) { Get-Content $runLoadoutPath -Raw } else { '' })
+$regressionHotkeyText = $(if (Test-Path $regressionPath) { Get-Content $regressionPath -Raw } else { '' })
+$saveHotkeyText = $(if (Test-Path $saveManagerPath) { Get-Content $saveManagerPath -Raw } else { '' })
+$audioHotkeyText = $(if (Test-Path $audioManagerPath) { Get-Content $audioManagerPath -Raw } else { '' })
+$debugManagerHotkeyText = $(if (Test-Path $debugManagerPath) { Get-Content $debugManagerPath -Raw } else { '' })
+$mapTuningHotkeyText = $(if (Test-Path $mapTuningPath) { Get-Content $mapTuningPath -Raw } else { '' })
+$rhythmSnapshotKey = Get-KeyCodeDefault $debugOverlayHotkeyText 'writeRhythmSnapshotKey'
+$reservedHotkeys = [ordered]@{
+    runLoadoutUnlock = Get-KeyCodeDefault $runLoadoutHotkeyText 'unlockSelectionKey'
+    regressionChecklist = Get-KeyCodeDefault $regressionHotkeyText 'runChecklistKey'
+    releaseSoak = Get-KeyCodeDefault $regressionHotkeyText 'runReleaseSoakKey'
+    quickSave = Get-KeyCodeDefault $saveHotkeyText 'quickSaveKey'
+    quickLoad = Get-KeyCodeDefault $saveHotkeyText 'quickLoadKey'
+    startNewRun = Get-KeyCodeDefault $saveHotkeyText 'startNewRunKey'
+    audioMute = Get-KeyCodeDefault $audioHotkeyText 'muteToggleKey'
+    debugToggle = Get-KeyCodeDefault $debugManagerHotkeyText 'toggleKey'
+    mapPreset = Get-KeyCodeDefault $mapTuningHotkeyText 'cyclePresetKey'
+    mapRegenerate = Get-KeyCodeDefault $mapTuningHotkeyText 'regenerateStageKey'
+}
+if ([string]::IsNullOrWhiteSpace($rhythmSnapshotKey)) {
+    $hotkeyIssues.Add('writeRhythmSnapshotKey missing')
+} elseif ($rhythmSnapshotKey -ne 'F13') {
+    $hotkeyIssues.Add("writeRhythmSnapshotKey expected=F13 actual=$rhythmSnapshotKey")
+}
+foreach ($entry in $reservedHotkeys.GetEnumerator()) {
+    if (-not [string]::IsNullOrWhiteSpace($entry.Value) -and $entry.Value -eq $rhythmSnapshotKey) {
+        $hotkeyIssues.Add("conflict=$($entry.Key):$($entry.Value)")
+    }
+}
+$reservedHotkeySummary = ($reservedHotkeys.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ', '
+$results.Add((Add-Result 'code.rhythmSnapshotHotkeyIsolation' ($(if ($hotkeyIssues.Count -eq 0) { 'PASS' } else { 'FAIL' })) "snapshot=$rhythmSnapshotKey reserved=[$reservedHotkeySummary] issues=$($hotkeyIssues -join ', ')"))
 
 $rhythmSnapshotToolMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $rhythmSnapshotSummaryScriptPath) {

@@ -66,6 +66,7 @@
 - Rhythm snapshot JSON now includes an overall evidence status so automation can distinguish missing evidence from tuning failures.
 - `Tools\Get-RhythmNextAction.cmd` now converts rhythm summary JSON into a concrete next action for low-touch automation.
 - Rhythm snapshot capture now defaults to `F13` instead of `F8` so validation evidence capture does not unlock loadout selection.
+- Static preflight now checks that the rhythm snapshot hotkey stays isolated from loadout, save, regression, audio, debug, and map tuning hotkeys.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

@@ -58,6 +58,7 @@
 | Rhythm snapshot overall status | Automation should distinguish missing evidence from tuning failures without custom parsing | Added `OverallEvidenceStatus`, `overallEvidenceStatus`, and `phaseEvidenceComplete` to the snapshot summary output and JSON |
 | Rhythm next-action helper | Heartbeats should choose capture, tuning, or variation work from evidence instead of guessing | Added `Tools\Get-RhythmNextAction.cmd` to read the default summary JSON and print the next autonomous action |
 | Rhythm snapshot hotkey guardrail | Snapshot capture should not trigger gameplay/debug side effects while gathering evidence | Moved the rhythm snapshot hotkey from `F8` to `F13`, keeping the overlay button as the fallback path |
+| Rhythm snapshot hotkey isolation | Future validation key changes should fail fast if they collide with gameplay or debug keys | Added static preflight parsing for the snapshot key against loadout, save, regression, audio, debug, and map tuning hotkeys |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |
