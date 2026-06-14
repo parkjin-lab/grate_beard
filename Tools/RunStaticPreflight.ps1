@@ -156,6 +156,10 @@ $autonomousHeartbeatReadStatusScriptPath = Join-Path $ProjectRoot 'Tools/Get-Aut
 $autonomousHeartbeatReadStatusCmdPath = Join-Path $ProjectRoot 'Tools/Get-AutonomousHeartbeatStatus.cmd'
 $autonomousHeartbeatReadStatusTestScriptPath = Join-Path $ProjectRoot 'Tools/Test-AutonomousHeartbeatStatus.ps1'
 $autonomousHeartbeatReadStatusTestCmdPath = Join-Path $ProjectRoot 'Tools/Test-AutonomousHeartbeatStatus.cmd'
+$autonomousSafeTaskScriptPath = Join-Path $ProjectRoot 'Tools/Get-AutonomousSafeTask.ps1'
+$autonomousSafeTaskCmdPath = Join-Path $ProjectRoot 'Tools/Get-AutonomousSafeTask.cmd'
+$autonomousSafeTaskTestScriptPath = Join-Path $ProjectRoot 'Tools/Test-AutonomousSafeTask.ps1'
+$autonomousSafeTaskTestCmdPath = Join-Path $ProjectRoot 'Tools/Test-AutonomousSafeTask.cmd'
 
 $coreTypes = @(
     'LostBreadcrumbs.Runtime.Systems.SpawnSystem',
@@ -733,6 +737,70 @@ if (Test-Path $autonomousHeartbeatReadStatusTestCmdPath) {
 } else {
     $rhythmSnapshotToolMissing.Add('Test-AutonomousHeartbeatStatus.cmd missing')
 }
+
+if (Test-Path $autonomousSafeTaskScriptPath) {
+    $autonomousSafeTaskText = Get-Content $autonomousSafeTaskScriptPath -Raw
+    $autonomousSafeTaskHooks = @(
+        'LostBreadcrumbs Autonomous Safe Task',
+        'FIX_STATIC_PREFLIGHT_FAILURES',
+        'IMPROVE_GUARDRAILS_OR_DOCUMENTATION',
+        'REFRESH_STATUS_EVIDENCE',
+        'TUNE_WEAK_PHASES',
+        'CanTuneRhythm',
+        'RecommendedTask',
+        'SafeAlternateAutomationActions'
+    )
+    foreach ($hook in $autonomousSafeTaskHooks) {
+        if (-not $autonomousSafeTaskText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Get-AutonomousSafeTask.ps1:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Get-AutonomousSafeTask.ps1 missing')
+}
+
+if (Test-Path $autonomousSafeTaskCmdPath) {
+    $autonomousSafeTaskCmdText = Get-Content $autonomousSafeTaskCmdPath -Raw
+    $autonomousSafeTaskCmdHooks = @(
+        'Get-AutonomousSafeTask.ps1',
+        'rhythm_next_action_last.json',
+        'local_static_preflight_last_summary.json'
+    )
+    foreach ($hook in $autonomousSafeTaskCmdHooks) {
+        if (-not $autonomousSafeTaskCmdText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Get-AutonomousSafeTask.cmd:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Get-AutonomousSafeTask.cmd missing')
+}
+
+if (Test-Path $autonomousSafeTaskTestScriptPath) {
+    $autonomousSafeTaskTestText = Get-Content $autonomousSafeTaskTestScriptPath -Raw
+    $autonomousSafeTaskTestHooks = @(
+        'FAILED_PREFLIGHT',
+        'CAPTURE_BLOCKED',
+        'RHYTHM_TUNING_ALLOWED',
+        'MISSING_STATUS',
+        'Autonomous safe-task tests passed.'
+    )
+    foreach ($hook in $autonomousSafeTaskTestHooks) {
+        if (-not $autonomousSafeTaskTestText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Test-AutonomousSafeTask.ps1:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Test-AutonomousSafeTask.ps1 missing')
+}
+
+if (Test-Path $autonomousSafeTaskTestCmdPath) {
+    $autonomousSafeTaskTestCmdText = Get-Content $autonomousSafeTaskTestCmdPath -Raw
+    if (-not $autonomousSafeTaskTestCmdText.Contains('Test-AutonomousSafeTask.ps1')) {
+        $rhythmSnapshotToolMissing.Add('Test-AutonomousSafeTask.cmd:Test-AutonomousSafeTask.ps1')
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Test-AutonomousSafeTask.cmd missing')
+}
 $results.Add((Add-Result 'tools.rhythmSnapshotSummaryHooks' ($(if ($rhythmSnapshotToolMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmSnapshotToolMissing -join ', ')"))
 
 if (Test-Path $rhythmNextActionTestCmdPath) {
@@ -753,6 +821,16 @@ if (Test-Path $autonomousHeartbeatReadStatusTestCmdPath) {
     $results.Add((Add-Result 'tools.autonomousHeartbeatStatusTests' ($(if ($heartbeatStatusTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$heartbeatStatusTestExit last='$heartbeatStatusTestTail'"))
 } else {
     $results.Add((Add-Result 'tools.autonomousHeartbeatStatusTests' 'FAIL' 'Test-AutonomousHeartbeatStatus.cmd missing.'))
+}
+
+if (Test-Path $autonomousSafeTaskTestCmdPath) {
+    $safeTaskTestOutput = & cmd /c "`"$autonomousSafeTaskTestCmdPath`"" 2>&1
+    $safeTaskTestExit = $LASTEXITCODE
+    $safeTaskTestPassed = $safeTaskTestExit -eq 0 -and (($safeTaskTestOutput -join "`n").Contains('Autonomous safe-task tests passed.'))
+    $safeTaskTestTail = (@($safeTaskTestOutput) | Select-Object -Last 1) -join ' '
+    $results.Add((Add-Result 'tools.autonomousSafeTaskTests' ($(if ($safeTaskTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$safeTaskTestExit last='$safeTaskTestTail'"))
+} else {
+    $results.Add((Add-Result 'tools.autonomousSafeTaskTests' 'FAIL' 'Test-AutonomousSafeTask.cmd missing.'))
 }
 
 if (Test-Path $audioManagerPath) {

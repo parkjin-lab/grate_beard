@@ -79,6 +79,7 @@
 - `Tools\Write-AutonomousHeartbeatStatus.cmd` now writes a concise heartbeat status artifact from rhythm next-action and latest static preflight evidence.
 - `Tools\Get-AutonomousHeartbeatStatus.cmd` now prints the same heartbeat decision evidence without mutating logs or generated artifacts.
 - `Tools\Test-AutonomousHeartbeatStatus.cmd` now verifies the read-only heartbeat status output and is executed by static preflight.
+- `Tools\Get-AutonomousSafeTask.cmd` now recommends whether automation should fix preflight failures, avoid rhythm tuning while capture-blocked, or follow rhythm evidence; `Tools\Test-AutonomousSafeTask.cmd` is executed by static preflight.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |
