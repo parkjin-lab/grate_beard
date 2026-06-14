@@ -29,11 +29,13 @@ $reason = 'Status evidence is missing or stale enough that the next step should 
 $canTuneRhythm = $false
 $humanRequired = $false
 $forbiddenAutomationActions = @()
+$automationMode = 'REFRESH_STATUS'
 
 if ($preflightFailCount -gt 0) {
     $recommendedTask = 'FIX_STATIC_PREFLIGHT_FAILURES'
     $recommendedCommand = 'Tools\RunStaticPreflight.ps1'
     $reason = 'Static preflight has FAIL results; fix those before feature or tuning work.'
+    $automationMode = 'FIX_FAILURES_ONLY'
     $forbiddenAutomationActions = @(
         'Do not tune rhythm feel while static preflight has FAIL results.',
         'Do not claim release readiness until FAIL results are fixed.'
@@ -43,6 +45,7 @@ if ($preflightFailCount -gt 0) {
     $recommendedCommand = 'Tools\Get-AutonomousHeartbeatStatus.cmd'
     $reason = "Rhythm tuning is blocked by $($rhythm.blockedReason); choose only non-tuning work until snapshots exist."
     $humanRequired = $true
+    $automationMode = 'SAFE_ALTERNATE_ONLY'
     $forbiddenAutomationActions = @(
         'Do not retune rhythm feel without Calm, Build, Spike, and Release snapshots.',
         'Do not claim Spike fairness or Release relief is proven from missing evidence.',
@@ -53,6 +56,7 @@ if ($preflightFailCount -gt 0) {
     $recommendedCommand = 'Tools\Write-RhythmNextAction.cmd'
     $reason = 'Rhythm evidence allows automation to proceed with the reported next action.'
     $canTuneRhythm = $rhythm.nextAction -eq 'TUNE_WEAK_PHASES'
+    $automationMode = $(if ($canTuneRhythm) { 'RHYTHM_TUNING_ALLOWED' } else { 'RHYTHM_AUTOMATION_ALLOWED' })
 }
 
 Write-Host 'LostBreadcrumbs Autonomous Safe Task'
@@ -63,6 +67,7 @@ Write-Host "RequiresHumanCapture: $requiresHumanCapture"
 Write-Host "AutomationCanProceed: $automationCanProceed"
 Write-Host "CanTuneRhythm: $canTuneRhythm"
 Write-Host "HumanRequired: $humanRequired"
+Write-Host "AutomationMode: $automationMode"
 Write-Host "RecommendedTask: $recommendedTask"
 Write-Host "RecommendedCommand: $recommendedCommand"
 Write-Host "Reason: $reason"
@@ -91,6 +96,7 @@ if (-not [string]::IsNullOrWhiteSpace($OutputJsonPath)) {
         automationCanProceed = $automationCanProceed
         canTuneRhythm = $canTuneRhythm
         humanRequired = $humanRequired
+        automationMode = $automationMode
         recommendedTask = $recommendedTask
         recommendedCommand = $recommendedCommand
         reason = $reason

@@ -32,6 +32,7 @@ Keep development moving when the creator is busy or absent, without broad manual
 - Use `Tools\Get-AutonomousHeartbeatStatus.cmd` to inspect current rhythm/preflight status without mutating logs.
 - Use `Tools\Get-AutonomousSafeTask.cmd` to convert current rhythm/preflight evidence into the next safe unattended task and refresh `Logs\Autonomous\autonomous_safe_task_last.json`.
 - Obey `forbiddenAutomationActions` from the safe-task JSON before touching gameplay feel, especially when `humanRequired=True`.
+- Route autonomous behavior from `automationMode`; `SAFE_ALTERNATE_ONLY` means no rhythm feel changes until capture evidence exists.
 - Use `Tools\Write-AutonomousHeartbeatStatus.cmd` after static preflight when a heartbeat needs one concise progress/validation/blocked-state/safe-task artifact.
 - Use `Tools\Test-AutonomousHeartbeatStatus.cmd` before committing changes to heartbeat status output; `Tools\RunStaticPreflight.ps1` also runs it.
 - Use `Tools\Test-AutonomousSafeTask.cmd` before committing changes to safe-task selection; `Tools\RunStaticPreflight.ps1` also runs it.

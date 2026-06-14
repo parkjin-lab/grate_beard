@@ -756,9 +756,11 @@ if (Test-Path $autonomousSafeTaskScriptPath) {
         'TUNE_WEAK_PHASES',
         'CanTuneRhythm',
         'HumanRequired',
+        'AutomationMode',
         'ForbiddenAutomationActions',
         'forbiddenAutomationActions',
         'humanRequired',
+        'automationMode',
         'RecommendedTask',
         'SafeAlternateAutomationActions'
     )
@@ -800,6 +802,11 @@ if (Test-Path $autonomousSafeTaskTestScriptPath) {
         'recommendedTask',
         'canTuneRhythm',
         'humanRequired',
+        'automationMode',
+        'SAFE_ALTERNATE_ONLY',
+        'FIX_FAILURES_ONLY',
+        'RHYTHM_TUNING_ALLOWED',
+        'REFRESH_STATUS',
         'forbiddenAutomationActions',
         'Autonomous safe-task tests passed.'
     )
