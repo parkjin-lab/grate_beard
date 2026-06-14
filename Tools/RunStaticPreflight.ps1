@@ -152,6 +152,8 @@ $rhythmNextActionTestScriptPath = Join-Path $ProjectRoot 'Tools/Test-RhythmNextA
 $rhythmNextActionTestCmdPath = Join-Path $ProjectRoot 'Tools/Test-RhythmNextAction.cmd'
 $autonomousHeartbeatStatusScriptPath = Join-Path $ProjectRoot 'Tools/Write-AutonomousHeartbeatStatus.ps1'
 $autonomousHeartbeatStatusCmdPath = Join-Path $ProjectRoot 'Tools/Write-AutonomousHeartbeatStatus.cmd'
+$autonomousHeartbeatReadStatusScriptPath = Join-Path $ProjectRoot 'Tools/Get-AutonomousHeartbeatStatus.ps1'
+$autonomousHeartbeatReadStatusCmdPath = Join-Path $ProjectRoot 'Tools/Get-AutonomousHeartbeatStatus.cmd'
 
 $coreTypes = @(
     'LostBreadcrumbs.Runtime.Systems.SpawnSystem',
@@ -664,6 +666,43 @@ if (Test-Path $autonomousHeartbeatStatusCmdPath) {
     }
 } else {
     $rhythmSnapshotToolMissing.Add('Write-AutonomousHeartbeatStatus.cmd missing')
+}
+
+if (Test-Path $autonomousHeartbeatReadStatusScriptPath) {
+    $autonomousHeartbeatReadStatusText = Get-Content $autonomousHeartbeatReadStatusScriptPath -Raw
+    $autonomousHeartbeatReadStatusHooks = @(
+        'LostBreadcrumbs Autonomous Heartbeat Status',
+        'RhythmNextActionJsonPath',
+        'StaticPreflightJsonPath',
+        'RhythmNextAction',
+        'StaticPreflight',
+        'BlockedReason',
+        'SafeAlternateAutomationActions',
+        'Write-Host'
+    )
+    foreach ($hook in $autonomousHeartbeatReadStatusHooks) {
+        if (-not $autonomousHeartbeatReadStatusText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Get-AutonomousHeartbeatStatus.ps1:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Get-AutonomousHeartbeatStatus.ps1 missing')
+}
+
+if (Test-Path $autonomousHeartbeatReadStatusCmdPath) {
+    $autonomousHeartbeatReadStatusCmdText = Get-Content $autonomousHeartbeatReadStatusCmdPath -Raw
+    $autonomousHeartbeatReadStatusCmdHooks = @(
+        'Get-AutonomousHeartbeatStatus.ps1',
+        'rhythm_next_action_last.json',
+        'local_static_preflight_last_summary.json'
+    )
+    foreach ($hook in $autonomousHeartbeatReadStatusCmdHooks) {
+        if (-not $autonomousHeartbeatReadStatusCmdText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Get-AutonomousHeartbeatStatus.cmd:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Get-AutonomousHeartbeatStatus.cmd missing')
 }
 $results.Add((Add-Result 'tools.rhythmSnapshotSummaryHooks' ($(if ($rhythmSnapshotToolMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmSnapshotToolMissing -join ', ')"))
 

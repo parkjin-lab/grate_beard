@@ -6,7 +6,7 @@ Keep development moving when the creator is busy or absent, without broad manual
 ## Heartbeat Procedure
 1. Check `git status --short` first. Never revert or stage unrelated changes.
 2. Pick one small, human-free task that improves fun, reliability, validation, or documentation.
-3. Prefer static evidence: `git diff --check` and `Tools/RunStaticPreflight.ps1`; for repeated heartbeats, run `Tools\RunStaticPreflight.ps1` and then `Tools\Write-AutonomousHeartbeatStatus.cmd`.
+3. Prefer static evidence: `git diff --check` and `Tools/RunStaticPreflight.ps1`; for repeated heartbeats, use `Tools\Get-AutonomousHeartbeatStatus.cmd` for read-only inspection, or run `Tools\RunStaticPreflight.ps1` and then `Tools\Write-AutonomousHeartbeatStatus.cmd` when refreshing the handoff artifact.
 4. For rhythm work, run `Tools\Write-RhythmNextAction.cmd` before choosing capture, tuning, or variation work.
 5. If rhythm next action reports `requiresHumanCapture=True` and `automationCanProceed=False`, do not retune rhythm feel from stale or missing evidence; report its `blockedReason` and `resumeCondition`.
 6. If a person needs to act, run `Tools\Write-RhythmCaptureHandoff.cmd` and reference its Markdown handoff; use only `safeAlternateAutomationActions` for unattended work.
@@ -29,6 +29,7 @@ Keep development moving when the creator is busy or absent, without broad manual
 - Separate player-facing Korean copy from developer/debug English.
 - Add lightweight scripts that read existing evidence without mutating logs.
 - Use `Tools\Write-RhythmNextAction.cmd` to refresh rhythm summary JSON and convert it into the next autonomous action.
+- Use `Tools\Get-AutonomousHeartbeatStatus.cmd` to inspect current rhythm/preflight status without mutating logs.
 - Use `Tools\Write-AutonomousHeartbeatStatus.cmd` after static preflight when a heartbeat needs one concise progress/validation/blocked-state artifact.
 - Use `Tools\Test-RhythmNextAction.cmd` before committing changes to rhythm next-action branching; `Tools\RunStaticPreflight.ps1` also runs it.
 - Keep stale validation evidence visible but do not block non-release commits on it.
