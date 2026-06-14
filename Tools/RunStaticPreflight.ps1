@@ -157,6 +157,8 @@ $autonomousHeartbeatReadStatusScriptPath = Join-Path $ProjectRoot 'Tools/Get-Aut
 $autonomousHeartbeatReadStatusCmdPath = Join-Path $ProjectRoot 'Tools/Get-AutonomousHeartbeatStatus.cmd'
 $autonomousHeartbeatReadStatusTestScriptPath = Join-Path $ProjectRoot 'Tools/Test-AutonomousHeartbeatStatus.ps1'
 $autonomousHeartbeatReadStatusTestCmdPath = Join-Path $ProjectRoot 'Tools/Test-AutonomousHeartbeatStatus.cmd'
+$autonomousHeartbeatWriterTestScriptPath = Join-Path $ProjectRoot 'Tools/Test-AutonomousHeartbeatWriter.ps1'
+$autonomousHeartbeatWriterTestCmdPath = Join-Path $ProjectRoot 'Tools/Test-AutonomousHeartbeatWriter.cmd'
 $autonomousSafeTaskScriptPath = Join-Path $ProjectRoot 'Tools/Get-AutonomousSafeTask.ps1'
 $autonomousSafeTaskCmdPath = Join-Path $ProjectRoot 'Tools/Get-AutonomousSafeTask.cmd'
 $autonomousSafeTaskTestScriptPath = Join-Path $ProjectRoot 'Tools/Test-AutonomousSafeTask.ps1'
@@ -744,6 +746,35 @@ if (Test-Path $autonomousHeartbeatReadStatusTestCmdPath) {
     $rhythmSnapshotToolMissing.Add('Test-AutonomousHeartbeatStatus.cmd missing')
 }
 
+if (Test-Path $autonomousHeartbeatWriterTestScriptPath) {
+    $autonomousHeartbeatWriterTestText = Get-Content $autonomousHeartbeatWriterTestScriptPath -Raw
+    $autonomousHeartbeatWriterTestHooks = @(
+        'Recommended Safe Task',
+        'Forbidden Automation',
+        'SAFE_ALTERNATE_ONLY',
+        'MISSING_RHYTHM_SNAPSHOTS',
+        'TargetPhases: Calm, Build, Spike, Release',
+        'CaptureHotkey: F13',
+        'Autonomous heartbeat writer tests passed.'
+    )
+    foreach ($hook in $autonomousHeartbeatWriterTestHooks) {
+        if (-not $autonomousHeartbeatWriterTestText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Test-AutonomousHeartbeatWriter.ps1:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Test-AutonomousHeartbeatWriter.ps1 missing')
+}
+
+if (Test-Path $autonomousHeartbeatWriterTestCmdPath) {
+    $autonomousHeartbeatWriterTestCmdText = Get-Content $autonomousHeartbeatWriterTestCmdPath -Raw
+    if (-not $autonomousHeartbeatWriterTestCmdText.Contains('Test-AutonomousHeartbeatWriter.ps1')) {
+        $rhythmSnapshotToolMissing.Add('Test-AutonomousHeartbeatWriter.cmd:Test-AutonomousHeartbeatWriter.ps1')
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Test-AutonomousHeartbeatWriter.cmd missing')
+}
+
 if (Test-Path $autonomousSafeTaskScriptPath) {
     $autonomousSafeTaskText = Get-Content $autonomousSafeTaskScriptPath -Raw
     $autonomousSafeTaskHooks = @(
@@ -861,6 +892,16 @@ if (Test-Path $autonomousHeartbeatReadStatusTestCmdPath) {
     $results.Add((Add-Result 'tools.autonomousHeartbeatStatusTests' ($(if ($heartbeatStatusTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$heartbeatStatusTestExit last='$heartbeatStatusTestTail'"))
 } else {
     $results.Add((Add-Result 'tools.autonomousHeartbeatStatusTests' 'FAIL' 'Test-AutonomousHeartbeatStatus.cmd missing.'))
+}
+
+if (Test-Path $autonomousHeartbeatWriterTestCmdPath) {
+    $heartbeatWriterTestOutput = & cmd /c "`"$autonomousHeartbeatWriterTestCmdPath`"" 2>&1
+    $heartbeatWriterTestExit = $LASTEXITCODE
+    $heartbeatWriterTestPassed = $heartbeatWriterTestExit -eq 0 -and (($heartbeatWriterTestOutput -join "`n").Contains('Autonomous heartbeat writer tests passed.'))
+    $heartbeatWriterTestTail = (@($heartbeatWriterTestOutput) | Select-Object -Last 1) -join ' '
+    $results.Add((Add-Result 'tools.autonomousHeartbeatWriterTests' ($(if ($heartbeatWriterTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$heartbeatWriterTestExit last='$heartbeatWriterTestTail'"))
+} else {
+    $results.Add((Add-Result 'tools.autonomousHeartbeatWriterTests' 'FAIL' 'Test-AutonomousHeartbeatWriter.cmd missing.'))
 }
 
 if (Test-Path $autonomousSafeTaskTestCmdPath) {

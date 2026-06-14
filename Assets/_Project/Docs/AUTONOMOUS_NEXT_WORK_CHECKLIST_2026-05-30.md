@@ -71,6 +71,7 @@
 | Autonomous heartbeat status | Repeated heartbeats should share progress, validation, blocked state, and safe next steps | Added `Tools\Write-AutonomousHeartbeatStatus.cmd` to refresh rhythm handoff, safe-task JSON, and `Logs\Autonomous\autonomous_heartbeat_status_last.md` from latest preflight evidence |
 | Autonomous heartbeat read-only status | Heartbeats sometimes need status without touching local evidence files | Added `Tools\Get-AutonomousHeartbeatStatus.cmd` to read the latest rhythm next-action and static preflight JSON without writing logs |
 | Autonomous heartbeat status tests | Read-only heartbeat status should not silently drop blocked-state or validation fields | Added `Tools\Test-AutonomousHeartbeatStatus.cmd`; static preflight now runs it as `tools.autonomousHeartbeatStatusTests` |
+| Autonomous heartbeat writer tests | Markdown handoff should not silently drop safe-task mode, resume gate, or forbidden actions | Added `Tools\Test-AutonomousHeartbeatWriter.cmd`; static preflight now runs it as `tools.autonomousHeartbeatWriterTests` |
 | Autonomous safe-task selector | Repeated heartbeats should pick safe work from evidence instead of retuning while capture-blocked | Added `Tools\Get-AutonomousSafeTask.cmd` plus `Tools\Test-AutonomousSafeTask.cmd`; the selector writes mode, block/resume, target phase, capture hotkey, human-required, and forbidden-action fields into `Logs\Autonomous\autonomous_safe_task_last.json`, and static preflight runs it as `tools.autonomousSafeTaskTests` |
 | Automation mode policy guard | The autonomous mode table should not silently drift out of the operations playbook | Static preflight now checks `AUTONOMOUS_OPERATIONS_PLAYBOOK_2026-06-10.md` for the mode table, all five modes, and the no-rhythm-tuning capture gate |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
@@ -114,6 +115,7 @@ The next best autonomous task is Release relief tuning from telemetry:
 - Route unattended work from `automationMode`: `SAFE_ALTERNATE_ONLY`, `FIX_FAILURES_ONLY`, `RHYTHM_TUNING_ALLOWED`, or `REFRESH_STATUS`.
 - Follow `AUTONOMOUS_OPERATIONS_PLAYBOOK_2026-06-10.md` for the full `automationMode` table, including `RHYTHM_AUTOMATION_ALLOWED`.
 - Run `Tools\Test-AutonomousHeartbeatStatus.cmd` after changing heartbeat status output; static preflight also runs it as `tools.autonomousHeartbeatStatusTests`.
+- Run `Tools\Test-AutonomousHeartbeatWriter.cmd` after changing the Markdown heartbeat handoff; static preflight also runs it as `tools.autonomousHeartbeatWriterTests`.
 - Run `Tools\Test-AutonomousSafeTask.cmd` after changing safe-task selection; static preflight also runs it as `tools.autonomousSafeTaskTests`.
 - Run `Tools\Test-RhythmNextAction.cmd` after changing next-action logic; static preflight also runs it as `tools.rhythmNextActionBranchTests`.
 - Read `humanCaptureSteps` from `Tools\Get-RhythmNextAction.cmd -OutputJsonPath ...` when handing the task to a person; it is the shortest acceptable capture path.
