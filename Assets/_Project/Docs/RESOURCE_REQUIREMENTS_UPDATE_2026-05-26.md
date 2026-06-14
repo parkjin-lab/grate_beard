@@ -80,6 +80,7 @@
 - `Tools\Get-AutonomousHeartbeatStatus.cmd` now prints the same heartbeat decision evidence without mutating logs or generated artifacts.
 - `Tools\Test-AutonomousHeartbeatStatus.cmd` now verifies the read-only heartbeat status output and is executed by static preflight.
 - `Tools\Get-AutonomousSafeTask.cmd` now recommends whether automation should fix preflight failures, avoid rhythm tuning while capture-blocked, or follow rhythm evidence, and writes `automationMode`, `humanRequired`, plus `forbiddenAutomationActions` into `Logs\Autonomous\autonomous_safe_task_last.json`; `Tools\Test-AutonomousSafeTask.cmd` is executed by static preflight.
+- `AUTONOMOUS_OPERATIONS_PLAYBOOK_2026-06-10.md` now defines the allowed work, forbidden work, and exit condition for each `automationMode`.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

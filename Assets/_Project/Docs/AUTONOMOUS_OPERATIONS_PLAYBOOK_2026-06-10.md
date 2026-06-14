@@ -22,6 +22,15 @@ Keep development moving when the creator is busy or absent, without broad manual
 4. Rhythm variation: prevent stage set-pieces from feeling identical every cycle.
 5. Korean-facing wording and encoding guardrails: keep player feedback readable and not debug-like.
 
+## Automation Mode Policy
+| automationMode | Allowed work | Forbidden work | Exit condition |
+| --- | --- | --- | --- |
+| `SAFE_ALTERNATE_ONLY` | Static guardrails, documentation, evidence tooling, status/handoff improvements | Rhythm feel tuning, broad Play Mode validation, claiming Spike/Release feel is proven | Capture one Calm, Build, Spike, and Release rhythm snapshot, then rerun `Tools\Write-RhythmNextAction.cmd` |
+| `FIX_FAILURES_ONLY` | Fix failing static preflight checks and malformed evidence outputs | Feature work, tuning, release-readiness claims | `Tools\RunStaticPreflight.ps1` returns `fail=0` |
+| `RHYTHM_TUNING_ALLOWED` | Tune only the weak phase named by rhythm evidence; keep changes small and re-summarize snapshots | Unrelated refactors, changing phases without evidence, claiming untested phases are fixed | Snapshot summary no longer reports the tuned phase as weak |
+| `RHYTHM_AUTOMATION_ALLOWED` | Follow the next rhythm automation action from evidence, usually variation or non-tuning progression | Retuning feel values unless the action is `TUNE_WEAK_PHASES` | Next-action JSON advances or returns to capture/tuning gate |
+| `REFRESH_STATUS` | Refresh static preflight, rhythm summary, safe-task JSON, and heartbeat status | Gameplay changes based on missing status evidence | Required JSON summaries exist and safe-task mode is no longer `REFRESH_STATUS` |
+
 ## Human-Free Work List
 - Add static preflight hooks when a new rhythm, spawn, UI, audio, or validation contract is introduced.
 - Convert abstract design goals into machine-readable counters or snapshot lines.

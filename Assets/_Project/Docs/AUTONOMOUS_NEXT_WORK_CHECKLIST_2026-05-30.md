@@ -110,6 +110,7 @@ The next best autonomous task is Release relief tuning from telemetry:
 - Use `Tools\Get-AutonomousSafeTask.cmd` to choose the next unattended task from current rhythm/preflight evidence and write `Logs\Autonomous\autonomous_safe_task_last.json`.
 - Read `forbiddenAutomationActions` before changing gameplay feel; if it forbids rhythm tuning, only do static guardrails, documentation, or evidence tooling.
 - Route unattended work from `automationMode`: `SAFE_ALTERNATE_ONLY`, `FIX_FAILURES_ONLY`, `RHYTHM_TUNING_ALLOWED`, or `REFRESH_STATUS`.
+- Follow `AUTONOMOUS_OPERATIONS_PLAYBOOK_2026-06-10.md` for the full `automationMode` table, including `RHYTHM_AUTOMATION_ALLOWED`.
 - Run `Tools\Test-AutonomousHeartbeatStatus.cmd` after changing heartbeat status output; static preflight also runs it as `tools.autonomousHeartbeatStatusTests`.
 - Run `Tools\Test-AutonomousSafeTask.cmd` after changing safe-task selection; static preflight also runs it as `tools.autonomousSafeTaskTests`.
 - Run `Tools\Test-RhythmNextAction.cmd` after changing next-action logic; static preflight also runs it as `tools.rhythmNextActionBranchTests`.
