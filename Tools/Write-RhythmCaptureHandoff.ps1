@@ -12,6 +12,7 @@ if (-not (Test-Path -LiteralPath $NextActionJsonPath)) {
 $nextAction = Get-Content -LiteralPath $NextActionJsonPath -Raw | ConvertFrom-Json
 $steps = @($nextAction.humanCaptureSteps)
 $targetPhases = @($nextAction.targetPhases)
+$safeAlternates = @($nextAction.safeAlternateAutomationActions)
 
 $lines = New-Object System.Collections.Generic.List[string]
 $lines.Add('# Rhythm Capture Handoff')
@@ -38,6 +39,15 @@ if ($steps.Count -eq 0) {
 $lines.Add('')
 $lines.Add('## Rationale')
 $lines.Add($nextAction.rationale)
+$lines.Add('')
+$lines.Add('## Safe Automation While Blocked')
+if ($safeAlternates.Count -eq 0) {
+    $lines.Add('- No alternate automation actions are listed for the current next-action state.')
+} else {
+    foreach ($action in $safeAlternates) {
+        $lines.Add("- $action")
+    }
+}
 $lines.Add('')
 $lines.Add('## Suggested Command')
 $lines.Add('```text')

@@ -18,6 +18,7 @@ $minimumCaptureCount = 0
 $humanCaptureSteps = @()
 $blockedReason = ''
 $resumeCondition = 'Run Tools\Write-RhythmNextAction.cmd again after refreshing rhythm evidence.'
+$safeAlternateAutomationActions = @()
 $rationale = 'Rhythm snapshot summary JSON is missing, so automation should refresh it before choosing tuning work.'
 $suggestedCommand = 'Tools\Write-RhythmSnapshotSummary.cmd'
 
@@ -48,6 +49,11 @@ if ($summaryExists) {
             $minimumCaptureCount = 4
             $blockedReason = 'MISSING_RHYTHM_SNAPSHOTS'
             $resumeCondition = 'Capture at least one Calm, Build, Spike, and Release rhythm snapshot, then rerun Tools\Write-RhythmNextAction.cmd.'
+            $safeAlternateAutomationActions = @(
+                'Run Tools\RunStaticPreflight.ps1 and fix FAIL results only.',
+                'Improve static guardrails or documentation that does not retune rhythm feel.',
+                'Update resource/planning docs from existing code evidence without claiming rhythm feel is proven.'
+            )
             $humanCaptureSteps = @(
                 'Enter Play Mode.',
                 'Use Write Rhythm Snapshot or press F13 once during Calm.',
@@ -67,6 +73,11 @@ if ($summaryExists) {
             $minimumCaptureCount = $missingPhases.Count
             $blockedReason = 'MISSING_RHYTHM_PHASE_SNAPSHOTS'
             $resumeCondition = "Capture snapshots for missing phases: $($missingPhases -join ', '), then rerun Tools\Write-RhythmNextAction.cmd."
+            $safeAlternateAutomationActions = @(
+                'Run Tools\RunStaticPreflight.ps1 and fix FAIL results only.',
+                'Improve static guardrails or documentation that does not retune rhythm feel.',
+                'Update capture handoff wording from existing evidence without changing gameplay tuning.'
+            )
             $humanCaptureSteps = @(
                 'Enter Play Mode.',
                 "Use Write Rhythm Snapshot or press F13 once during each missing phase: $($missingPhases -join ', ').",
@@ -109,6 +120,7 @@ $result = [ordered]@{
     humanCaptureSteps = @($humanCaptureSteps)
     blockedReason = $blockedReason
     resumeCondition = $resumeCondition
+    safeAlternateAutomationActions = @($safeAlternateAutomationActions)
     rationale = $rationale
     suggestedCommand = $suggestedCommand
 }
@@ -128,6 +140,9 @@ Write-Host "BlockedReason: $(if ([string]::IsNullOrWhiteSpace($blockedReason)) {
 Write-Host "ResumeCondition: $resumeCondition"
 if ($humanCaptureSteps.Count -gt 0) {
     Write-Host "HumanCaptureSteps: $($humanCaptureSteps -join ' | ')"
+}
+if ($safeAlternateAutomationActions.Count -gt 0) {
+    Write-Host "SafeAlternateAutomationActions: $($safeAlternateAutomationActions -join ' | ')"
 }
 Write-Host "Rationale: $rationale"
 Write-Host "SuggestedCommand: $suggestedCommand"

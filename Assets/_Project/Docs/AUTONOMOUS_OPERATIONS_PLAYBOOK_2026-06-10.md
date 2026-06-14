@@ -9,7 +9,7 @@ Keep development moving when the creator is busy or absent, without broad manual
 3. Prefer static evidence: `git diff --check` and `Tools/RunStaticPreflight.ps1`.
 4. For rhythm work, run `Tools\Write-RhythmNextAction.cmd` before choosing capture, tuning, or variation work.
 5. If rhythm next action reports `requiresHumanCapture=True` and `automationCanProceed=False`, do not retune rhythm feel from stale or missing evidence; report its `blockedReason` and `resumeCondition`.
-6. If a person needs to act, run `Tools\Write-RhythmCaptureHandoff.cmd` and reference its Markdown handoff.
+6. If a person needs to act, run `Tools\Write-RhythmCaptureHandoff.cmd` and reference its Markdown handoff; use only `safeAlternateAutomationActions` for unattended work.
 7. Treat `FAIL` as blocking. Treat stale log `WARN` as a refresh signal unless claiming release readiness.
 8. Commit only explicit files. Do not use `git add .`.
 9. Push successful commits to `origin/main`.

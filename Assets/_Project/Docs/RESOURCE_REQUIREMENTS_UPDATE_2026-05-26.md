@@ -75,6 +75,7 @@
 - `Tools\Test-RhythmNextAction.cmd` now validates the four rhythm next-action evidence branches without requiring Play Mode.
 - Static preflight now runs the rhythm next-action branch tests so the standard gate catches evidence-routing regressions.
 - Rhythm next-action tests now also validate target phase count, minimum capture count, and human capture step count.
+- Rhythm next-action JSON and handoff now list safe alternate automation actions for capture-blocked heartbeats.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

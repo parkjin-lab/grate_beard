@@ -19,6 +19,7 @@ Validate that the game is not only harder or darker, but rhythmically readable: 
 - Run `Tools\Get-RhythmNextAction.cmd` to turn the summary JSON into a concrete `NextAction` and `TargetPhases` line for heartbeat automation.
 - If the next-action helper reports `requiresHumanCapture=True`, keep the pass tiny: capture only the missing phase snapshots, then rerun the summary.
 - Use `blockedReason` and `resumeCondition` in the next-action JSON to decide whether automation should wait, tune, or continue.
+- When rhythm capture is blocked, `safeAlternateAutomationActions` lists allowed non-tuning work.
 - For handoff automation, prefer the helper's `humanCaptureSteps` array over free-form instructions.
 - After editing next-action logic, run `Tools\Test-RhythmNextAction.cmd` to verify all evidence-status branches.
 - A pass only proves that all phases occurred; it does not prove they felt good. Use the manual notes below for that.
