@@ -1,6 +1,7 @@
 param(
     [string]$RhythmNextActionJsonPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path 'Logs/RhythmValidation/rhythm_next_action_last.json'),
     [string]$StaticPreflightJsonPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path 'Logs/ReleaseSoak/local_static_preflight_last_summary.json'),
+    [string]$SafeTaskJsonPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path 'Logs/Autonomous/autonomous_safe_task_last.json'),
     [string]$OutputPath = (Join-Path (Resolve-Path (Join-Path $PSScriptRoot '..')).Path 'Logs/Autonomous/autonomous_heartbeat_status_last.md')
 )
 
@@ -18,6 +19,7 @@ function Read-OptionalJson {
 
 $rhythm = Read-OptionalJson $RhythmNextActionJsonPath
 $preflight = Read-OptionalJson $StaticPreflightJsonPath
+$safeTask = Read-OptionalJson $SafeTaskJsonPath
 $safeActions = if ($null -ne $rhythm) { @($rhythm.safeAlternateAutomationActions) } else { @() }
 $humanSteps = if ($null -ne $rhythm) { @($rhythm.humanCaptureSteps) } else { @() }
 
@@ -52,6 +54,17 @@ if ($null -ne $rhythm -and [bool]$rhythm.requiresHumanCapture) {
     $lines.Add("- MinimumCaptureCount: $($rhythm.minimumCaptureCount)")
 } else {
     $lines.Add('- Rhythm automation is not capture-blocked.')
+}
+
+$lines.Add('')
+$lines.Add('## Recommended Safe Task')
+if ($null -ne $safeTask) {
+    $lines.Add("- RecommendedTask: $($safeTask.recommendedTask)")
+    $lines.Add("- RecommendedCommand: $($safeTask.recommendedCommand)")
+    $lines.Add("- CanTuneRhythm: $($safeTask.canTuneRhythm)")
+    $lines.Add("- Reason: $($safeTask.reason)")
+} else {
+    $lines.Add('- Safe task JSON is missing; run Tools\Get-AutonomousSafeTask.cmd.')
 }
 
 $lines.Add('')

@@ -645,6 +645,9 @@ if (Test-Path $autonomousHeartbeatStatusScriptPath) {
         'RhythmNextAction',
         'StaticPreflight',
         'BlockedReason',
+        'Recommended Safe Task',
+        'SafeTaskJsonPath',
+        'CanTuneRhythm',
         'Human Capture Steps',
         'Safe Alternate Automation',
         'autonomous_heartbeat_status_last.md'
@@ -662,7 +665,9 @@ if (Test-Path $autonomousHeartbeatStatusCmdPath) {
     $autonomousHeartbeatStatusCmdText = Get-Content $autonomousHeartbeatStatusCmdPath -Raw
     $autonomousHeartbeatStatusCmdHooks = @(
         'Write-RhythmCaptureHandoff.cmd',
+        'Get-AutonomousSafeTask.cmd',
         'Write-AutonomousHeartbeatStatus.ps1',
+        'autonomous_safe_task_last.json',
         'autonomous_heartbeat_status_last.md'
     )
     foreach ($hook in $autonomousHeartbeatStatusCmdHooks) {

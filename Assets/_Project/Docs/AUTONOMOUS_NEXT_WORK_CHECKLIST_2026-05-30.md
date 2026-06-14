@@ -68,7 +68,7 @@
 | Rhythm branch test preflight | Next-action branch regressions should fail the standard static gate | Static preflight now runs `Tools\Test-RhythmNextAction.cmd` and reports `tools.rhythmNextActionBranchTests` |
 | Rhythm handoff field tests | Capture handoff fields should not silently drift from next-action branches | Expanded `Tools\Test-RhythmNextAction.cmd` to check target phase count, minimum capture count, and human capture step count |
 | Rhythm blocked alternate work | Heartbeats should keep moving safely when rhythm tuning is blocked by missing captures | Added `safeAlternateAutomationActions` to next-action JSON and the Markdown handoff |
-| Autonomous heartbeat status | Repeated heartbeats should share progress, validation, blocked state, and safe next steps | Added `Tools\Write-AutonomousHeartbeatStatus.cmd` to refresh rhythm handoff and write `Logs\Autonomous\autonomous_heartbeat_status_last.md` from latest preflight evidence |
+| Autonomous heartbeat status | Repeated heartbeats should share progress, validation, blocked state, and safe next steps | Added `Tools\Write-AutonomousHeartbeatStatus.cmd` to refresh rhythm handoff, safe-task JSON, and `Logs\Autonomous\autonomous_heartbeat_status_last.md` from latest preflight evidence |
 | Autonomous heartbeat read-only status | Heartbeats sometimes need status without touching local evidence files | Added `Tools\Get-AutonomousHeartbeatStatus.cmd` to read the latest rhythm next-action and static preflight JSON without writing logs |
 | Autonomous heartbeat status tests | Read-only heartbeat status should not silently drop blocked-state or validation fields | Added `Tools\Test-AutonomousHeartbeatStatus.cmd`; static preflight now runs it as `tools.autonomousHeartbeatStatusTests` |
 | Autonomous safe-task selector | Repeated heartbeats should pick safe work from evidence instead of retuning while capture-blocked | Added `Tools\Get-AutonomousSafeTask.cmd` plus `Tools\Test-AutonomousSafeTask.cmd`; the selector writes `Logs\Autonomous\autonomous_safe_task_last.json`, and static preflight runs it as `tools.autonomousSafeTaskTests` |
@@ -105,7 +105,7 @@ The next best autonomous task is Release relief tuning from telemetry:
 - If `requiresHumanCapture=True` and `automationCanProceed=False`, stop rhythm tuning and wait for phase snapshots instead of changing feel values without evidence.
 - Use `blockedReason` and `resumeCondition` to explain repeated heartbeat stalls without adding speculative tuning.
 - If rhythm is capture-blocked, use `safeAlternateAutomationActions` for non-tuning work only.
-- Run `Tools\RunStaticPreflight.ps1`, then use `Tools\Write-AutonomousHeartbeatStatus.cmd` to produce a single Markdown status file for repeated heartbeat handoff.
+- Run `Tools\RunStaticPreflight.ps1`, then use `Tools\Write-AutonomousHeartbeatStatus.cmd` to produce a single Markdown status file with progress, validation, blocked state, and recommended safe task.
 - Use `Tools\Get-AutonomousHeartbeatStatus.cmd` when a heartbeat only needs to inspect the latest status without creating or changing local artifacts.
 - Use `Tools\Get-AutonomousSafeTask.cmd` to choose the next unattended task from current rhythm/preflight evidence and write `Logs\Autonomous\autonomous_safe_task_last.json`.
 - Run `Tools\Test-AutonomousHeartbeatStatus.cmd` after changing heartbeat status output; static preflight also runs it as `tools.autonomousHeartbeatStatusTests`.
