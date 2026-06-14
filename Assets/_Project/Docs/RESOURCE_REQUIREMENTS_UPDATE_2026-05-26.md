@@ -76,6 +76,7 @@
 - Static preflight now runs the rhythm next-action branch tests so the standard gate catches evidence-routing regressions.
 - Rhythm next-action tests now also validate target phase count, minimum capture count, and human capture step count.
 - Rhythm next-action JSON and handoff now list safe alternate automation actions for capture-blocked heartbeats.
+- `Tools\Write-AutonomousHeartbeatStatus.cmd` now writes a concise heartbeat status artifact from rhythm next-action and latest static preflight evidence.
 
 ## P0 Resource Needs
 | Area | Needed Resources | Why It Matters | Acceptance Criteria |

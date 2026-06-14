@@ -20,6 +20,33 @@ function Add-Result {
     }
 }
 
+function Set-ContentWithRetry {
+    param(
+        [string]$Path,
+        [object]$Value,
+        [string]$Encoding = 'UTF8',
+        [int]$Attempts = 5,
+        [int]$DelayMilliseconds = 250
+    )
+
+    for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+        try {
+            Set-Content -Path $Path -Value $Value -Encoding $Encoding
+            return
+        } catch [System.UnauthorizedAccessException] {
+            if ($attempt -eq $Attempts) {
+                throw
+            }
+            Start-Sleep -Milliseconds $DelayMilliseconds
+        } catch [System.IO.IOException] {
+            if ($attempt -eq $Attempts) {
+                throw
+            }
+            Start-Sleep -Milliseconds $DelayMilliseconds
+        }
+    }
+}
+
 function Get-RelativePath {
     param([string]$Path)
 
@@ -123,6 +150,8 @@ $rhythmCaptureHandoffScriptPath = Join-Path $ProjectRoot 'Tools/Write-RhythmCapt
 $rhythmCaptureHandoffCmdPath = Join-Path $ProjectRoot 'Tools/Write-RhythmCaptureHandoff.cmd'
 $rhythmNextActionTestScriptPath = Join-Path $ProjectRoot 'Tools/Test-RhythmNextAction.ps1'
 $rhythmNextActionTestCmdPath = Join-Path $ProjectRoot 'Tools/Test-RhythmNextAction.cmd'
+$autonomousHeartbeatStatusScriptPath = Join-Path $ProjectRoot 'Tools/Write-AutonomousHeartbeatStatus.ps1'
+$autonomousHeartbeatStatusCmdPath = Join-Path $ProjectRoot 'Tools/Write-AutonomousHeartbeatStatus.cmd'
 
 $coreTypes = @(
     'LostBreadcrumbs.Runtime.Systems.SpawnSystem',
@@ -599,6 +628,42 @@ if (Test-Path $rhythmNextActionTestCmdPath) {
     }
 } else {
     $rhythmSnapshotToolMissing.Add('Test-RhythmNextAction.cmd missing')
+}
+
+if (Test-Path $autonomousHeartbeatStatusScriptPath) {
+    $autonomousHeartbeatStatusText = Get-Content $autonomousHeartbeatStatusScriptPath -Raw
+    $autonomousHeartbeatStatusHooks = @(
+        'Autonomous Heartbeat Status',
+        'RhythmNextAction',
+        'StaticPreflight',
+        'BlockedReason',
+        'Human Capture Steps',
+        'Safe Alternate Automation',
+        'autonomous_heartbeat_status_last.md'
+    )
+    foreach ($hook in $autonomousHeartbeatStatusHooks) {
+        if (-not $autonomousHeartbeatStatusText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Write-AutonomousHeartbeatStatus.ps1:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Write-AutonomousHeartbeatStatus.ps1 missing')
+}
+
+if (Test-Path $autonomousHeartbeatStatusCmdPath) {
+    $autonomousHeartbeatStatusCmdText = Get-Content $autonomousHeartbeatStatusCmdPath -Raw
+    $autonomousHeartbeatStatusCmdHooks = @(
+        'Write-RhythmCaptureHandoff.cmd',
+        'Write-AutonomousHeartbeatStatus.ps1',
+        'autonomous_heartbeat_status_last.md'
+    )
+    foreach ($hook in $autonomousHeartbeatStatusCmdHooks) {
+        if (-not $autonomousHeartbeatStatusCmdText.Contains($hook)) {
+            $rhythmSnapshotToolMissing.Add("Write-AutonomousHeartbeatStatus.cmd:$hook")
+        }
+    }
+} else {
+    $rhythmSnapshotToolMissing.Add('Write-AutonomousHeartbeatStatus.cmd missing')
 }
 $results.Add((Add-Result 'tools.rhythmSnapshotSummaryHooks' ($(if ($rhythmSnapshotToolMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmSnapshotToolMissing -join ', ')"))
 
@@ -1463,7 +1528,7 @@ foreach ($result in $results) {
     $lines.Add("[$($result.Status)] $($result.Name): $($result.Detail)")
 }
 
-Set-Content -Path $summaryPath -Value $lines -Encoding UTF8
+Set-ContentWithRetry -Path $summaryPath -Value $lines -Encoding UTF8
 $jsonResults = @()
 foreach ($result in $results) {
     $jsonResults += [ordered]@{
@@ -1490,7 +1555,8 @@ $jsonSummary = [ordered]@{
     }
     results = $jsonResults
 }
-$jsonSummary | ConvertTo-Json -Depth 5 | Set-Content -Path $jsonSummaryPath -Encoding UTF8
+$jsonSummaryText = $jsonSummary | ConvertTo-Json -Depth 5
+Set-ContentWithRetry -Path $jsonSummaryPath -Value $jsonSummaryText -Encoding UTF8
 $jsonSummaryReadback = Get-Content -Path $jsonSummaryPath -Raw | ConvertFrom-Json
 if ($null -eq $jsonSummaryReadback -or
     $jsonSummaryReadback.schemaVersion -ne 1 -or

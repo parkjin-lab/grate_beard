@@ -68,6 +68,7 @@
 | Rhythm branch test preflight | Next-action branch regressions should fail the standard static gate | Static preflight now runs `Tools\Test-RhythmNextAction.cmd` and reports `tools.rhythmNextActionBranchTests` |
 | Rhythm handoff field tests | Capture handoff fields should not silently drift from next-action branches | Expanded `Tools\Test-RhythmNextAction.cmd` to check target phase count, minimum capture count, and human capture step count |
 | Rhythm blocked alternate work | Heartbeats should keep moving safely when rhythm tuning is blocked by missing captures | Added `safeAlternateAutomationActions` to next-action JSON and the Markdown handoff |
+| Autonomous heartbeat status | Repeated heartbeats should share progress, validation, blocked state, and safe next steps | Added `Tools\Write-AutonomousHeartbeatStatus.cmd` to refresh rhythm handoff and write `Logs\Autonomous\autonomous_heartbeat_status_last.md` from latest preflight evidence |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |
@@ -101,6 +102,7 @@ The next best autonomous task is Release relief tuning from telemetry:
 - If `requiresHumanCapture=True` and `automationCanProceed=False`, stop rhythm tuning and wait for phase snapshots instead of changing feel values without evidence.
 - Use `blockedReason` and `resumeCondition` to explain repeated heartbeat stalls without adding speculative tuning.
 - If rhythm is capture-blocked, use `safeAlternateAutomationActions` for non-tuning work only.
+- Run `Tools\RunStaticPreflight.ps1`, then use `Tools\Write-AutonomousHeartbeatStatus.cmd` to produce a single Markdown status file for repeated heartbeat handoff.
 - Run `Tools\Test-RhythmNextAction.cmd` after changing next-action logic; static preflight also runs it as `tools.rhythmNextActionBranchTests`.
 - Read `humanCaptureSteps` from `Tools\Get-RhythmNextAction.cmd -OutputJsonPath ...` when handing the task to a person; it is the shortest acceptable capture path.
 - If snapshots still show weak relief, tune intensity/fade shape next rather than adding new assets.
