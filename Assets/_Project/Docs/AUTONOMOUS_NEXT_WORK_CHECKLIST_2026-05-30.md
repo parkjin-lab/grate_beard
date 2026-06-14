@@ -66,6 +66,7 @@
 | Rhythm blocked-state handoff | Repeated automation should explain why rhythm work cannot continue yet | Added `blockedReason` and `resumeCondition` to the next-action JSON and Markdown handoff |
 | Rhythm next-action branch tests | The automation should prove every evidence state maps to the intended next action | Added `Tools\Test-RhythmNextAction.cmd` to verify NO_EVIDENCE, PARTIAL_EVIDENCE, NEEDS_TUNING, and PASS branches |
 | Rhythm branch test preflight | Next-action branch regressions should fail the standard static gate | Static preflight now runs `Tools\Test-RhythmNextAction.cmd` and reports `tools.rhythmNextActionBranchTests` |
+| Rhythm handoff field tests | Capture handoff fields should not silently drift from next-action branches | Expanded `Tools\Test-RhythmNextAction.cmd` to check target phase count, minimum capture count, and human capture step count |
 | Vendor asset guardrails | Large Asset Store imports should not re-enter source control accidentally | Added static preflight coverage for ignored vendor package paths |
 | Vendor tracking guardrails | Ignored vendor packages could still be committed if already tracked | Added static preflight coverage for tracked vendor package paths |
 | Validation artifact guardrails | Snapshot/log artifacts should remain local evidence, not source-controlled data | Added static preflight coverage for log artifact ignore rules |

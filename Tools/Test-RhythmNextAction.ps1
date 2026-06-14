@@ -62,7 +62,10 @@ function Invoke-NextActionCase {
         [string]$ExpectedAction,
         [bool]$ExpectedRequiresHuman,
         [bool]$ExpectedCanProceed,
-        [string]$ExpectedBlockedReason
+        [string]$ExpectedBlockedReason,
+        [int]$ExpectedTargetPhaseCount,
+        [int]$ExpectedMinimumCaptureCount,
+        [int]$ExpectedHumanCaptureStepCount
     )
 
     $outputPath = Join-Path $tempRoot "$Name.next.json"
@@ -88,6 +91,18 @@ function Invoke-NextActionCase {
         throw "$Name blockedReason expected=$ExpectedBlockedReason actual=$($actual.blockedReason)"
     }
 
+    if (@($actual.targetPhases).Count -ne $ExpectedTargetPhaseCount) {
+        throw "$Name targetPhases.Count expected=$ExpectedTargetPhaseCount actual=$(@($actual.targetPhases).Count)"
+    }
+
+    if ([int]$actual.minimumCaptureCount -ne $ExpectedMinimumCaptureCount) {
+        throw "$Name minimumCaptureCount expected=$ExpectedMinimumCaptureCount actual=$($actual.minimumCaptureCount)"
+    }
+
+    if (@($actual.humanCaptureSteps).Count -ne $ExpectedHumanCaptureStepCount) {
+        throw "$Name humanCaptureSteps.Count expected=$ExpectedHumanCaptureStepCount actual=$(@($actual.humanCaptureSteps).Count)"
+    }
+
     Write-Host "[PASS] $Name -> $($actual.nextAction)"
 }
 
@@ -98,7 +113,7 @@ try {
         Spike = 'NO_SPIKE_SNAPSHOTS'
         Release = 'NO_RELEASE_SNAPSHOTS'
     }
-    Invoke-NextActionCase 'NO_EVIDENCE' $noEvidence 'CAPTURE_RHYTHM_SNAPSHOTS' $true $false 'MISSING_RHYTHM_SNAPSHOTS'
+    Invoke-NextActionCase 'NO_EVIDENCE' $noEvidence 'CAPTURE_RHYTHM_SNAPSHOTS' $true $false 'MISSING_RHYTHM_SNAPSHOTS' 4 4 6
 
     $partial = Write-SummaryCase 'partial' 'PARTIAL_EVIDENCE' $false @{
         Calm = 'PASS'
@@ -106,7 +121,7 @@ try {
         Spike = 'NO_SPIKE_SNAPSHOTS'
         Release = 'NO_RELEASE_SNAPSHOTS'
     }
-    Invoke-NextActionCase 'PARTIAL_EVIDENCE' $partial 'CAPTURE_MISSING_PHASES' $true $false 'MISSING_RHYTHM_PHASE_SNAPSHOTS'
+    Invoke-NextActionCase 'PARTIAL_EVIDENCE' $partial 'CAPTURE_MISSING_PHASES' $true $false 'MISSING_RHYTHM_PHASE_SNAPSHOTS' 3 3 3
 
     $needsTuning = Write-SummaryCase 'needs_tuning' 'NEEDS_TUNING' $true @{
         Calm = 'PASS'
@@ -114,7 +129,7 @@ try {
         Spike = 'UNFAIR'
         Release = 'PASS'
     }
-    Invoke-NextActionCase 'NEEDS_TUNING' $needsTuning 'TUNE_WEAK_PHASES' $false $true ''
+    Invoke-NextActionCase 'NEEDS_TUNING' $needsTuning 'TUNE_WEAK_PHASES' $false $true '' 1 0 0
 
     $pass = Write-SummaryCase 'pass' 'PASS' $true @{
         Calm = 'PASS'
@@ -122,7 +137,7 @@ try {
         Spike = 'PASS'
         Release = 'PASS'
     }
-    Invoke-NextActionCase 'PASS' $pass 'CONTINUE_NEXT_RHYTHM_VARIATION' $false $true ''
+    Invoke-NextActionCase 'PASS' $pass 'CONTINUE_NEXT_RHYTHM_VARIATION' $false $true '' 3 0 0
 
     Write-Host 'Rhythm next-action tests passed.'
 } finally {
