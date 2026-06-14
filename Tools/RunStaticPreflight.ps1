@@ -755,6 +755,10 @@ if (Test-Path $autonomousSafeTaskScriptPath) {
         'REFRESH_STATUS_EVIDENCE',
         'TUNE_WEAK_PHASES',
         'CanTuneRhythm',
+        'HumanRequired',
+        'ForbiddenAutomationActions',
+        'forbiddenAutomationActions',
+        'humanRequired',
         'RecommendedTask',
         'SafeAlternateAutomationActions'
     )
@@ -795,6 +799,8 @@ if (Test-Path $autonomousSafeTaskTestScriptPath) {
         'schemaVersion',
         'recommendedTask',
         'canTuneRhythm',
+        'humanRequired',
+        'forbiddenAutomationActions',
         'Autonomous safe-task tests passed.'
     )
     foreach ($hook in $autonomousSafeTaskTestHooks) {

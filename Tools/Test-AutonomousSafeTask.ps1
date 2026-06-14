@@ -67,7 +67,9 @@ function Invoke-SafeTaskCase {
         [string]$RhythmPath,
         [string]$PreflightPath,
         [string]$ExpectedTask,
-        [string]$ExpectedCanTuneRhythm
+        [string]$ExpectedCanTuneRhythm,
+        [string]$ExpectedHumanRequired,
+        [int]$ExpectedForbiddenActionCount
     )
 
     $outputPath = Join-Path $tempRoot "$Name.safe-task.json"
@@ -78,6 +80,7 @@ function Invoke-SafeTaskCase {
 
     Assert-Contains $Name $output "RecommendedTask: $ExpectedTask"
     Assert-Contains $Name $output "CanTuneRhythm: $ExpectedCanTuneRhythm"
+    Assert-Contains $Name $output "HumanRequired: $ExpectedHumanRequired"
     Assert-Contains $Name $output "OutputJsonPath: $outputPath"
 
     $actualJson = Get-Content -LiteralPath $outputPath -Raw | ConvertFrom-Json
@@ -93,6 +96,14 @@ function Invoke-SafeTaskCase {
         throw "$Name canTuneRhythm JSON expected=$ExpectedCanTuneRhythm actual=$($actualJson.canTuneRhythm)"
     }
 
+    if ("$($actualJson.humanRequired)" -ne $ExpectedHumanRequired) {
+        throw "$Name humanRequired JSON expected=$ExpectedHumanRequired actual=$($actualJson.humanRequired)"
+    }
+
+    if (@($actualJson.forbiddenAutomationActions).Count -ne $ExpectedForbiddenActionCount) {
+        throw "$Name forbiddenAutomationActions.Count expected=$ExpectedForbiddenActionCount actual=$(@($actualJson.forbiddenAutomationActions).Count)"
+    }
+
     Write-Host "[PASS] $Name -> $ExpectedTask"
 }
 
@@ -103,10 +114,10 @@ try {
     $failedPreflight = Write-PreflightCase 'failed' 2
     $missingPath = Join-Path $tempRoot 'missing.json'
 
-    Invoke-SafeTaskCase 'FAILED_PREFLIGHT' $blockedRhythm $failedPreflight 'FIX_STATIC_PREFLIGHT_FAILURES' 'False'
-    Invoke-SafeTaskCase 'CAPTURE_BLOCKED' $blockedRhythm $cleanPreflight 'IMPROVE_GUARDRAILS_OR_DOCUMENTATION' 'False'
-    Invoke-SafeTaskCase 'RHYTHM_TUNING_ALLOWED' $tuningRhythm $cleanPreflight 'TUNE_WEAK_PHASES' 'True'
-    Invoke-SafeTaskCase 'MISSING_STATUS' $missingPath $missingPath 'REFRESH_STATUS_EVIDENCE' 'False'
+    Invoke-SafeTaskCase 'FAILED_PREFLIGHT' $blockedRhythm $failedPreflight 'FIX_STATIC_PREFLIGHT_FAILURES' 'False' 'False' 2
+    Invoke-SafeTaskCase 'CAPTURE_BLOCKED' $blockedRhythm $cleanPreflight 'IMPROVE_GUARDRAILS_OR_DOCUMENTATION' 'False' 'True' 3
+    Invoke-SafeTaskCase 'RHYTHM_TUNING_ALLOWED' $tuningRhythm $cleanPreflight 'TUNE_WEAK_PHASES' 'True' 'False' 0
+    Invoke-SafeTaskCase 'MISSING_STATUS' $missingPath $missingPath 'REFRESH_STATUS_EVIDENCE' 'False' 'False' 0
 
     Write-Host 'Autonomous safe-task tests passed.'
 } finally {

@@ -62,9 +62,21 @@ if ($null -ne $safeTask) {
     $lines.Add("- RecommendedTask: $($safeTask.recommendedTask)")
     $lines.Add("- RecommendedCommand: $($safeTask.recommendedCommand)")
     $lines.Add("- CanTuneRhythm: $($safeTask.canTuneRhythm)")
+    $lines.Add("- HumanRequired: $($safeTask.humanRequired)")
     $lines.Add("- Reason: $($safeTask.reason)")
 } else {
     $lines.Add('- Safe task JSON is missing; run Tools\Get-AutonomousSafeTask.cmd.')
+}
+
+$forbiddenActions = if ($null -ne $safeTask) { @($safeTask.forbiddenAutomationActions) } else { @() }
+$lines.Add('')
+$lines.Add('## Forbidden Automation')
+if ($forbiddenActions.Count -eq 0) {
+    $lines.Add('- None listed by the current safe-task state.')
+} else {
+    foreach ($action in $forbiddenActions) {
+        $lines.Add("- $action")
+    }
 }
 
 $lines.Add('')
