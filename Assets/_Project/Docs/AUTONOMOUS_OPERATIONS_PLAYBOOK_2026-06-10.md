@@ -47,7 +47,7 @@ Keep development moving when the creator is busy or absent, without broad manual
 - Use `Tools\Test-AutonomousHeartbeatWriter.cmd` before committing changes to the Markdown heartbeat handoff; `Tools\RunStaticPreflight.ps1` also runs it.
 - Use `Tools\Test-AutonomousSafeTask.cmd` before committing changes to safe-task selection; `Tools\RunStaticPreflight.ps1` also runs it.
 - Use `Tools\Test-RhythmNextAction.cmd` before committing changes to rhythm next-action branching; `Tools\RunStaticPreflight.ps1` also runs it.
-- Read `StaticPreflightWarnCount`, `StaticPreflightHasWarnings`, and `StaticPreflightWarningSummary` from safe-task JSON, read-only heartbeat status, or heartbeat Markdown before using stale WARN evidence in a claim.
+- Read `StaticPreflightWarnCount`, `StaticPreflightHasWarnings`, `StaticPreflightWarningNames`, and `StaticPreflightWarningSummary` from safe-task JSON, read-only heartbeat status, or heartbeat Markdown before using stale WARN evidence in a claim.
 - Keep stale validation evidence visible but do not block non-release commits on it.
 
 ## Validation Rules
