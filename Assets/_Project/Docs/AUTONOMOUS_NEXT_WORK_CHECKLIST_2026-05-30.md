@@ -84,6 +84,7 @@
 | Low-touch validation policy guardrails | Automation should not drift back into broad manual play checks | Added static preflight coverage for the rhythm playbook's minimal-human-pass and snapshot evidence policy |
 | Rhythm judgment card | Human spot checks need plain terms for fair Spike, felt Release, and tempting Build | Added a Korean-first judgment card to the rhythm playbook and static preflight policy hooks |
 | Stale log warning clarity | Old release-soak logs should not be mistaken for current validation | Static preflight now labels stale log warnings with freshness days and refresh-required status |
+| Safe-task preflight warning visibility | Repeated automation should not lose non-blocking WARN context while choosing unattended work | Safe-task JSON and heartbeat Markdown now expose `StaticPreflightWarnCount`, `StaticPreflightHasWarnings`, and `StaticPreflightWarningSummary` |
 | Performance | Stinger telemetry stores primitive fields only when a stinger plays | No per-frame allocation concern |
 | Risk | Some feel/audio judgment still needs a human eventually | Defer broad play validation; prioritize automated/static guards and tiny evidence captures |
 
@@ -112,6 +113,7 @@ The next best autonomous task is Release relief tuning from telemetry:
 - Use `Tools\Get-AutonomousSafeTask.cmd` to choose the next unattended task from current rhythm/preflight evidence and write `Logs\Autonomous\autonomous_safe_task_last.json`.
 - Read `forbiddenAutomationActions` before changing gameplay feel; if it forbids rhythm tuning, only do static guardrails, documentation, or evidence tooling.
 - Read `blockedReason`, `resumeCondition`, `targetPhases`, `captureHotkey`, and `minimumCaptureCount` from safe-task JSON before asking for human capture.
+- Read `StaticPreflightWarnCount`, `StaticPreflightHasWarnings`, and `StaticPreflightWarningSummary` from safe-task JSON before deciding whether stale WARN evidence matters for the next claim.
 - Read `humanActionSummary` when a short one-line request is enough for the creator.
 - Route unattended work from `automationMode`: `SAFE_ALTERNATE_ONLY`, `FIX_FAILURES_ONLY`, `RHYTHM_TUNING_ALLOWED`, or `REFRESH_STATUS`.
 - Follow `AUTONOMOUS_OPERATIONS_PLAYBOOK_2026-06-10.md` for the full `automationMode` table, including `RHYTHM_AUTOMATION_ALLOWED`.
