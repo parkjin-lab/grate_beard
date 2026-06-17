@@ -74,6 +74,9 @@ try {
         staticPreflightHasWarnings = $true
         staticPreflightWarningNames = @('logs.unityPreflightSummary', 'logs.autoSoakTrace', 'logs.autoSoakStatus')
         staticPreflightWarningSummary = 'logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus'
+        staticPreflightGeneratedAt = '2026-06-15 00:00:00 KST'
+        staticPreflightDurationMilliseconds = 2222
+        staticPreflightDurationWarning = $false
         reason = 'Rhythm tuning is blocked by MISSING_RHYTHM_SNAPSHOTS; choose only non-tuning work until snapshots exist.'
         forbiddenAutomationActions = @(
             'Do not retune rhythm feel without Calm, Build, Spike, and Release snapshots.',
@@ -98,6 +101,9 @@ try {
     Assert-Contains 'writer' $markdown '- StaticPreflightHasWarnings: True'
     Assert-Contains 'writer' $markdown '- StaticPreflightWarningNames: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus'
     Assert-Contains 'writer' $markdown '- StaticPreflightWarningSummary: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus'
+    Assert-Contains 'writer' $markdown '- StaticPreflightGeneratedAt: 2026-06-15 00:00:00 KST'
+    Assert-Contains 'writer' $markdown '- StaticPreflightDurationMilliseconds: 2222'
+    Assert-Contains 'writer' $markdown '- StaticPreflightDurationWarning: False'
     Assert-Contains 'writer' $markdown '## Forbidden Automation'
     Assert-Contains 'writer' $markdown 'Do not retune rhythm feel without Calm, Build, Spike, and Release snapshots.'
     Assert-Contains 'writer' $markdown '## Human Capture Steps'

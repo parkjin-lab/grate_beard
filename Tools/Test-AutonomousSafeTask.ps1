@@ -66,6 +66,9 @@ function Write-PreflightCase {
     }
 
     [ordered]@{
+        generatedAt = '2026-06-15 00:00:00 KST'
+        durationMilliseconds = 1234
+        durationWarning = $false
         hasWarnings = $WarnCount -gt 0
         summary = [ordered]@{
             pass = 34
@@ -104,6 +107,9 @@ function Invoke-SafeTaskCase {
     Assert-Contains $Name $output 'StaticPreflightHasWarnings:'
     Assert-Contains $Name $output 'StaticPreflightWarningNames:'
     Assert-Contains $Name $output 'StaticPreflightWarningSummary:'
+    Assert-Contains $Name $output 'StaticPreflightGeneratedAt:'
+    Assert-Contains $Name $output 'StaticPreflightDurationMilliseconds:'
+    Assert-Contains $Name $output 'StaticPreflightDurationWarning:'
     Assert-Contains $Name $output "CanTuneRhythm: $ExpectedCanTuneRhythm"
     Assert-Contains $Name $output "HumanRequired: $ExpectedHumanRequired"
     Assert-Contains $Name $output "AutomationMode: $ExpectedAutomationMode"
@@ -135,6 +141,18 @@ function Invoke-SafeTaskCase {
 
     if ($null -eq $actualJson.staticPreflightWarningSummary) {
         throw "$Name staticPreflightWarningSummary JSON missing"
+    }
+
+    if ($null -eq $actualJson.staticPreflightGeneratedAt) {
+        throw "$Name staticPreflightGeneratedAt JSON missing"
+    }
+
+    if ($null -eq $actualJson.staticPreflightDurationMilliseconds) {
+        throw "$Name staticPreflightDurationMilliseconds JSON missing"
+    }
+
+    if ($null -eq $actualJson.staticPreflightDurationWarning) {
+        throw "$Name staticPreflightDurationWarning JSON missing"
     }
 
     if ([int]$actualJson.staticPreflightWarnCount -gt 0 -and @($actualJson.staticPreflightWarningNames).Count -eq 0) {

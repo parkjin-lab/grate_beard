@@ -656,6 +656,9 @@ if (Test-Path $autonomousHeartbeatStatusScriptPath) {
         'staticPreflightWarningNames',
         'StaticPreflightWarningNames',
         'StaticPreflightWarningSummary',
+        'StaticPreflightGeneratedAt',
+        'StaticPreflightDurationMilliseconds',
+        'StaticPreflightDurationWarning',
         'Human Capture Steps',
         'Safe Alternate Automation',
         'autonomous_heartbeat_status_last.md'
@@ -770,6 +773,9 @@ if (Test-Path $autonomousHeartbeatWriterTestScriptPath) {
         'StaticPreflightHasWarnings: True',
         'StaticPreflightWarningNames: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus',
         'StaticPreflightWarningSummary: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus',
+        'StaticPreflightGeneratedAt: 2026-06-15 00:00:00 KST',
+        'StaticPreflightDurationMilliseconds: 2222',
+        'StaticPreflightDurationWarning: False',
         'Autonomous heartbeat writer tests passed.'
     )
     foreach ($hook in $autonomousHeartbeatWriterTestHooks) {
@@ -814,6 +820,9 @@ if (Test-Path $autonomousSafeTaskScriptPath) {
         'StaticPreflightHasWarnings',
         'StaticPreflightWarningNames',
         'StaticPreflightWarningSummary',
+        'StaticPreflightGeneratedAt',
+        'StaticPreflightDurationMilliseconds',
+        'StaticPreflightDurationWarning',
         'ForbiddenAutomationActions',
         'forbiddenAutomationActions',
         'humanRequired',
@@ -828,6 +837,9 @@ if (Test-Path $autonomousSafeTaskScriptPath) {
         'staticPreflightHasWarnings',
         'staticPreflightWarningNames',
         'staticPreflightWarningSummary',
+        'staticPreflightGeneratedAt',
+        'staticPreflightDurationMilliseconds',
+        'staticPreflightDurationWarning',
         'RecommendedTask',
         'SafeAlternateAutomationActions'
     )
@@ -879,6 +891,9 @@ if (Test-Path $autonomousSafeTaskTestScriptPath) {
         'staticPreflightHasWarnings',
         'staticPreflightWarningNames',
         'staticPreflightWarningSummary',
+        'staticPreflightGeneratedAt',
+        'staticPreflightDurationMilliseconds',
+        'staticPreflightDurationWarning',
         'SAFE_ALTERNATE_ONLY',
         'FIX_FAILURES_ONLY',
         'RHYTHM_TUNING_ALLOWED',

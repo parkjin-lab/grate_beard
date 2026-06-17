@@ -75,6 +75,9 @@ if ($null -ne $safeTask) {
         $lines.Add("- StaticPreflightHasWarnings: $($safeTask.staticPreflightHasWarnings)")
         $lines.Add("- StaticPreflightWarningNames: $(@($safeTask.staticPreflightWarningNames) -join ', ')")
         $lines.Add("- StaticPreflightWarningSummary: $($safeTask.staticPreflightWarningSummary)")
+        $lines.Add("- StaticPreflightGeneratedAt: $($safeTask.staticPreflightGeneratedAt)")
+        $lines.Add("- StaticPreflightDurationMilliseconds: $($safeTask.staticPreflightDurationMilliseconds)")
+        $lines.Add("- StaticPreflightDurationWarning: $($safeTask.staticPreflightDurationWarning)")
     }
     $lines.Add("- Reason: $($safeTask.reason)")
 } else {

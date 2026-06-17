@@ -20,6 +20,9 @@ $rhythm = Read-OptionalJson $RhythmNextActionJsonPath
 $preflight = Read-OptionalJson $StaticPreflightJsonPath
 $preflightFailCount = if ($null -ne $preflight) { [int]$preflight.summary.fail } else { -1 }
 $preflightWarnCount = if ($null -ne $preflight) { [int]$preflight.summary.warn } else { -1 }
+$preflightGeneratedAt = if ($null -ne $preflight) { "$($preflight.generatedAt)" } else { '' }
+$preflightDurationMilliseconds = if ($null -ne $preflight) { [int64]$preflight.durationMilliseconds } else { -1 }
+$preflightDurationWarning = if ($null -ne $preflight -and $null -ne $preflight.durationWarning) { [bool]$preflight.durationWarning } else { $false }
 $preflightHasWarnings = if ($null -ne $preflight) {
     if ($null -ne $preflight.hasWarnings) {
         [bool]$preflight.hasWarnings
@@ -98,6 +101,9 @@ Write-Host "StaticPreflightWarnCount: $preflightWarnCount"
 Write-Host "StaticPreflightHasWarnings: $preflightHasWarnings"
 Write-Host "StaticPreflightWarningNames: $($preflightWarningNames -join ', ')"
 Write-Host "StaticPreflightWarningSummary: $preflightWarningSummary"
+Write-Host "StaticPreflightGeneratedAt: $preflightGeneratedAt"
+Write-Host "StaticPreflightDurationMilliseconds: $preflightDurationMilliseconds"
+Write-Host "StaticPreflightDurationWarning: $preflightDurationWarning"
 Write-Host "RequiresHumanCapture: $requiresHumanCapture"
 Write-Host "AutomationCanProceed: $automationCanProceed"
 Write-Host "CanTuneRhythm: $canTuneRhythm"
@@ -137,6 +143,9 @@ if (-not [string]::IsNullOrWhiteSpace($OutputJsonPath)) {
         staticPreflightHasWarnings = $preflightHasWarnings
         staticPreflightWarningNames = $preflightWarningNames
         staticPreflightWarningSummary = $preflightWarningSummary
+        staticPreflightGeneratedAt = $preflightGeneratedAt
+        staticPreflightDurationMilliseconds = $preflightDurationMilliseconds
+        staticPreflightDurationWarning = $preflightDurationWarning
         requiresHumanCapture = $requiresHumanCapture
         automationCanProceed = $automationCanProceed
         canTuneRhythm = $canTuneRhythm
