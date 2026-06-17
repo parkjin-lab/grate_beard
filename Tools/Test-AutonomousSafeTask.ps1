@@ -51,16 +51,28 @@ function Write-RhythmCase {
 function Write-PreflightCase {
     param(
         [string]$Name,
-        [int]$FailCount
+        [int]$FailCount,
+        [int]$WarnCount = 3,
+        [string[]]$WarnNames = @('logs.unityPreflightSummary', 'logs.autoSoakTrace', 'logs.autoSoakStatus')
     )
 
     $path = Join-Path $tempRoot "$Name.preflight.json"
+    $results = foreach ($warnName in $WarnNames) {
+        [ordered]@{
+            name = $warnName
+            status = 'WARN'
+            detail = 'exists=True stale=True refreshRequired=True'
+        }
+    }
+
     [ordered]@{
+        hasWarnings = $WarnCount -gt 0
         summary = [ordered]@{
             pass = 34
-            warn = 3
+            warn = $WarnCount
             fail = $FailCount
         }
+        results = @($results)
     } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $path -Encoding UTF8
     return $path
 }
@@ -88,6 +100,9 @@ function Invoke-SafeTaskCase {
     }
 
     Assert-Contains $Name $output "RecommendedTask: $ExpectedTask"
+    Assert-Contains $Name $output 'StaticPreflightWarnCount:'
+    Assert-Contains $Name $output 'StaticPreflightHasWarnings:'
+    Assert-Contains $Name $output 'StaticPreflightWarningSummary:'
     Assert-Contains $Name $output "CanTuneRhythm: $ExpectedCanTuneRhythm"
     Assert-Contains $Name $output "HumanRequired: $ExpectedHumanRequired"
     Assert-Contains $Name $output "AutomationMode: $ExpectedAutomationMode"
@@ -103,6 +118,18 @@ function Invoke-SafeTaskCase {
 
     if ("$($actualJson.recommendedTask)" -ne $ExpectedTask) {
         throw "$Name recommendedTask JSON expected=$ExpectedTask actual=$($actualJson.recommendedTask)"
+    }
+
+    if ($null -eq $actualJson.staticPreflightWarnCount) {
+        throw "$Name staticPreflightWarnCount JSON missing"
+    }
+
+    if ($null -eq $actualJson.staticPreflightHasWarnings) {
+        throw "$Name staticPreflightHasWarnings JSON missing"
+    }
+
+    if ($null -eq $actualJson.staticPreflightWarningSummary) {
+        throw "$Name staticPreflightWarningSummary JSON missing"
     }
 
     if ("$($actualJson.canTuneRhythm)" -ne $ExpectedCanTuneRhythm) {

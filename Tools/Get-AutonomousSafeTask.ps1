@@ -19,6 +19,28 @@ function Read-OptionalJson {
 $rhythm = Read-OptionalJson $RhythmNextActionJsonPath
 $preflight = Read-OptionalJson $StaticPreflightJsonPath
 $preflightFailCount = if ($null -ne $preflight) { [int]$preflight.summary.fail } else { -1 }
+$preflightWarnCount = if ($null -ne $preflight) { [int]$preflight.summary.warn } else { -1 }
+$preflightHasWarnings = if ($null -ne $preflight) {
+    if ($null -ne $preflight.hasWarnings) {
+        [bool]$preflight.hasWarnings
+    } else {
+        $preflightWarnCount -gt 0
+    }
+} else {
+    $false
+}
+$preflightWarningNames = if ($null -ne $preflight -and $null -ne $preflight.results) {
+    @($preflight.results | Where-Object { "$($_.status)" -eq 'WARN' } | ForEach-Object { "$($_.name)" })
+} else {
+    @()
+}
+$preflightWarningSummary = if ($preflightWarningNames.Count -gt 0) {
+    $preflightWarningNames -join ', '
+} elseif ($preflightHasWarnings) {
+    'warnings present'
+} else {
+    'none'
+}
 $safeActions = if ($null -ne $rhythm) { @($rhythm.safeAlternateAutomationActions) } else { @() }
 [string[]]$targetPhases = if ($null -ne $rhythm) { @($rhythm.targetPhases) } else { @() }
 $requiresHumanCapture = $null -ne $rhythm -and [bool]$rhythm.requiresHumanCapture
@@ -72,6 +94,9 @@ Write-Host 'LostBreadcrumbs Autonomous Safe Task'
 Write-Host "RhythmNextActionExists: $($null -ne $rhythm)"
 Write-Host "StaticPreflightExists: $($null -ne $preflight)"
 Write-Host "StaticPreflightFailCount: $preflightFailCount"
+Write-Host "StaticPreflightWarnCount: $preflightWarnCount"
+Write-Host "StaticPreflightHasWarnings: $preflightHasWarnings"
+Write-Host "StaticPreflightWarningSummary: $preflightWarningSummary"
 Write-Host "RequiresHumanCapture: $requiresHumanCapture"
 Write-Host "AutomationCanProceed: $automationCanProceed"
 Write-Host "CanTuneRhythm: $canTuneRhythm"
@@ -107,6 +132,10 @@ if (-not [string]::IsNullOrWhiteSpace($OutputJsonPath)) {
         rhythmNextActionExists = $null -ne $rhythm
         staticPreflightExists = $null -ne $preflight
         staticPreflightFailCount = $preflightFailCount
+        staticPreflightWarnCount = $preflightWarnCount
+        staticPreflightHasWarnings = $preflightHasWarnings
+        staticPreflightWarningNames = $preflightWarningNames
+        staticPreflightWarningSummary = $preflightWarningSummary
         requiresHumanCapture = $requiresHumanCapture
         automationCanProceed = $automationCanProceed
         canTuneRhythm = $canTuneRhythm

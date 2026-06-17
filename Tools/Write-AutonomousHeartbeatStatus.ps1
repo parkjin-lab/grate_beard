@@ -70,6 +70,11 @@ if ($null -ne $safeTask) {
     $lines.Add("- CaptureHotkey: $($safeTask.captureHotkey)")
     $lines.Add("- MinimumCaptureCount: $($safeTask.minimumCaptureCount)")
     $lines.Add("- HumanActionSummary: $($safeTask.humanActionSummary)")
+    if ($null -ne $safeTask.staticPreflightWarnCount) {
+        $lines.Add("- StaticPreflightWarnCount: $($safeTask.staticPreflightWarnCount)")
+        $lines.Add("- StaticPreflightHasWarnings: $($safeTask.staticPreflightHasWarnings)")
+        $lines.Add("- StaticPreflightWarningSummary: $($safeTask.staticPreflightWarningSummary)")
+    }
     $lines.Add("- Reason: $($safeTask.reason)")
 } else {
     $lines.Add('- Safe task JSON is missing; run Tools\Get-AutonomousSafeTask.cmd.')
