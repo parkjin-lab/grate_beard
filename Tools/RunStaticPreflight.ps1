@@ -651,6 +651,9 @@ if (Test-Path $autonomousHeartbeatStatusScriptPath) {
         'Recommended Safe Task',
         'SafeTaskJsonPath',
         'CanTuneRhythm',
+        'StaticPreflightWarnCount',
+        'StaticPreflightHasWarnings',
+        'StaticPreflightWarningSummary',
         'Human Capture Steps',
         'Safe Alternate Automation',
         'autonomous_heartbeat_status_last.md'
@@ -759,6 +762,9 @@ if (Test-Path $autonomousHeartbeatWriterTestScriptPath) {
         'MISSING_RHYTHM_SNAPSHOTS',
         'TargetPhases: Calm, Build, Spike, Release',
         'CaptureHotkey: F13',
+        'StaticPreflightWarnCount: 3',
+        'StaticPreflightHasWarnings: True',
+        'StaticPreflightWarningSummary: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus',
         'Autonomous heartbeat writer tests passed.'
     )
     foreach ($hook in $autonomousHeartbeatWriterTestHooks) {
