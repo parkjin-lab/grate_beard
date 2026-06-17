@@ -49,12 +49,30 @@ try {
     }
     $preflight = [ordered]@{
         generatedAt = '2026-06-15 00:00:00 KST'
+        hasWarnings = $true
         durationMilliseconds = 1234
         summary = [ordered]@{
             pass = 33
             warn = 3
             fail = 0
         }
+        results = @(
+            [ordered]@{
+                name = 'logs.unityPreflightSummary'
+                status = 'WARN'
+                detail = 'exists=True stale=True refreshRequired=True'
+            },
+            [ordered]@{
+                name = 'logs.autoSoakTrace'
+                status = 'WARN'
+                detail = 'exists=True stale=True refreshRequired=True'
+            },
+            [ordered]@{
+                name = 'logs.autoSoakStatus'
+                status = 'WARN'
+                detail = 'exists=True stale=True refreshRequired=True'
+            }
+        )
     }
 
     $rhythm | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $rhythmPath -Encoding UTF8
@@ -73,6 +91,8 @@ try {
     Assert-Contains 'sample' $output 'BlockedReason: MISSING_RHYTHM_SNAPSHOTS'
     Assert-Contains 'sample' $output 'HumanCaptureStepCount: 6'
     Assert-Contains 'sample' $output 'StaticPreflight: pass=33 warn=3 fail=0'
+    Assert-Contains 'sample' $output 'StaticPreflightHasWarnings: True'
+    Assert-Contains 'sample' $output 'StaticPreflightWarningSummary: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus'
     Assert-Contains 'sample' $output 'SafeAlternateAutomationActions: Run Tools\RunStaticPreflight.ps1'
 
     $missingOutput = (& powershell -NoProfile -ExecutionPolicy Bypass -File $scriptPath -RhythmNextActionJsonPath $missingPath -StaticPreflightJsonPath $missingPath) -join "`n"
