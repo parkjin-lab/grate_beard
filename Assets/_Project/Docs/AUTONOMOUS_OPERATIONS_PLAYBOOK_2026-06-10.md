@@ -44,6 +44,7 @@ Keep development moving when the creator is busy or absent, without broad manual
 - Route autonomous behavior from `automationMode`; `SAFE_ALTERNATE_ONLY` means no rhythm feel changes until capture evidence exists.
 - Use `Tools\Write-AutonomousHeartbeatStatus.cmd` after static preflight when a heartbeat needs one concise progress/validation/blocked-state/safe-task artifact.
 - Use `Tools\Test-AutonomousHeartbeatStatus.cmd` before committing changes to heartbeat status output; `Tools\RunStaticPreflight.ps1` also runs it.
+- Use `Tools\Test-AutonomousHeartbeatWriter.cmd` before committing changes to the Markdown heartbeat handoff; `Tools\RunStaticPreflight.ps1` also runs it.
 - Use `Tools\Test-AutonomousSafeTask.cmd` before committing changes to safe-task selection; `Tools\RunStaticPreflight.ps1` also runs it.
 - Use `Tools\Test-RhythmNextAction.cmd` before committing changes to rhythm next-action branching; `Tools\RunStaticPreflight.ps1` also runs it.
 - Keep stale validation evidence visible but do not block non-release commits on it.
