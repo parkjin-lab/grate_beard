@@ -92,6 +92,7 @@ try {
     Assert-Contains 'sample' $output 'HumanCaptureStepCount: 6'
     Assert-Contains 'sample' $output 'StaticPreflight: pass=33 warn=3 fail=0'
     Assert-Contains 'sample' $output 'StaticPreflightHasWarnings: True'
+    Assert-Contains 'sample' $output 'StaticPreflightWarningNames: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus'
     Assert-Contains 'sample' $output 'StaticPreflightWarningSummary: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus'
     Assert-Contains 'sample' $output 'SafeAlternateAutomationActions: Run Tools\RunStaticPreflight.ps1'
 

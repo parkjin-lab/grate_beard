@@ -62,6 +62,7 @@ if ($null -ne $rhythm) {
 if ($null -ne $preflight) {
     Write-Host "StaticPreflight: pass=$($preflight.summary.pass) warn=$($preflight.summary.warn) fail=$($preflight.summary.fail)"
     Write-Host "StaticPreflightHasWarnings: $preflightHasWarnings"
+    Write-Host "StaticPreflightWarningNames: $($preflightWarningNames -join ', ')"
     Write-Host "StaticPreflightWarningSummary: $preflightWarningSummary"
     Write-Host "StaticPreflightDurationMilliseconds: $($preflight.durationMilliseconds)"
     Write-Host "StaticPreflightGeneratedAt: $($preflight.generatedAt)"

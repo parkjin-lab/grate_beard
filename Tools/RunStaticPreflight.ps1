@@ -696,6 +696,7 @@ if (Test-Path $autonomousHeartbeatReadStatusScriptPath) {
         'RhythmNextAction',
         'StaticPreflight',
         'StaticPreflightHasWarnings',
+        'StaticPreflightWarningNames',
         'StaticPreflightWarningSummary',
         'BlockedReason',
         'SafeAlternateAutomationActions',
@@ -733,6 +734,7 @@ if (Test-Path $autonomousHeartbeatReadStatusTestScriptPath) {
         'MISSING_RHYTHM_SNAPSHOTS',
         'StaticPreflight: pass=33 warn=3 fail=0',
         'StaticPreflightHasWarnings: True',
+        'StaticPreflightWarningNames: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus',
         'StaticPreflightWarningSummary: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus',
         'RhythmNextActionExists: False',
         'Autonomous heartbeat status tests passed.'
