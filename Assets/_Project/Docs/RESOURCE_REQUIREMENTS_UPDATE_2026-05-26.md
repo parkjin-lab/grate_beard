@@ -77,7 +77,7 @@
 - Rhythm next-action tests now also validate target phase count, minimum capture count, and human capture step count.
 - Rhythm next-action JSON and handoff now list safe alternate automation actions for capture-blocked heartbeats.
 - `Tools\Write-AutonomousHeartbeatStatus.cmd` now writes a concise heartbeat status artifact from rhythm next-action, latest static preflight evidence, and the safe-task recommendation.
-- `Tools\Get-AutonomousHeartbeatStatus.cmd` now prints the same heartbeat decision evidence and static preflight WARN summary without mutating logs or generated artifacts.
+- `Tools\Get-AutonomousHeartbeatStatus.cmd` now prints the same heartbeat decision evidence and static preflight WARN names/summary without mutating logs or generated artifacts.
 - `Tools\Test-AutonomousHeartbeatStatus.cmd` now verifies the read-only heartbeat status output and is executed by static preflight.
 - `Tools\Test-AutonomousHeartbeatWriter.cmd` now verifies the Markdown heartbeat handoff keeps recommended safe task, forbidden automation, and capture resume fields.
 - `Tools\Get-AutonomousSafeTask.cmd` now recommends whether automation should fix preflight failures, avoid rhythm tuning while capture-blocked, or follow rhythm evidence, and writes automation mode, block/resume, target phase, capture hotkey, one-line human action summary, human-required, preflight WARN names/summary, and forbidden-action fields into `Logs\Autonomous\autonomous_safe_task_last.json`; `Tools\Test-AutonomousSafeTask.cmd` is executed by static preflight.
