@@ -102,6 +102,7 @@ function Invoke-SafeTaskCase {
     Assert-Contains $Name $output "RecommendedTask: $ExpectedTask"
     Assert-Contains $Name $output 'StaticPreflightWarnCount:'
     Assert-Contains $Name $output 'StaticPreflightHasWarnings:'
+    Assert-Contains $Name $output 'StaticPreflightWarningNames:'
     Assert-Contains $Name $output 'StaticPreflightWarningSummary:'
     Assert-Contains $Name $output "CanTuneRhythm: $ExpectedCanTuneRhythm"
     Assert-Contains $Name $output "HumanRequired: $ExpectedHumanRequired"
