@@ -73,6 +73,7 @@ if ($null -ne $safeTask) {
     if ($null -ne $safeTask.staticPreflightWarnCount) {
         $lines.Add("- StaticPreflightWarnCount: $($safeTask.staticPreflightWarnCount)")
         $lines.Add("- StaticPreflightHasWarnings: $($safeTask.staticPreflightHasWarnings)")
+        $lines.Add("- StaticPreflightWarningNames: $(@($safeTask.staticPreflightWarningNames) -join ', ')")
         $lines.Add("- StaticPreflightWarningSummary: $($safeTask.staticPreflightWarningSummary)")
     }
     $lines.Add("- Reason: $($safeTask.reason)")

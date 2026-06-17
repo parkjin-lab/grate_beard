@@ -653,6 +653,8 @@ if (Test-Path $autonomousHeartbeatStatusScriptPath) {
         'CanTuneRhythm',
         'StaticPreflightWarnCount',
         'StaticPreflightHasWarnings',
+        'staticPreflightWarningNames',
+        'StaticPreflightWarningNames',
         'StaticPreflightWarningSummary',
         'Human Capture Steps',
         'Safe Alternate Automation',
@@ -764,6 +766,7 @@ if (Test-Path $autonomousHeartbeatWriterTestScriptPath) {
         'CaptureHotkey: F13',
         'StaticPreflightWarnCount: 3',
         'StaticPreflightHasWarnings: True',
+        'StaticPreflightWarningNames: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus',
         'StaticPreflightWarningSummary: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus',
         'Autonomous heartbeat writer tests passed.'
     )
@@ -820,6 +823,7 @@ if (Test-Path $autonomousSafeTaskScriptPath) {
         'humanActionSummary',
         'staticPreflightWarnCount',
         'staticPreflightHasWarnings',
+        'staticPreflightWarningNames',
         'staticPreflightWarningSummary',
         'RecommendedTask',
         'SafeAlternateAutomationActions'
@@ -869,6 +873,7 @@ if (Test-Path $autonomousSafeTaskTestScriptPath) {
         'humanActionSummary',
         'staticPreflightWarnCount',
         'staticPreflightHasWarnings',
+        'staticPreflightWarningNames',
         'staticPreflightWarningSummary',
         'SAFE_ALTERNATE_ONLY',
         'FIX_FAILURES_ONLY',

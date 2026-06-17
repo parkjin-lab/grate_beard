@@ -128,8 +128,16 @@ function Invoke-SafeTaskCase {
         throw "$Name staticPreflightHasWarnings JSON missing"
     }
 
+    if ($null -eq $actualJson.staticPreflightWarningNames) {
+        throw "$Name staticPreflightWarningNames JSON missing"
+    }
+
     if ($null -eq $actualJson.staticPreflightWarningSummary) {
         throw "$Name staticPreflightWarningSummary JSON missing"
+    }
+
+    if ([int]$actualJson.staticPreflightWarnCount -gt 0 -and @($actualJson.staticPreflightWarningNames).Count -eq 0) {
+        throw "$Name staticPreflightWarningNames expected warning names when warn count is positive"
     }
 
     if ("$($actualJson.canTuneRhythm)" -ne $ExpectedCanTuneRhythm) {

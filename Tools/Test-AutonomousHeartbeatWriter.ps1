@@ -72,6 +72,7 @@ try {
         humanActionSummary = 'Capture 4 rhythm snapshots with F13: Calm, Build, Spike, Release.'
         staticPreflightWarnCount = 3
         staticPreflightHasWarnings = $true
+        staticPreflightWarningNames = @('logs.unityPreflightSummary', 'logs.autoSoakTrace', 'logs.autoSoakStatus')
         staticPreflightWarningSummary = 'logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus'
         reason = 'Rhythm tuning is blocked by MISSING_RHYTHM_SNAPSHOTS; choose only non-tuning work until snapshots exist.'
         forbiddenAutomationActions = @(
@@ -95,6 +96,7 @@ try {
     Assert-Contains 'writer' $markdown '- HumanActionSummary: Capture 4 rhythm snapshots with F13: Calm, Build, Spike, Release.'
     Assert-Contains 'writer' $markdown '- StaticPreflightWarnCount: 3'
     Assert-Contains 'writer' $markdown '- StaticPreflightHasWarnings: True'
+    Assert-Contains 'writer' $markdown '- StaticPreflightWarningNames: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus'
     Assert-Contains 'writer' $markdown '- StaticPreflightWarningSummary: logs.unityPreflightSummary, logs.autoSoakTrace, logs.autoSoakStatus'
     Assert-Contains 'writer' $markdown '## Forbidden Automation'
     Assert-Contains 'writer' $markdown 'Do not retune rhythm feel without Calm, Build, Spike, and Release snapshots.'
