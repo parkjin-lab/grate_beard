@@ -57,6 +57,9 @@ namespace LostBreadcrumbs.Runtime.Managers
         private float nextReferenceResolveTime;
         private float nextDreadLayerResolveTime;
         private float currentDreadLayerTension;
+        private float releaseSettleUntil;
+        private float releaseSettleDuration = 1.25f;
+        private float cachedAmbienceVolume = -1f;
 
         public bool HasGeneratedBgmClip => generatedBgmClip != null;
         public bool HasGeneratedAmbienceClip => generatedAmbienceClip != null;
@@ -69,6 +72,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float CurrentDreadLayerTension => currentDreadLayerTension;
         public float CurrentRhythmTempo => gameplayRhythmDirector != null ? gameplayRhythmDirector.CurrentTempo01 : 0f;
         public bool ForceDisableDummyLoops => forceDisableDummyLoops;
+        public float CurrentReleaseAmbientSettle => EvaluateReleaseAmbientSettle01();
 
         private void Awake()
         {
@@ -149,7 +153,18 @@ namespace LostBreadcrumbs.Runtime.Managers
                 }
             }
 
+            ApplyReleaseAmbientSettleMix();
             UpdateDreadLayer();
+        }
+
+        public void BeginReleaseAmbientSettle(float durationSeconds)
+        {
+            releaseSettleDuration = Mathf.Clamp(durationSeconds, 1f, 1.5f);
+            releaseSettleUntil = Time.unscaledTime + releaseSettleDuration;
+            if (ambienceSource != null && cachedAmbienceVolume < 0f)
+            {
+                cachedAmbienceVolume = ambienceSource.volume;
+            }
         }
 
         public void SetSourcesForEditor(
@@ -268,7 +283,8 @@ namespace LostBreadcrumbs.Runtime.Managers
                 Mathf.Max(0.1f, fadeSpeed) * deltaTime);
 
             float audibility = EvaluateDreadLayerAudibility(currentDreadLayerTension);
-            dreadLayerSource.volume = Mathf.Clamp01(dreadLayerMaxVolume) * audibility;
+            float settle = EvaluateReleaseAmbientSettle01();
+            dreadLayerSource.volume = Mathf.Clamp01(dreadLayerMaxVolume) * audibility * Mathf.Lerp(1f, 0.18f, settle);
             dreadLayerSource.pitch = Mathf.Lerp(
                 Mathf.Min(dreadLayerLowPitch, dreadLayerHighPitch),
                 Mathf.Max(dreadLayerLowPitch, dreadLayerHighPitch),
@@ -371,6 +387,47 @@ namespace LostBreadcrumbs.Runtime.Managers
                     + (duckPressure * duckWeight)
                     + (rhythmPressure * rhythmWeight))
                 / totalWeight);
+        }
+
+        private void ApplyReleaseAmbientSettleMix()
+        {
+            if (ambienceSource == null)
+            {
+                return;
+            }
+
+            float settle = EvaluateReleaseAmbientSettle01();
+            if (cachedAmbienceVolume < 0f)
+            {
+                return;
+            }
+
+            ambienceSource.volume = cachedAmbienceVolume * Mathf.Lerp(1f, 0.52f, settle);
+            if (settle <= 0f)
+            {
+                cachedAmbienceVolume = -1f;
+            }
+        }
+
+        private float EvaluateReleaseAmbientSettle01()
+        {
+            if (releaseSettleUntil <= 0f)
+            {
+                return 0f;
+            }
+
+            float remaining = releaseSettleUntil - Time.unscaledTime;
+            if (remaining <= 0f)
+            {
+                releaseSettleUntil = 0f;
+                return 0f;
+            }
+
+            float duration = Mathf.Max(0.1f, releaseSettleDuration);
+            float elapsed = duration - remaining;
+            float rise = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / 0.2f));
+            float fall = 1f - Mathf.SmoothStep(0.62f, 1f, Mathf.Clamp01(elapsed / duration));
+            return Mathf.Clamp01(rise * fall);
         }
 
         private float EvaluateDreadLayerAudibility(float tension)

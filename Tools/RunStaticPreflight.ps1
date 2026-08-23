@@ -148,6 +148,7 @@ $dreadOverlayPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/DreadScre
 $eventFeedbackPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/EventFeedbackRuntime.cs'
 $gameplayHudPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/GameplayHudRuntime.cs'
 $audioManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioManager.cs'
+$audioDummyLoopPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioDummyLoopRuntime.cs'
 $debugManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/DebugManager.cs'
 $saveManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/SaveManager.cs'
 $playerControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDummyController.cs'
@@ -1740,7 +1741,11 @@ if (Test-Path $threatReadabilityPath) {
         'LastRhythmReleaseStaminaRecovered',
         'BuildEscapeReliefRewardMessage',
         'BuildRhythmReleaseReliefMessage',
-        'RuntimeEventSemantic.EscapeRelief'
+        'RuntimeEventSemantic.EscapeRelief',
+        '숨이 트인다',
+        'PulseReleaseBreadcrumbTrail',
+        'PulseActiveTrail',
+        'BeginReleaseAmbientSettle'
     )
     foreach ($hook in $releaseReliefHooks) {
         if (-not $threatReadabilityText.Contains($hook)) {
@@ -1749,6 +1754,34 @@ if (Test-Path $threatReadabilityPath) {
     }
 } else {
     $releaseReliefMissing.Add('ThreatReadabilityDirector.cs missing')
+}
+
+if (Test-Path $gameplayHudPath) {
+    $releaseHudText = Get-Content $gameplayHudPath -Raw
+    if (-not $releaseHudText.Contains('숨이 트인다')) {
+        $releaseReliefMissing.Add('GameplayHudRuntime:숨이 트인다')
+    }
+} else {
+    $releaseReliefMissing.Add('GameplayHudRuntime.cs missing')
+}
+
+$eventFeedbackPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/EventFeedbackRuntime.cs'
+if (Test-Path $eventFeedbackPath) {
+    $eventFeedbackText = Get-Content $eventFeedbackPath -Raw
+    if (-not $eventFeedbackText.Contains('숨이 트인다')) {
+        $releaseReliefMissing.Add('EventFeedbackRuntime:숨이 트인다')
+    }
+} else {
+    $releaseReliefMissing.Add('EventFeedbackRuntime.cs missing')
+}
+
+if (Test-Path $audioDummyLoopPath) {
+    $audioDummyLoopText = Get-Content $audioDummyLoopPath -Raw
+    if (-not $audioDummyLoopText.Contains('BeginReleaseAmbientSettle')) {
+        $releaseReliefMissing.Add('AudioDummyLoopRuntime:BeginReleaseAmbientSettle')
+    }
+} else {
+    $releaseReliefMissing.Add('AudioDummyLoopRuntime.cs missing')
 }
 $results.Add((Add-Result 'code.releaseReliefContractHooks' ($(if ($releaseReliefMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($releaseReliefMissing -join ', ')"))
 

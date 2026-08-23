@@ -724,6 +724,12 @@ namespace LostBreadcrumbs.Runtime.UI
                 return true;
             }
 
+            if (record.Semantic == RuntimeEventSemantic.EscapeRelief && ContainsKeyword(source, "숨이 트인다"))
+            {
+                message = "숨이 트인다";
+                return true;
+            }
+
             message = record.Semantic switch
             {
                 RuntimeEventSemantic.ExitUnlocked => "출구 열림",

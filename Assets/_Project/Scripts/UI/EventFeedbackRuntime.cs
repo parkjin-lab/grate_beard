@@ -453,6 +453,12 @@ namespace LostBreadcrumbs.Runtime.UI
                 return true;
             }
 
+            if (record.Semantic == RuntimeEventSemantic.EscapeRelief && message.Contains("숨이 트인다"))
+            {
+                payload = new PriorityCuePayload("숨이 트인다", new Color(0.08f, 0.28f, 0.24f, 0.9f), new Color(0.84f, 1f, 0.94f, 1f), stage);
+                return true;
+            }
+
             payload = record.Semantic switch
             {
                 RuntimeEventSemantic.ExitUnlocked => new PriorityCuePayload("출구 열림 - 지금 나가", new Color(0.08f, 0.4f, 0.22f, 0.9f), new Color(0.92f, 1f, 0.92f, 1f), stage),
