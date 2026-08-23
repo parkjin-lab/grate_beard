@@ -599,8 +599,18 @@ namespace LostBreadcrumbs.Runtime.Map
             pickupObject.transform.localScale = Vector3.one * 0.45f;
 
             SpriteRenderer renderer = pickupObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = new Color(1f, 0.85f, 0.3f, 0.95f);
+            Sprite breadSprite = MapReadableArt.TryGetBreadcrumbSprite();
+            if (breadSprite != null)
+            {
+                renderer.sprite = breadSprite;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = new Color(1f, 0.85f, 0.3f, 0.95f);
+            }
+
             renderer.sortingOrder = 25;
 
             CircleCollider2D trigger = pickupObject.AddComponent<CircleCollider2D>();

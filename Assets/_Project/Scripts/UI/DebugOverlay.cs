@@ -102,7 +102,16 @@ namespace LostBreadcrumbs.Runtime.UI
 
         private void Update()
         {
-            TryResolveReferences();
+            if (Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
+            if (visible)
+            {
+                TryResolveReferences();
+            }
+
             ObserveRhythmValidation();
 
             if (RuntimeInputAdapter.GetKeyDown(cycleEnemyKey))

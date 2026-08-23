@@ -95,12 +95,12 @@ namespace LostBreadcrumbs.Runtime.UI
         }
         private void Update()
         {
-            TryResolveGameplayRefs();
             if (Time.timeScale <= 0.0001f)
             {
                 return;
             }
 
+            TryResolveGameplayRefs();
             RefreshEnemyCache();
             UpdateHud();
         }
@@ -137,34 +137,39 @@ namespace LostBreadcrumbs.Runtime.UI
 
         private void ResolveGameplayRefs()
         {
-            if (playerVitals == null)
+            if (playerController == null)
             {
-                playerVitals = FindFirstObjectByType<PlayerVitalSystem>();
+                playerController = PlayerDummyController.ActiveInstance;
             }
 
             if (playerController == null)
             {
-                playerController = FindFirstObjectByType<PlayerDummyController>();
+                return;
+            }
+
+            if (playerVitals == null)
+            {
+                playerVitals = playerController.GetComponent<PlayerVitalSystem>();
             }
 
             if (pulseAbility == null)
             {
-                pulseAbility = FindFirstObjectByType<PlayerEchoPulseAbility>();
+                pulseAbility = playerController.GetComponent<PlayerEchoPulseAbility>();
             }
 
             if (decoyAbility == null)
             {
-                decoyAbility = FindFirstObjectByType<PlayerDecoyAbility>();
+                decoyAbility = playerController.GetComponent<PlayerDecoyAbility>();
             }
 
             if (smokeAbility == null)
             {
-                smokeAbility = FindFirstObjectByType<PlayerSmokeAbility>();
+                smokeAbility = playerController.GetComponent<PlayerSmokeAbility>();
             }
 
             if (telemetry == null)
             {
-                telemetry = FindFirstObjectByType<PlayerBehaviorTelemetry>();
+                telemetry = playerController.GetComponent<PlayerBehaviorTelemetry>();
             }
         }
 

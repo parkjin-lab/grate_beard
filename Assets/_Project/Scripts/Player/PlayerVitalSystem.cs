@@ -405,12 +405,19 @@ namespace LostBreadcrumbs.Runtime.Player
 
                 if (fogSystem == null)
                 {
-                    fogSystem = FindFirstObjectByType<FogOfWarSystem>();
+                    fogSystem = FogOfWarSystem.ActiveInstance;
+                    if (fogSystem == null)
+                    {
+                        fogSystem = FindFirstObjectByType<FogOfWarSystem>();
+                    }
                 }
 
                 if (fogSystem != null)
                 {
                     fogSystem.ResetFogToHidden();
+                    Transform bindTarget = playerController != null ? playerController.transform : transform;
+                    fogSystem.BindPlayerVisibilityTarget(bindTarget, visibilitySource);
+                    fogSystem.RevealAroundBoundTargetNow();
                 }
             }
 

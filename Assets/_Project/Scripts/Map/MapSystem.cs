@@ -687,8 +687,7 @@ namespace LostBreadcrumbs.Runtime.Systems
                     if (renderWallGeometry)
                     {
                         SpriteRenderer renderer = wall.AddComponent<SpriteRenderer>();
-                        renderer.sprite = GetDebugSprite();
-                        renderer.color = wallColor;
+                        ApplyWallSprite(renderer);
                         renderer.sortingOrder = wallSortingOrder;
                         if (fallbackWallVisual)
                         {
@@ -1976,14 +1975,13 @@ namespace LostBreadcrumbs.Runtime.Systems
 
         private static GameObject TryFindPlayerByTag()
         {
-            try
+            PlayerDummyController activePlayer = PlayerDummyController.ActiveInstance;
+            if (activePlayer != null)
             {
-                return GameObject.FindGameObjectWithTag("Player");
+                return activePlayer.gameObject;
             }
-            catch (UnityException)
-            {
-                return null;
-            }
+
+            return null;
         }
 
         private Vector3 ToWorld(Vector2Int cellPosition)
@@ -2047,6 +2045,20 @@ namespace LostBreadcrumbs.Runtime.Systems
             Vector2 center = (minEdge + maxEdge) * 0.5f;
             Vector2 size = Vector2.Max(Vector2.one * Mathf.Max(1f, config.cellSize), maxEdge - minEdge);
             follow.SetFollowBoundsForEditor(center, size, cameraFollowBoundsPadding);
+        }
+
+        private void ApplyWallSprite(SpriteRenderer renderer)
+        {
+            Sprite wallSprite = MapReadableArt.TryGetWallSprite();
+            if (wallSprite != null)
+            {
+                renderer.sprite = wallSprite;
+                renderer.color = Color.white;
+                return;
+            }
+
+            renderer.sprite = GetDebugSprite();
+            renderer.color = wallColor;
         }
 
         private Sprite GetDebugSprite()

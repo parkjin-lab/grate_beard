@@ -149,17 +149,10 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             if (player == null)
             {
-                try
+                PlayerDummyController activePlayer = PlayerDummyController.ActiveInstance;
+                if (activePlayer != null)
                 {
-                    GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-                    if (playerObject != null)
-                    {
-                        player = playerObject.transform;
-                    }
-                }
-                catch (UnityException)
-                {
-                    // Ignore if tag configuration is unavailable in editor state.
+                    player = activePlayer.transform;
                 }
             }
 

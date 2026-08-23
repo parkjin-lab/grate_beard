@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using LostBreadcrumbs.Runtime.AI;
 using LostBreadcrumbs.Runtime.Managers;
+using LostBreadcrumbs.Runtime.Player;
 using LostBreadcrumbs.Runtime.Systems;
 using UnityEngine;
 
@@ -1108,15 +1109,8 @@ namespace LostBreadcrumbs.Runtime.Map
 
         private Transform TryFindPlayerTransform()
         {
-            try
-            {
-                GameObject player = GameObject.FindGameObjectWithTag("Player");
-                return player != null ? player.transform : null;
-            }
-            catch (UnityException)
-            {
-                return null;
-            }
+            PlayerDummyController activePlayer = PlayerDummyController.ActiveInstance;
+            return activePlayer != null ? activePlayer.transform : null;
         }
 
         private Sprite GetDebugSprite()

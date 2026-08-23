@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using LostBreadcrumbs.Runtime.Managers;
+using LostBreadcrumbs.Runtime.Player;
 using UnityEngine;
 
 namespace LostBreadcrumbs.Runtime.Map
@@ -13,11 +14,15 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField] private float pulseSpeed = 3f;
         [SerializeField] private float pulseScale = 0.08f;
 
+        private const float PulseCullDistance = 18f;
+
         private Vector3 initialScale;
         private SpriteRenderer bodyRenderer;
         private Color baseColor = Color.white;
         private float releaseGlow01;
         private Coroutine releaseGlowRoutine;
+        private static float sharedPulseWave;
+        private static int sharedPulseFrame = -1;
 
         public int Value => value;
 
@@ -89,10 +94,20 @@ namespace LostBreadcrumbs.Runtime.Map
         {
             initialScale = transform.localScale;
             bodyRenderer = GetComponent<SpriteRenderer>();
-            if (bodyRenderer != null)
+            if (bodyRenderer == null)
             {
-                baseColor = bodyRenderer.color;
+                bodyRenderer = gameObject.AddComponent<SpriteRenderer>();
+                bodyRenderer.sortingOrder = 25;
             }
+
+            Sprite breadSprite = MapReadableArt.TryGetBreadcrumbSprite();
+            if (breadSprite != null)
+            {
+                bodyRenderer.sprite = breadSprite;
+                bodyRenderer.color = Color.white;
+            }
+
+            baseColor = bodyRenderer.color;
         }
 
         private void OnEnable()
@@ -116,13 +131,52 @@ namespace LostBreadcrumbs.Runtime.Map
 
         private void Update()
         {
-            float wave = Mathf.Sin(Time.time * pulseSpeed) * pulseScale;
+            if (Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
+            if (releaseGlow01 <= 0f && ShouldSkipDistantPulse())
+            {
+                return;
+            }
+
+            float wave = SharedPulseWave(pulseSpeed) * pulseScale;
             transform.localScale = initialScale * (1f + wave + releaseGlow01 * 0.14f);
             if (bodyRenderer != null && releaseGlow01 > 0f)
             {
                 Color glow = new Color(1f, 0.86f, 0.22f, 1f);
                 bodyRenderer.color = Color.Lerp(baseColor, glow, releaseGlow01);
             }
+        }
+
+        private static float SharedPulseWave(float speed)
+        {
+            int frame = Time.frameCount;
+            if (sharedPulseFrame != frame)
+            {
+                sharedPulseFrame = frame;
+                sharedPulseWave = Mathf.Sin(Time.time * speed);
+            }
+
+            return sharedPulseWave;
+        }
+
+        private bool ShouldSkipDistantPulse()
+        {
+            Vector2 pos = transform.position;
+            PlayerDummyController player = PlayerDummyController.ActiveInstance;
+            if (player != null)
+            {
+                Vector2 delta = (Vector2)player.transform.position - pos;
+                if (delta.sqrMagnitude > PulseCullDistance * PulseCullDistance)
+                {
+                    return true;
+                }
+            }
+
+            FogOfWarSystem fog = FogOfWarSystem.ActiveInstance;
+            return fog != null && fog.IsWorldPositionHidden(pos);
         }
 
         private System.Collections.IEnumerator ReleaseTrailGlowRoutine(float duration)

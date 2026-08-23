@@ -1,0 +1,103 @@
+using System.IO;
+using UnityEngine;
+
+namespace LostBreadcrumbs.Runtime.Map
+{
+    public static class MapReadableArt
+    {
+        private const string WallResourcePath = "Map/ForestMossyStoneWall";
+        private const string BreadResourcePath = "Map/GoldenGlowBreadcrumb";
+        private const string WallFileName = "ForestMossyStoneWall.png";
+        private const string BreadFileName = "GoldenGlowBreadcrumb.png";
+
+        private static Sprite wallSprite;
+        private static Sprite breadSprite;
+
+        public static Sprite TryGetWallSprite()
+        {
+            if (wallSprite != null)
+            {
+                return wallSprite;
+            }
+
+            wallSprite = LoadSprite(WallResourcePath, WallFileName, "ForestMossyStoneWall");
+            return wallSprite;
+        }
+
+        public static Sprite TryGetBreadcrumbSprite()
+        {
+            if (breadSprite != null)
+            {
+                return breadSprite;
+            }
+
+            breadSprite = LoadSprite(BreadResourcePath, BreadFileName, "GoldenGlowBreadcrumb");
+            return breadSprite;
+        }
+
+        private static Sprite LoadSprite(string resourcePath, string fileName, string spriteName)
+        {
+            Sprite resourceSprite = Resources.Load<Sprite>(resourcePath);
+            if (resourceSprite != null)
+            {
+                return resourceSprite;
+            }
+
+            Texture2D texture = LoadTextureFromProjectFile(fileName);
+            if (texture == null)
+            {
+                texture = Resources.Load<Texture2D>(resourcePath);
+            }
+
+            if (texture == null)
+            {
+                return null;
+            }
+
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            Sprite sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                100f);
+            sprite.name = spriteName;
+            sprite.hideFlags = HideFlags.HideAndDontSave;
+            return sprite;
+        }
+
+        private static Texture2D LoadTextureFromProjectFile(string fileName)
+        {
+            string[] candidates =
+            {
+                Path.Combine(Application.dataPath, "_Project/Resources/Map", fileName),
+                Path.Combine(Application.dataPath, "_Project/Art", fileName)
+            };
+
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                string path = candidates[i];
+                if (!File.Exists(path))
+                {
+                    continue;
+                }
+
+                byte[] bytes = File.ReadAllBytes(path);
+                Texture2D texture = new Texture2D(2, 2, TextureFormat.RGBA32, false)
+                {
+                    name = Path.GetFileNameWithoutExtension(fileName),
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+
+                if (texture.LoadImage(bytes, markNonReadable: false))
+                {
+                    return texture;
+                }
+
+                Object.Destroy(texture);
+            }
+
+            return null;
+        }
+    }
+}
