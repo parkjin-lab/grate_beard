@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using LostBreadcrumbs.Runtime.Managers;
 using LostBreadcrumbs.Runtime.Player;
 using UnityEngine;
@@ -23,6 +24,34 @@ namespace LostBreadcrumbs.Runtime.Map
 
         public bool IsUnlocked => unlocked;
 
+        private static readonly List<ExitPortalDummy> activePortals = new(4);
+
+        public static void CopyActivePortals(List<ExitPortalDummy> output)
+        {
+            if (output == null)
+            {
+                return;
+            }
+
+            output.Clear();
+            for (int i = activePortals.Count - 1; i >= 0; i--)
+            {
+                ExitPortalDummy portal = activePortals[i];
+                if (portal == null)
+                {
+                    activePortals.RemoveAt(i);
+                    continue;
+                }
+
+                if (!portal.isActiveAndEnabled)
+                {
+                    continue;
+                }
+
+                output.Add(portal);
+            }
+        }
+
         private void Awake()
         {
             spriteRenderer = GetComponent<SpriteRenderer>();
@@ -34,6 +63,19 @@ namespace LostBreadcrumbs.Runtime.Map
 
             baseScale = transform.localScale;
             ApplyColor();
+        }
+
+        private void OnEnable()
+        {
+            if (!activePortals.Contains(this))
+            {
+                activePortals.Add(this);
+            }
+        }
+
+        private void OnDisable()
+        {
+            activePortals.Remove(this);
         }
 
         private void Update()

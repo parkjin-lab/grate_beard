@@ -1414,6 +1414,54 @@ if (Test-Path $inputAdapterPath) {
     $echoOverchargeMissing.Add('RuntimeInputAdapter.cs missing')
 }
 
+if (Test-Path $playerControllerPath) {
+    if (-not $playerControllerText) {
+        $playerControllerText = Get-Content $playerControllerPath -Raw
+    }
+    foreach ($hook in @('FacingDirection', 'FacingSignX', 'ActiveInstance')) {
+        if (-not $playerControllerText.Contains($hook)) {
+            $echoOverchargeMissing.Add("PlayerDummyController:$hook")
+        }
+    }
+    if ($playerControllerText.Contains('transform.right = moveInput')) {
+        $echoOverchargeMissing.Add('PlayerDummyController:transform.right = moveInput')
+    }
+} else {
+    $echoOverchargeMissing.Add('PlayerDummyController.cs missing')
+}
+
+$playerDummyVisualPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDummyVisual.cs'
+if (Test-Path $playerDummyVisualPath) {
+    $playerDummyVisualText = Get-Content $playerDummyVisualPath -Raw
+    foreach ($hook in @('flipByMovementX = true', 'ApplyFacing', 'FacingSignX')) {
+        if (-not $playerDummyVisualText.Contains($hook)) {
+            $echoOverchargeMissing.Add("PlayerDummyVisual:$hook")
+        }
+    }
+} else {
+    $echoOverchargeMissing.Add('PlayerDummyVisual.cs missing')
+}
+
+if (Test-Path $playerEchoPulsePath) {
+    if (-not $playerEchoPulseText) {
+        $playerEchoPulseText = Get-Content $playerEchoPulsePath -Raw
+    }
+    foreach ($hook in @('CopyActivePickups', 'CopyActivePortals', 'CopyActiveHooks')) {
+        if (-not $playerEchoPulseText.Contains($hook)) {
+            $echoOverchargeMissing.Add("PlayerEchoPulseAbility:$hook")
+        }
+    }
+}
+
+if (Test-Path $debugOverlayPath) {
+    $debugOverlayFacingText = Get-Content $debugOverlayPath -Raw
+    foreach ($hook in @('HasAllOverlayRefs', 'CopyActiveHooks')) {
+        if (-not $debugOverlayFacingText.Contains($hook)) {
+            $echoOverchargeMissing.Add("DebugOverlay:$hook")
+        }
+    }
+}
+
 $results.Add((Add-Result 'code.echoOverchargeHooks' ($(if ($echoOverchargeMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($echoOverchargeMissing -join ', ')"))
 
 $playerEventKoreanWordingMissing = New-Object System.Collections.Generic.List[string]

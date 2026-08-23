@@ -137,6 +137,11 @@ namespace LostBreadcrumbs.Runtime.Map
 
         private void Update()
         {
+            if (Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
             elapsed += Time.deltaTime;
             if (elapsed < updateInterval)
             {
@@ -170,17 +175,25 @@ namespace LostBreadcrumbs.Runtime.Map
         {
             if (target == null)
             {
-                try
+                PlayerDummyController playerController = PlayerDummyController.ActiveInstance;
+                if (playerController != null)
                 {
-                    GameObject player = GameObject.FindGameObjectWithTag("Player");
-                    if (player != null)
-                    {
-                        target = player.transform;
-                    }
+                    target = playerController.transform;
                 }
-                catch (UnityException)
+                else
                 {
-                    // Ignore when tag list is not initialized in current scene.
+                    try
+                    {
+                        GameObject player = GameObject.FindGameObjectWithTag("Player");
+                        if (player != null)
+                        {
+                            target = player.transform;
+                        }
+                    }
+                    catch (UnityException)
+                    {
+                        // Ignore when tag list is not initialized in current scene.
+                    }
                 }
             }
 

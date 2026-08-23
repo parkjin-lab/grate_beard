@@ -18,7 +18,7 @@ namespace LostBreadcrumbs.Runtime.Player
         [SerializeField, Min(1f)] private float animationFps = 10f;
         [SerializeField, Min(0f)] private float movingThreshold = 0.03f;
         [SerializeField, Min(0.1f)] private float undeadAvatarScale = 1f;
-        [SerializeField] private bool flipByMovementX;
+        [SerializeField] private bool flipByMovementX = true;
         [SerializeField] private Sprite[] runFrames;
         [SerializeField] private Sprite[] standFrames;
         [SerializeField] private Sprite[] deadFrames;
@@ -33,6 +33,8 @@ namespace LostBreadcrumbs.Runtime.Player
 
         private Transform avatar;
         private SpriteRenderer bodyRenderer;
+        private Transform facingArrow;
+        private PlayerDummyController movementSource;
         private bool usingUndeadVisual;
         private Vector3 lastPosition;
         private float animationTimer;
@@ -40,6 +42,8 @@ namespace LostBreadcrumbs.Runtime.Player
 
         private void Awake()
         {
+            movementSource = GetComponent<PlayerDummyController>();
+            flipByMovementX = true;
             avatar = EnsureChild(transform, "DummyAvatar");
             avatar.localPosition = Vector3.zero;
             avatar.localRotation = Quaternion.identity;
@@ -50,6 +54,7 @@ namespace LostBreadcrumbs.Runtime.Player
             usingUndeadVisual = preferUndeadSurvivorArt && TryPrepareUndeadVisualFrames();
             if (usingUndeadVisual)
             {
+                flipByMovementX = true;
                 avatar.localScale = Vector3.one * undeadAvatarScale;
                 bodyRenderer.color = Color.white;
                 bodyRenderer.sprite = EvaluateInitialFrame();
@@ -78,24 +83,27 @@ namespace LostBreadcrumbs.Runtime.Player
 
         private void Update()
         {
+            if (Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
+            ApplyFacing();
+            if (facingArrow != null)
+            {
+                float sign = movementSource != null ? movementSource.FacingSignX : 1f;
+                facingArrow.localPosition = new Vector3(0.8f * sign, 0f, 0f);
+            }
+
             if (!usingUndeadVisual || bodyRenderer == null)
             {
                 return;
             }
 
             Vector3 currentPosition = transform.position;
-            float distance = Vector3.Distance(currentPosition, lastPosition);
-            bool isMoving = distance > movingThreshold;
-
-            if (flipByMovementX)
-            {
-                float dx = currentPosition.x - lastPosition.x;
-                if (Mathf.Abs(dx) > 0.001f)
-                {
-                    bodyRenderer.flipX = dx < 0f;
-                }
-            }
-
+            bool isMoving = movementSource != null
+                ? movementSource.MoveInput.sqrMagnitude > 0.01f
+                : Vector3.Distance(currentPosition, lastPosition) > movingThreshold;
             lastPosition = currentPosition;
 
             Sprite[] activeFrames = isMoving && runFrames != null && runFrames.Length > 0
@@ -123,6 +131,26 @@ namespace LostBreadcrumbs.Runtime.Player
             bodyRenderer.sprite = activeFrames[frameIndex % activeFrames.Length];
         }
 
+        private void ApplyFacing()
+        {
+            if (!flipByMovementX || bodyRenderer == null)
+            {
+                return;
+            }
+
+            if (movementSource != null)
+            {
+                bodyRenderer.flipX = movementSource.FacingSignX < 0f;
+                return;
+            }
+
+            float dx = transform.position.x - lastPosition.x;
+            if (Mathf.Abs(dx) > 0.001f)
+            {
+                bodyRenderer.flipX = dx < 0f;
+            }
+        }
+
         private void SetupDebugFallbackVisual()
         {
             avatar.localScale = Vector3.one * avatarScale;
@@ -132,6 +160,7 @@ namespace LostBreadcrumbs.Runtime.Player
             bodyRenderer.flipX = false;
 
             Transform arrow = EnsureChild(avatar, "FacingArrow");
+            facingArrow = arrow;
             arrow.localPosition = new Vector3(0.8f, 0f, 0f);
             arrow.localRotation = Quaternion.identity;
             arrow.localScale = new Vector3(0.5f, 0.18f, 1f);

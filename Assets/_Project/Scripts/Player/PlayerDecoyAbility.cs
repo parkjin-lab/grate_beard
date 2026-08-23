@@ -99,7 +99,8 @@ namespace LostBreadcrumbs.Runtime.Player
                 return false;
             }
 
-            Vector2 forward = transform.right;
+            PlayerDummyController movement = GetComponent<PlayerDummyController>();
+            Vector2 forward = movement != null ? movement.FacingDirection : (Vector2)transform.right;
             if (forward.sqrMagnitude < 0.001f)
             {
                 forward = Vector2.right;

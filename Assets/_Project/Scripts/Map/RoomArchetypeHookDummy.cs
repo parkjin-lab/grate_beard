@@ -119,6 +119,33 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite accentSprite;
         private static float nextGlobalHauntedEventTime;
         private static readonly Dictionary<RoomArchetypeHookVariant, Sprite> variantSpriteCache = new();
+        private static readonly List<RoomArchetypeHookDummy> activeHooks = new(16);
+
+        public static void CopyActiveHooks(List<RoomArchetypeHookDummy> output)
+        {
+            if (output == null)
+            {
+                return;
+            }
+
+            output.Clear();
+            for (int i = activeHooks.Count - 1; i >= 0; i--)
+            {
+                RoomArchetypeHookDummy hook = activeHooks[i];
+                if (hook == null)
+                {
+                    activeHooks.RemoveAt(i);
+                    continue;
+                }
+
+                if (!hook.isActiveAndEnabled)
+                {
+                    continue;
+                }
+
+                output.Add(hook);
+            }
+        }
 
         public MapCellKind SourceCellKind => sourceCellKind;
         public RoomArchetypeHookVariant Variant => variant;
@@ -195,12 +222,22 @@ namespace LostBreadcrumbs.Runtime.Map
 
         private void OnEnable()
         {
+            if (!activeHooks.Contains(this))
+            {
+                activeHooks.Add(this);
+            }
+
             stageReadability01 = EvaluateStageReadability01(configuredStage, configuredStagePressure01);
             playerInside = false;
             currentPlayer = null;
             riskRoomBonusAttempted = false;
             nextHauntedReactionTime = 0f;
             nextEmitTime = Time.time + Mathf.Min(0.9f, cooldownSeconds * 0.35f);
+        }
+
+        private void OnDisable()
+        {
+            activeHooks.Remove(this);
         }
 
         private void Update()

@@ -5,7 +5,7 @@
 - Runtime pressure, threat readability, escape relief, risk rewards, exit choice carryover, semantic stingers, and Korean-first HUD copy are implemented.
 - Debug validation now shows rhythm phase observation and semantic stinger telemetry.
 - Large vendor packages are ignored until license, scope, and repository size are approved.
-- 2026-08-23: Echo Overcharge shipped (tap/hold/release/auto-cast, charge rings, HUD percent, reveal/noise/tail scaling, stun unchanged). Stability items 1-5 shipped: spawn clearance, checkpoint recover, pause-stops-rhythm, overcharge telemetry/`Echo.OverchargeContract`, and in-smoke echo reveal-for-noise trade. Still open: Unity compile confirmation, Play Mode tap/hold feel.
+- 2026-08-23: Echo Overcharge shipped (tap/hold/release/auto-cast, charge rings, HUD percent, reveal/noise/tail scaling, stun unchanged). Stability items 1-5 shipped. Player facing now flips from move input (no root spin). Echo scout / overlay hook cache use active lists instead of per-call FindObjectsByType. Still open: Unity compile confirmation, Play Mode tap/hold feel and flip/hitch check.
 
 ## Latest Code Review Notes
 | Area | Finding | Action |

@@ -113,6 +113,9 @@ namespace LostBreadcrumbs.Runtime.Player
         private FogOfWarSystem fogSystem;
         private readonly List<EnemyController> cachedEnemies = new(16);
         private readonly List<GameObject> activeEchoVisuals = new(12);
+        private readonly List<BreadcrumbPickup> cachedBreadcrumbs = new(16);
+        private readonly List<ExitPortalDummy> cachedExits = new(4);
+        private readonly List<RoomArchetypeHookDummy> cachedHooks = new(16);
 
         public bool IsReady => Time.time >= nextReadyTime;
         public float CooldownRemaining => Mathf.Max(0f, nextReadyTime - Time.time);
@@ -783,19 +786,22 @@ namespace LostBreadcrumbs.Runtime.Player
             int maxTargets = Mathf.Clamp(maxScoutRevealTargets, 1, 32);
             int revealedCount = 0;
 
-            revealedCount += RevealScoutTargetsOfType<BreadcrumbPickup>(origin, radius, maxTargets - revealedCount, scoutBreadcrumbColor);
+            BreadcrumbPickup.CopyActivePickups(cachedBreadcrumbs);
+            revealedCount += RevealScoutTargets(cachedBreadcrumbs, origin, radius, maxTargets - revealedCount, scoutBreadcrumbColor);
             if (revealedCount >= maxTargets)
             {
                 return revealedCount;
             }
 
-            revealedCount += RevealScoutTargetsOfType<ExitPortalDummy>(origin, radius, maxTargets - revealedCount, scoutExitColor);
+            ExitPortalDummy.CopyActivePortals(cachedExits);
+            revealedCount += RevealScoutTargets(cachedExits, origin, radius, maxTargets - revealedCount, scoutExitColor);
             if (revealedCount >= maxTargets)
             {
                 return revealedCount;
             }
 
-            revealedCount += RevealScoutTargetsOfType<RoomArchetypeHookDummy>(origin, radius, maxTargets - revealedCount, scoutHazardColor);
+            RoomArchetypeHookDummy.CopyActiveHooks(cachedHooks);
+            revealedCount += RevealScoutTargets(cachedHooks, origin, radius, maxTargets - revealedCount, scoutHazardColor);
             if (revealedCount >= maxTargets)
             {
                 return revealedCount;
@@ -819,17 +825,16 @@ namespace LostBreadcrumbs.Runtime.Player
             return revealedCount;
         }
 
-        private int RevealScoutTargetsOfType<T>(Vector2 origin, float radius, int remainingBudget, Color color)
+        private int RevealScoutTargets<T>(List<T> targets, Vector2 origin, float radius, int remainingBudget, Color color)
             where T : Component
         {
-            if (remainingBudget <= 0)
+            if (remainingBudget <= 0 || targets == null)
             {
                 return 0;
             }
 
-            T[] targets = FindObjectsByType<T>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             int revealed = 0;
-            for (int i = 0; i < targets.Length && revealed < remainingBudget; i++)
+            for (int i = 0; i < targets.Count && revealed < remainingBudget; i++)
             {
                 T target = targets[i];
                 if (target == null)

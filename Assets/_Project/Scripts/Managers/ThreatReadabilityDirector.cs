@@ -2603,6 +2603,18 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         private void ResolveReferences(bool force = false)
         {
+            if (!force
+                && mapSystem != null
+                && player != null
+                && visibilitySource != null
+                && playerController != null
+                && targetCamera != null
+                && fogOfWar != null
+                && stagePressureDirector != null)
+            {
+                return;
+            }
+
             if (!force)
             {
                 if (Time.unscaledTime < nextReferenceResolveTime)

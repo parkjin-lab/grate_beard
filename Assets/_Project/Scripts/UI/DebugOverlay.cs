@@ -1032,10 +1032,40 @@ namespace LostBreadcrumbs.Runtime.UI
             return observed ? "Y" : "-";
         }
 
+        private bool HasAllOverlayRefs()
+        {
+            return mapSystem != null
+                   && cameraFollow != null
+                   && fogOfWar != null
+                   && mapTuning != null
+                   && regressionChecklist != null
+                   && dummyLoop != null
+                   && spawnDirector != null
+                   && setPieceDirector != null
+                   && pressureDirector != null
+                   && rhythmDirector != null
+                   && readabilityDirector != null
+                   && playerVitals != null
+                   && visibilitySource != null
+                   && playerController != null
+                   && runLoadout != null
+                   && telemetry != null
+                   && concealmentState != null
+                   && pulseAbility != null
+                   && decoyAbility != null
+                   && smokeAbility != null;
+        }
+
         private void TryResolveReferences(bool force = false)
         {
             if (!force && lastReferenceResolveFrame == Time.frameCount)
             {
+                return;
+            }
+
+            if (!force && HasAllOverlayRefs())
+            {
+                lastReferenceResolveFrame = Time.frameCount;
                 return;
             }
 
@@ -1164,18 +1194,7 @@ namespace LostBreadcrumbs.Runtime.UI
                 nextHookCacheRefreshTime = Time.unscaledTime + Mathf.Max(0.1f, hookCacheRefreshInterval);
             }
 
-            RoomArchetypeHookDummy[] hooks = FindObjectsByType<RoomArchetypeHookDummy>(FindObjectsSortMode.None);
-            cachedHooks.Clear();
-            for (int i = 0; i < hooks.Length; i++)
-            {
-                RoomArchetypeHookDummy hook = hooks[i];
-                if (hook == null)
-                {
-                    continue;
-                }
-
-                cachedHooks.Add(hook);
-            }
+            RoomArchetypeHookDummy.CopyActiveHooks(cachedHooks);
         }
 
         private void CycleRegressionResultFilter()

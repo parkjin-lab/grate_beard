@@ -93,6 +93,8 @@ namespace LostBreadcrumbs.Runtime.Player
 
         private float nextFootstepTime;
         private Vector2 moveInput;
+        private Vector2 facingDirection = Vector2.right;
+        private float facingSignX = 1f;
 
         private float currentStamina;
         private float recoverDelayUntil;
@@ -122,6 +124,10 @@ namespace LostBreadcrumbs.Runtime.Player
         private float nextUnsafePositionRecoveryCheck;
         private int unsafePositionRecoveryCount;
 
+        public static PlayerDummyController ActiveInstance { get; private set; }
+        public Vector2 MoveInput => moveInput;
+        public Vector2 FacingDirection => facingDirection.sqrMagnitude > 0.0001f ? facingDirection.normalized : Vector2.right;
+        public float FacingSignX => facingSignX;
         public bool IsSprinting => isSprinting;
         public bool IsExhausted => Time.time < exhaustedUntil;
         public float CurrentStamina => currentStamina;
@@ -157,6 +163,8 @@ namespace LostBreadcrumbs.Runtime.Player
             EnsurePlayerTag();
 
             EnsurePhysicsComponents();
+            ActiveInstance = this;
+            transform.rotation = Quaternion.identity;
 
             maxStamina = Mathf.Max(0.1f, maxStamina);
             currentStamina = MaxStamina;
@@ -165,7 +173,23 @@ namespace LostBreadcrumbs.Runtime.Player
 
         private void OnEnable()
         {
+            ActiveInstance = this;
+            transform.rotation = Quaternion.identity;
+            if (rb != null)
+            {
+                rb.rotation = 0f;
+                rb.angularVelocity = 0f;
+            }
+
             ScheduleUnsafePositionRecoveryProbe();
+        }
+
+        private void OnDisable()
+        {
+            if (ActiveInstance == this)
+            {
+                ActiveInstance = null;
+            }
         }
 
         private void Update()
@@ -186,7 +210,21 @@ namespace LostBreadcrumbs.Runtime.Player
 
             if (hasMoveInput)
             {
-                transform.right = moveInput;
+                facingDirection = moveInput;
+                if (Mathf.Abs(moveInput.x) > 0.001f)
+                {
+                    facingSignX = moveInput.x < 0f ? -1f : 1f;
+                }
+
+                if (transform.eulerAngles.z != 0f)
+                {
+                    transform.rotation = Quaternion.identity;
+                    if (rb != null)
+                    {
+                        rb.rotation = 0f;
+                        rb.angularVelocity = 0f;
+                    }
+                }
 
                 float stepInterval = footstepInterval * (isSprinting ? sprintFootstepIntervalScale : 1f);
                 if (Time.time >= nextFootstepTime)

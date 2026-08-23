@@ -96,6 +96,11 @@ namespace LostBreadcrumbs.Runtime.UI
         private void Update()
         {
             TryResolveGameplayRefs();
+            if (Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
             RefreshEnemyCache();
             UpdateHud();
         }
