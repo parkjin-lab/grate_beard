@@ -2118,6 +2118,11 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             RaiseExitDecisionEvent();
+            if (StageManager.ActiveInstance != null && StageManager.ActiveInstance.TryHandleStageClear())
+            {
+                return;
+            }
+
             mapSystem.GenerateNextStage();
         }
 

@@ -216,7 +216,7 @@ namespace LostBreadcrumbs.Runtime.Player
                 return;
             }
 
-            if (!enableOverchargeHold)
+            if (!enableOverchargeHold || !StageManager.IsOverchargeHoldUnlocked)
             {
                 if (RuntimeInputAdapter.GetKeyDown(pulseKey))
                 {

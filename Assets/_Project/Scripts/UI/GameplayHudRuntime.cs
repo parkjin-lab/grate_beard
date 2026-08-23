@@ -376,12 +376,15 @@ namespace LostBreadcrumbs.Runtime.UI
             }
 
             string decoy = FormatAbility("E 디코이", decoyAbility != null && decoyAbility.IsReady, decoyAbility != null ? decoyAbility.CooldownRemaining : 0f);
-            string smoke = FormatAbility("R 스모크", smokeAbility != null && smokeAbility.IsReady, smokeAbility != null ? smokeAbility.CooldownRemaining : 0f);
+            string smoke = StageManager.IsSmokeUnlocked
+                ? FormatAbility("R 스모크", smokeAbility != null && smokeAbility.IsReady, smokeAbility != null ? smokeAbility.CooldownRemaining : 0f)
+                : null;
 
             string scanStatus = BuildEchoObjectiveScanStatus();
+            string abilities = string.IsNullOrEmpty(smoke) ? $"{pulse}   |   {decoy}" : $"{pulse}   |   {decoy}   |   {smoke}";
             abilityText.text = string.IsNullOrEmpty(scanStatus)
-                ? $"{pulse}   |   {decoy}   |   {smoke}"
-                : $"{pulse}   |   {decoy}   |   {smoke}\n{scanStatus}";
+                ? abilities
+                : abilities + "\n" + scanStatus;
         }
 
         private string BuildEchoObjectiveScanStatus()

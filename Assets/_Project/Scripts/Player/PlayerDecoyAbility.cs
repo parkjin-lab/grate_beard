@@ -60,6 +60,11 @@ namespace LostBreadcrumbs.Runtime.Player
                 return;
             }
 
+            if (Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
             if (!RuntimeInputAdapter.GetKeyDown(deployKey))
             {
                 return;

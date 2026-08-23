@@ -64,6 +64,11 @@ namespace LostBreadcrumbs.Runtime.Player
                 return;
             }
 
+            if (Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
             if (!RuntimeInputAdapter.GetKeyDown(deployKey))
             {
                 return;
@@ -92,6 +97,11 @@ namespace LostBreadcrumbs.Runtime.Player
             if (behaviorTelemetry == null)
             {
                 behaviorTelemetry = GetComponent<PlayerBehaviorTelemetry>();
+            }
+
+            if (!RegressionChecklistRunner.IsRegressionRunActive && !StageManager.IsSmokeUnlocked)
+            {
+                return false;
             }
 
             if (!IsReady)
