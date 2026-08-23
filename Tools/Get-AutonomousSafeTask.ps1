@@ -32,11 +32,11 @@ $preflightHasWarnings = if ($null -ne $preflight) {
 } else {
     $false
 }
-$preflightWarningNames = if ($null -ne $preflight -and $null -ne $preflight.results) {
-    @($preflight.results | Where-Object { "$($_.status)" -eq 'WARN' } | ForEach-Object { "$($_.name)" })
-} else {
-    @()
-}
+$preflightWarningNames = @(
+    if ($null -ne $preflight -and $null -ne $preflight.results) {
+        $preflight.results | Where-Object { "$($_.status)" -eq 'WARN' } | ForEach-Object { "$($_.name)" }
+    }
+)
 $preflightWarningSummary = if ($preflightWarningNames.Count -gt 0) {
     $preflightWarningNames -join ', '
 } elseif ($preflightHasWarnings) {
@@ -44,8 +44,8 @@ $preflightWarningSummary = if ($preflightWarningNames.Count -gt 0) {
 } else {
     'none'
 }
-$safeActions = if ($null -ne $rhythm) { @($rhythm.safeAlternateAutomationActions) } else { @() }
-[string[]]$targetPhases = if ($null -ne $rhythm) { @($rhythm.targetPhases) } else { @() }
+$safeActions = @(if ($null -ne $rhythm) { $rhythm.safeAlternateAutomationActions })
+[string[]]$targetPhases = @(if ($null -ne $rhythm) { $rhythm.targetPhases })
 $requiresHumanCapture = $null -ne $rhythm -and [bool]$rhythm.requiresHumanCapture
 $automationCanProceed = $null -ne $rhythm -and [bool]$rhythm.automationCanProceed
 $blockedReason = if ($null -ne $rhythm) { "$($rhythm.blockedReason)" } else { '' }
@@ -141,7 +141,7 @@ if (-not [string]::IsNullOrWhiteSpace($OutputJsonPath)) {
         staticPreflightFailCount = $preflightFailCount
         staticPreflightWarnCount = $preflightWarnCount
         staticPreflightHasWarnings = $preflightHasWarnings
-        staticPreflightWarningNames = $preflightWarningNames
+        staticPreflightWarningNames = @($preflightWarningNames)
         staticPreflightWarningSummary = $preflightWarningSummary
         staticPreflightGeneratedAt = $preflightGeneratedAt
         staticPreflightDurationMilliseconds = $preflightDurationMilliseconds
@@ -153,15 +153,15 @@ if (-not [string]::IsNullOrWhiteSpace($OutputJsonPath)) {
         automationMode = $automationMode
         blockedReason = $blockedReason
         resumeCondition = $resumeCondition
-        targetPhases = $targetPhases
+        targetPhases = @($targetPhases)
         captureHotkey = $captureHotkey
         minimumCaptureCount = $minimumCaptureCount
         humanActionSummary = $humanActionSummary
         recommendedTask = $recommendedTask
         recommendedCommand = $recommendedCommand
         reason = $reason
-        safeAlternateAutomationActions = $safeActions
-        forbiddenAutomationActions = $forbiddenAutomationActions
+        safeAlternateAutomationActions = @($safeActions)
+        forbiddenAutomationActions = @($forbiddenAutomationActions)
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $OutputJsonPath -Encoding UTF8
     Write-Host "OutputJsonPath: $OutputJsonPath"
 }

@@ -79,6 +79,43 @@ function Add-LogArtifactResult {
     return Add-Result $Name $status "exists=True lastWrite=$lastWrite ageDays=$ageDays stale=$isStale freshnessDays=$FreshnessDays refreshRequired=$isStale"
 }
 
+function Invoke-ToolCmdOrScript {
+    param(
+        [string]$CmdPath,
+        [string]$ScriptPath
+    )
+
+    if (Get-Command cmd -ErrorAction SilentlyContinue) {
+        $output = & cmd /c "`"$CmdPath`"" 2>&1
+        return [pscustomobject]@{
+            Output = $output
+            ExitCode = $LASTEXITCODE
+        }
+    }
+
+    $pwsh = Get-Command pwsh -ErrorAction SilentlyContinue
+    $powershell = Get-Command powershell -ErrorAction SilentlyContinue
+    $runner = $null
+    if ($pwsh) {
+        $runner = $pwsh.Source
+    } elseif ($powershell) {
+        $runner = $powershell.Source
+    }
+
+    if (-not $runner -or -not (Test-Path $ScriptPath)) {
+        return [pscustomobject]@{
+            Output = @("cmd unavailable and no PowerShell fallback for $ScriptPath")
+            ExitCode = 1
+        }
+    }
+
+    $output = & $runner -NoProfile -ExecutionPolicy Bypass -File $ScriptPath 2>&1
+    return [pscustomobject]@{
+        Output = $output
+        ExitCode = $LASTEXITCODE
+    }
+}
+
 function Get-KeyCodeDefault {
     param(
         [string]$Text,
@@ -923,8 +960,9 @@ if (Test-Path $autonomousSafeTaskTestCmdPath) {
 $results.Add((Add-Result 'tools.rhythmSnapshotSummaryHooks' ($(if ($rhythmSnapshotToolMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmSnapshotToolMissing -join ', ')"))
 
 if (Test-Path $rhythmNextActionTestCmdPath) {
-    $nextActionTestOutput = & cmd /c "`"$rhythmNextActionTestCmdPath`"" 2>&1
-    $nextActionTestExit = $LASTEXITCODE
+    $nextActionTest = Invoke-ToolCmdOrScript $rhythmNextActionTestCmdPath $rhythmNextActionTestScriptPath
+    $nextActionTestOutput = $nextActionTest.Output
+    $nextActionTestExit = $nextActionTest.ExitCode
     $nextActionTestPassed = $nextActionTestExit -eq 0 -and (($nextActionTestOutput -join "`n").Contains('Rhythm next-action tests passed.'))
     $nextActionTestTail = (@($nextActionTestOutput) | Select-Object -Last 1) -join ' '
     $results.Add((Add-Result 'tools.rhythmNextActionBranchTests' ($(if ($nextActionTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$nextActionTestExit last='$nextActionTestTail'"))
@@ -933,8 +971,9 @@ if (Test-Path $rhythmNextActionTestCmdPath) {
 }
 
 if (Test-Path $autonomousHeartbeatReadStatusTestCmdPath) {
-    $heartbeatStatusTestOutput = & cmd /c "`"$autonomousHeartbeatReadStatusTestCmdPath`"" 2>&1
-    $heartbeatStatusTestExit = $LASTEXITCODE
+    $heartbeatStatusTest = Invoke-ToolCmdOrScript $autonomousHeartbeatReadStatusTestCmdPath $autonomousHeartbeatReadStatusTestScriptPath
+    $heartbeatStatusTestOutput = $heartbeatStatusTest.Output
+    $heartbeatStatusTestExit = $heartbeatStatusTest.ExitCode
     $heartbeatStatusTestPassed = $heartbeatStatusTestExit -eq 0 -and (($heartbeatStatusTestOutput -join "`n").Contains('Autonomous heartbeat status tests passed.'))
     $heartbeatStatusTestTail = (@($heartbeatStatusTestOutput) | Select-Object -Last 1) -join ' '
     $results.Add((Add-Result 'tools.autonomousHeartbeatStatusTests' ($(if ($heartbeatStatusTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$heartbeatStatusTestExit last='$heartbeatStatusTestTail'"))
@@ -943,8 +982,9 @@ if (Test-Path $autonomousHeartbeatReadStatusTestCmdPath) {
 }
 
 if (Test-Path $autonomousHeartbeatWriterTestCmdPath) {
-    $heartbeatWriterTestOutput = & cmd /c "`"$autonomousHeartbeatWriterTestCmdPath`"" 2>&1
-    $heartbeatWriterTestExit = $LASTEXITCODE
+    $heartbeatWriterTest = Invoke-ToolCmdOrScript $autonomousHeartbeatWriterTestCmdPath $autonomousHeartbeatWriterTestScriptPath
+    $heartbeatWriterTestOutput = $heartbeatWriterTest.Output
+    $heartbeatWriterTestExit = $heartbeatWriterTest.ExitCode
     $heartbeatWriterTestPassed = $heartbeatWriterTestExit -eq 0 -and (($heartbeatWriterTestOutput -join "`n").Contains('Autonomous heartbeat writer tests passed.'))
     $heartbeatWriterTestTail = (@($heartbeatWriterTestOutput) | Select-Object -Last 1) -join ' '
     $results.Add((Add-Result 'tools.autonomousHeartbeatWriterTests' ($(if ($heartbeatWriterTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$heartbeatWriterTestExit last='$heartbeatWriterTestTail'"))
@@ -953,8 +993,9 @@ if (Test-Path $autonomousHeartbeatWriterTestCmdPath) {
 }
 
 if (Test-Path $autonomousSafeTaskTestCmdPath) {
-    $safeTaskTestOutput = & cmd /c "`"$autonomousSafeTaskTestCmdPath`"" 2>&1
-    $safeTaskTestExit = $LASTEXITCODE
+    $safeTaskTest = Invoke-ToolCmdOrScript $autonomousSafeTaskTestCmdPath $autonomousSafeTaskTestScriptPath
+    $safeTaskTestOutput = $safeTaskTest.Output
+    $safeTaskTestExit = $safeTaskTest.ExitCode
     $safeTaskTestPassed = $safeTaskTestExit -eq 0 -and (($safeTaskTestOutput -join "`n").Contains('Autonomous safe-task tests passed.'))
     $safeTaskTestTail = (@($safeTaskTestOutput) | Select-Object -Last 1) -join ' '
     $results.Add((Add-Result 'tools.autonomousSafeTaskTests' ($(if ($safeTaskTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$safeTaskTestExit last='$safeTaskTestTail'"))
