@@ -118,6 +118,8 @@ $playerEchoPulsePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/Pl
 $playerDecoyPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDecoyAbility.cs'
 $playerSmokePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerSmokeAbility.cs'
 $playerVitalPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerVitalSystem.cs'
+$playerTelemetryPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerBehaviorTelemetry.cs'
+$inputAdapterPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Core/Input/RuntimeInputAdapter.cs'
 $mapSystemPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/MapSystem.cs'
 $mapTuningPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/MapTuningDebugController.cs'
 $enemyControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/AI/EnemyController.cs'
@@ -1025,7 +1027,11 @@ if (Test-Path $mapSystemPath) {
         'ResolvePlayerSpawnClearanceRadius',
         'ResolveColliderSpawnRadius',
         'loggedPlayerSpawnBlockerScopeGuard',
-        'widened player spawn blocker checks to all blocking colliders'
+        'widened player spawn blocker checks to all blocking colliders',
+        'TryValidateAndRecoverCheckpointPosition',
+        'LastCheckpointRecovered',
+        'LastCheckpointWasInvalid',
+        'IsFiniteWorldPosition'
     )
     foreach ($hook in $playerSpawnSafetyHooks) {
         if (-not $mapSystemText.Contains($hook)) {
@@ -1044,7 +1050,12 @@ if (Test-Path $enemySpawnDirectorPath) {
         'CountSpawnCandidateSafety',
         'LastSelectedNarrowSpawnCount',
         'LastNarrowSpawnsWereFallbackOnly',
-        'spawnStabilizationSeconds'
+        'spawnStabilizationSeconds',
+        'resolveSafeEnemySpawn',
+        'TryResolveSafeEnemySpawnPosition',
+        'IsEnemySpawnBlocked',
+        'ResolveEnemySpawnClearanceRadius',
+        'LastEnemySpawnUsedBlockedFallback'
     )
     foreach ($hook in $enemySpawnSafetyHooks) {
         if (-not $enemySpawnText.Contains($hook)) {
@@ -1074,7 +1085,10 @@ if (Test-Path $gameplayRhythmPath) {
         'TryAdvanceSpikeTowardRelease',
         'spikeClutchMinimumRemainingSeconds',
         'TryGrantRhythmReleaseRelief',
-        'RegressionChecklistRunner.IsRegressionRunActive'
+        'RegressionChecklistRunner.IsRegressionRunActive',
+        'IsGameplayPaused',
+        'Time.timeScale <= 0.0001f',
+        'phaseStartedAt = Time.time'
     )
     foreach ($hook in $rhythmHooks) {
         if (-not $gameplayRhythmText.Contains($hook)) {
@@ -1261,6 +1275,98 @@ if (Test-Path $playerSmokePath) {
     $abilityKoreanWordingMissing.Add('PlayerSmokeAbility.cs missing')
 }
 $results.Add((Add-Result 'code.abilityKoreanWordingHooks' ($(if ($abilityKoreanWordingMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($abilityKoreanWordingMissing -join ', ')"))
+
+$echoOverchargeMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $playerEchoPulsePath) {
+    if (-not $playerEchoPulseText) {
+        $playerEchoPulseText = Get-Content $playerEchoPulsePath -Raw
+    }
+    $echoOverchargeHooks = @(
+        'enableOverchargeHold',
+        'tapGraceSeconds',
+        'chargeBuildSeconds',
+        'overchargeRevealRadiusMultiplier = 1.65f',
+        'overchargeNoiseMultiplier = 1.80f',
+        'overchargeExtraResonancePulses = 2',
+        'GetKeyUp',
+        'EvaluateOverchargePreview',
+        'ChargePercent',
+        'LastCastWasAutoFullCharge',
+        'EvaluateOverchargeRingColor',
+        'autoFullCharge: true',
+        'stunDurationSeconds'
+    )
+    foreach ($hook in $echoOverchargeHooks) {
+        if (-not $playerEchoPulseText.Contains($hook)) {
+            $echoOverchargeMissing.Add("PlayerEchoPulseAbility:$hook")
+        }
+    }
+} else {
+    $echoOverchargeMissing.Add('PlayerEchoPulseAbility.cs missing')
+}
+
+if (Test-Path $gameplayHudPath) {
+    $gameplayHudOverchargeText = Get-Content $gameplayHudPath -Raw
+    if (-not $gameplayHudOverchargeText.Contains('Q 과충전')) {
+        $echoOverchargeMissing.Add('GameplayHudRuntime:Q 과충전')
+    }
+    if (-not $gameplayHudOverchargeText.Contains('ChargePercent')) {
+        $echoOverchargeMissing.Add('GameplayHudRuntime:ChargePercent')
+    }
+} else {
+    $echoOverchargeMissing.Add('GameplayHudRuntime.cs missing')
+}
+
+if (Test-Path $playerTelemetryPath) {
+    $playerTelemetryText = Get-Content $playerTelemetryPath -Raw
+    foreach ($hook in @('OverchargeCastCount', 'FullChargeAutoCastCount', 'LastPulseCharge01', 'RegisterPulseCast(float charge01, bool autoFullCharge)')) {
+        if (-not $playerTelemetryText.Contains($hook)) {
+            $echoOverchargeMissing.Add("PlayerBehaviorTelemetry:$hook")
+        }
+    }
+} else {
+    $echoOverchargeMissing.Add('PlayerBehaviorTelemetry.cs missing')
+}
+
+if (Test-Path $regressionPath) {
+    $regressionText = Get-Content $regressionPath -Raw
+    foreach ($hook in @('RunEchoOverchargeContractCheck', 'Echo.OverchargeContract', 'EvaluateOverchargePreview')) {
+        if (-not $regressionText.Contains($hook)) {
+            $echoOverchargeMissing.Add("RegressionChecklistRunner:$hook")
+        }
+    }
+} else {
+    $echoOverchargeMissing.Add('RegressionChecklistRunner.cs missing')
+}
+
+if (Test-Path $playerVitalPath) {
+    $playerVitalOverchargeText = Get-Content $playerVitalPath -Raw
+    if (-not $playerVitalOverchargeText.Contains('TryValidateAndRecoverCheckpointPosition')) {
+        $echoOverchargeMissing.Add('PlayerVitalSystem:TryValidateAndRecoverCheckpointPosition')
+    }
+} else {
+    $echoOverchargeMissing.Add('PlayerVitalSystem.cs missing')
+}
+
+if (Test-Path $saveManagerPath) {
+    $saveManagerText = Get-Content $saveManagerPath -Raw
+    if (-not $saveManagerText.Contains('TryValidateAndRecoverCheckpointPosition')) {
+        $echoOverchargeMissing.Add('SaveManager:TryValidateAndRecoverCheckpointPosition')
+    }
+} else {
+    $echoOverchargeMissing.Add('SaveManager.cs missing')
+}
+
+if (Test-Path $inputAdapterPath) {
+    $inputAdapterText = Get-Content $inputAdapterPath -Raw
+    if (-not $inputAdapterText.Contains('public static bool GetKeyUp')) {
+        $echoOverchargeMissing.Add('RuntimeInputAdapter:GetKeyUp')
+    }
+} else {
+    $echoOverchargeMissing.Add('RuntimeInputAdapter.cs missing')
+}
+
+$results.Add((Add-Result 'code.echoOverchargeHooks' ($(if ($echoOverchargeMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($echoOverchargeMissing -join ', ')"))
 
 $playerEventKoreanWordingMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $playerVitalPath) {

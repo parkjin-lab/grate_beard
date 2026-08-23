@@ -542,8 +542,16 @@ namespace LostBreadcrumbs.Runtime.Managers
                 Vector3 current = playerController.transform.position;
                 current.x = checkpoint.playerX;
                 current.y = checkpoint.playerY;
+                if (mapSystem != null
+                    && mapSystem.TryValidateAndRecoverCheckpointPosition(current, playerController.transform, out Vector3 recovered, out _))
+                {
+                    recovered.z = current.z;
+                    current = recovered;
+                }
+
                 playerController.transform.position = current;
                 playerController.ApplySavedStaminaNormalized(checkpoint.staminaNormalized);
+                playerController.TryRecoverUnsafePositionNowForRuntime();
             }
 
             if (playerVitals != null)

@@ -75,7 +75,8 @@ namespace LostBreadcrumbs.Runtime.Managers
         public string LastBeatLabel => string.IsNullOrWhiteSpace(lastBeatLabel) ? currentPhase.ToString() : lastBeatLabel;
         public int CycleCount => Mathf.Max(0, cycleCount);
         public float CurrentPhaseDuration => Mathf.Max(0.1f, currentPhaseDuration);
-        public float CurrentPhaseElapsed => Mathf.Max(0f, Time.realtimeSinceStartup - phaseStartedAt);
+        public float CurrentPhaseElapsed => Mathf.Max(0f, Time.time - phaseStartedAt);
+        public bool IsGameplayPaused => Time.timeScale <= 0.0001f;
         public float CurrentPhaseProgress => Mathf.Clamp01(CurrentPhaseElapsed / CurrentPhaseDuration);
         public float CurrentTempo01 => EvaluateTempo01(currentPhase, CurrentPhaseProgress);
         public float CurrentRhythmIntensity => EvaluateRhythmIntensity(currentPhase, CurrentPhaseProgress);
@@ -106,7 +107,7 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         private void Update()
         {
-            if (!Application.isPlaying || !enableRuntimeRhythm || RegressionChecklistRunner.IsRegressionRunActive)
+            if (!Application.isPlaying || !enableRuntimeRhythm || RegressionChecklistRunner.IsRegressionRunActive || IsGameplayPaused)
             {
                 return;
             }
@@ -186,6 +187,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             if (!Application.isPlaying
                 || !enableRuntimeRhythm
                 || RegressionChecklistRunner.IsRegressionRunActive
+                || IsGameplayPaused
                 || currentPhase != GameplayRhythmPhase.Spike)
             {
                 return false;
@@ -225,7 +227,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             }
 
             currentPhase = phase;
-            phaseStartedAt = Time.realtimeSinceStartup;
+            phaseStartedAt = Time.time;
             spikeTellRaisedThisBuild = false;
             releaseEndTellRaisedThisRelease = false;
             lastAppliedPressureMultiplier = GetPressureMultiplierForPhase(phase);

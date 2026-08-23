@@ -44,6 +44,26 @@ namespace LostBreadcrumbs.Runtime.Core.Input
 #endif
         }
 
+        public static bool GetKeyUp(KeyCode keyCode)
+        {
+#if ENABLE_INPUT_SYSTEM
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null)
+            {
+                return false;
+            }
+
+            if (!TryMapKey(keyCode, out Key key))
+            {
+                return false;
+            }
+
+            return keyboard[key].wasReleasedThisFrame;
+#else
+            return Input.GetKeyUp(keyCode);
+#endif
+        }
+
         public static Vector2 GetMoveVector(KeyCode left, KeyCode right, KeyCode down, KeyCode up)
         {
 #if ENABLE_INPUT_SYSTEM

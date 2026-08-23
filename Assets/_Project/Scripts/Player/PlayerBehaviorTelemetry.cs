@@ -55,6 +55,9 @@ namespace LostBreadcrumbs.Runtime.Player
         private float sprintSeconds;
         private int echoCount;
         private int pulseCastCount;
+        private int overchargeCastCount;
+        private int fullChargeAutoCastCount;
+        private float lastPulseCharge01;
         private int decoyDeployCount;
         private int smokeDeployCount;
         private int flashlightToggleCount;
@@ -68,6 +71,9 @@ namespace LostBreadcrumbs.Runtime.Player
         public float SprintSeconds => sprintSeconds;
         public int EchoCount => echoCount;
         public int PulseCastCount => pulseCastCount;
+        public int OverchargeCastCount => overchargeCastCount;
+        public int FullChargeAutoCastCount => fullChargeAutoCastCount;
+        public float LastPulseCharge01 => Mathf.Clamp01(lastPulseCharge01);
         public int DecoyDeployCount => decoyDeployCount;
         public int SmokeDeployCount => smokeDeployCount;
         public int FlashlightToggleCount => flashlightToggleCount;
@@ -155,6 +161,9 @@ namespace LostBreadcrumbs.Runtime.Player
             sprintSeconds = Mathf.Max(0f, savedSprintSeconds);
             echoCount = Mathf.Max(0, savedEchoCount);
             pulseCastCount = Mathf.Max(0, savedPulseCount);
+            overchargeCastCount = 0;
+            fullChargeAutoCastCount = 0;
+            lastPulseCharge01 = 0f;
             decoyDeployCount = Mathf.Max(0, savedDecoyCount);
             smokeDeployCount = Mathf.Max(0, savedSmokeCount);
             flashlightToggleCount = Mathf.Max(0, savedFlashlightCount);
@@ -211,13 +220,29 @@ namespace LostBreadcrumbs.Runtime.Player
 
         public void RegisterPulseCast()
         {
+            RegisterPulseCast(0f, autoFullCharge: false);
+        }
+
+        public void RegisterPulseCast(float charge01, bool autoFullCharge)
+        {
             if (RegressionChecklistRunner.IsRegressionRunActive)
             {
                 return;
             }
 
+            lastPulseCharge01 = Mathf.Clamp01(charge01);
             pulseCastCount++;
-            AddScore(pulseScoreGain, "Pulse");
+            if (lastPulseCharge01 > 0.001f)
+            {
+                overchargeCastCount++;
+            }
+
+            if (autoFullCharge && lastPulseCharge01 >= 0.999f)
+            {
+                fullChargeAutoCastCount++;
+            }
+
+            AddScore(pulseScoreGain, lastPulseCharge01 > 0.001f ? "OverchargePulse" : "Pulse");
         }
 
         public void RegisterDecoyDeploy()

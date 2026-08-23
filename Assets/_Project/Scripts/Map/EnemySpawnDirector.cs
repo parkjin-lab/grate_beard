@@ -33,6 +33,12 @@ namespace LostBreadcrumbs.Runtime.Map
 
         [Header("Spawn Safety")]
         [SerializeField] private bool avoidNarrowSpawnCells = true;
+        [SerializeField] private bool resolveSafeEnemySpawn = true;
+        [SerializeField, Min(0.05f)] private float enemySpawnClearanceRadius = 0.38f;
+        [SerializeField, Min(0f)] private float enemySpawnColliderPadding = 0.08f;
+        [SerializeField, Min(0.05f)] private float enemySpawnSearchStep = 0.28f;
+        [SerializeField, Range(1, 8)] private int enemySpawnSearchRings = 4;
+        [SerializeField] private LayerMask enemySpawnBlockerMask = ~0;
         [SerializeField, Min(0f)] private float spawnStabilizationSeconds = 0.38f;
 
         [Header("Contact Damage")]
@@ -61,6 +67,10 @@ namespace LostBreadcrumbs.Runtime.Map
         private int lastOpenSpawnCandidateCount;
         private int lastNarrowSpawnCandidateCount;
         private int lastSelectedNarrowSpawnCount;
+        private int lastEnemySpawnAdjustedCount;
+        private int lastEnemySpawnBlockedFallbackCount;
+        private bool lastEnemySpawnUsedBlockedFallback;
+        private readonly Collider2D[] enemySpawnOverlapHits = new Collider2D[64];
 
         public int ActiveEnemyCount => activeEnemies.Count;
         public int LastSpawnTargetEnemyCount => lastSpawnTargetEnemyCount;
@@ -70,6 +80,9 @@ namespace LostBreadcrumbs.Runtime.Map
         public int LastNarrowSpawnCandidateCount => lastNarrowSpawnCandidateCount;
         public int LastSelectedNarrowSpawnCount => lastSelectedNarrowSpawnCount;
         public bool LastNarrowSpawnsWereFallbackOnly => lastSelectedNarrowSpawnCount <= 0 || lastOpenSpawnCandidateCount < lastSpawnTargetEnemyCount;
+        public bool LastEnemySpawnUsedBlockedFallback => lastEnemySpawnUsedBlockedFallback;
+        public int LastEnemySpawnAdjustedCount => lastEnemySpawnAdjustedCount;
+        public int LastEnemySpawnBlockedFallbackCount => lastEnemySpawnBlockedFallbackCount;
         public float RuntimeEnemyCountMultiplier => runtimeEnemyCountMultiplier;
         public float RuntimeRiskWeightMultiplier => runtimeRiskWeightMultiplier;
         public float RuntimeSeekerExtraChance => runtimeSeekerExtraChance;
@@ -343,6 +356,9 @@ namespace LostBreadcrumbs.Runtime.Map
                 stage * 313 + cells.Count * 17,
                 GetSpawnWeight);
 
+            lastEnemySpawnAdjustedCount = 0;
+            lastEnemySpawnBlockedFallbackCount = 0;
+            lastEnemySpawnUsedBlockedFallback = false;
             int seekerCount = 0;
             for (int i = 0; i < selectedSpawnCells.Count; i++)
             {
@@ -359,6 +375,7 @@ namespace LostBreadcrumbs.Runtime.Map
             lastSeekerSpawnCount = seekerCount;
             lastSpawnStage = stage;
             lastSelectedNarrowSpawnCount = CountNarrowSpawnCells(selectedSpawnCells, cells);
+            lastEnemySpawnUsedBlockedFallback = lastEnemySpawnBlockedFallbackCount > 0;
         }
 
         private List<GeneratedMapCell> BuildSpawnCandidates(IReadOnlyList<GeneratedMapCell> cells)
@@ -575,6 +592,9 @@ namespace LostBreadcrumbs.Runtime.Map
             lastOpenSpawnCandidateCount = 0;
             lastNarrowSpawnCandidateCount = 0;
             lastSelectedNarrowSpawnCount = 0;
+            lastEnemySpawnAdjustedCount = 0;
+            lastEnemySpawnBlockedFallbackCount = 0;
+            lastEnemySpawnUsedBlockedFallback = false;
         }
 
         private float GetSpawnWeight(MapCellKind kind)
@@ -692,7 +712,20 @@ namespace LostBreadcrumbs.Runtime.Map
         {
             GameObject enemyObject = new($"Enemy_{index:00}_{(profile != null ? profile.profileId : "default")}");
             enemyObject.transform.SetParent(enemiesRoot, false);
-            enemyObject.transform.position = ToWorld(cell.position);
+            Vector3 preferred = ToWorld(cell.position);
+            Vector3 spawnPosition = preferred;
+            if (!TryResolveSafeEnemySpawnPosition(preferred, out spawnPosition))
+            {
+                spawnPosition = preferred;
+                lastEnemySpawnBlockedFallbackCount++;
+                lastEnemySpawnUsedBlockedFallback = true;
+            }
+            else if (((Vector2)spawnPosition - (Vector2)preferred).sqrMagnitude > 0.0001f)
+            {
+                lastEnemySpawnAdjustedCount++;
+            }
+
+            enemyObject.transform.position = spawnPosition;
 
             SpriteRenderer renderer = enemyObject.AddComponent<SpriteRenderer>();
             renderer.sortingOrder = 19;
@@ -975,6 +1008,96 @@ namespace LostBreadcrumbs.Runtime.Map
 
                 DestroySafe(enemy.gameObject);
             }
+        }
+
+        private bool TryResolveSafeEnemySpawnPosition(Vector3 preferred, out Vector3 position)
+        {
+            position = preferred;
+            if (!resolveSafeEnemySpawn)
+            {
+                return true;
+            }
+
+            float radius = ResolveEnemySpawnClearanceRadius();
+            if (!IsEnemySpawnBlocked(preferred, radius))
+            {
+                return true;
+            }
+
+            float step = Mathf.Max(0.05f, enemySpawnSearchStep);
+            int rings = Mathf.Clamp(enemySpawnSearchRings, 1, 8);
+            float bestDistanceSqr = float.PositiveInfinity;
+            bool found = false;
+            for (int ring = 1; ring <= rings; ring++)
+            {
+                for (int x = -ring; x <= ring; x++)
+                {
+                    for (int y = -ring; y <= ring; y++)
+                    {
+                        if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) != ring)
+                        {
+                            continue;
+                        }
+
+                        Vector3 candidate = preferred + new Vector3(x * step, y * step, 0f);
+                        if (IsEnemySpawnBlocked(candidate, radius))
+                        {
+                            continue;
+                        }
+
+                        float distanceSqr = ((Vector2)candidate - (Vector2)preferred).sqrMagnitude;
+                        if (distanceSqr < bestDistanceSqr)
+                        {
+                            bestDistanceSqr = distanceSqr;
+                            position = candidate;
+                            found = true;
+                        }
+                    }
+                }
+
+                if (found)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private float ResolveEnemySpawnClearanceRadius()
+        {
+            float radius = Mathf.Max(0.05f, enemySpawnClearanceRadius);
+            float scale = useUndeadSurvivorVisuals ? Mathf.Max(0.1f, undeadEnemyScale) : 0.7f;
+            return Mathf.Max(radius, enemySpawnClearanceRadius * scale + Mathf.Max(0f, enemySpawnColliderPadding));
+        }
+
+        private bool IsEnemySpawnBlocked(Vector3 worldPosition, float radius)
+        {
+            ContactFilter2D filter = new()
+            {
+                useLayerMask = true,
+                layerMask = enemySpawnBlockerMask,
+                useTriggers = false
+            };
+            int hitCount = Physics2D.OverlapCircle(worldPosition, Mathf.Max(0.05f, radius), filter, enemySpawnOverlapHits);
+            if (hitCount <= 0)
+            {
+                return false;
+            }
+
+            int safeHitCount = Mathf.Min(hitCount, enemySpawnOverlapHits.Length);
+            for (int i = 0; i < safeHitCount; i++)
+            {
+                Collider2D hit = enemySpawnOverlapHits[i];
+                if (hit == null || hit.isTrigger)
+                {
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         private Vector3 ToWorld(Vector2Int cellPosition)

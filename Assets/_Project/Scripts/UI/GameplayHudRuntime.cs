@@ -345,7 +345,11 @@ namespace LostBreadcrumbs.Runtime.UI
         private void UpdateAbilityLine()
         {
             string pulse;
-            if (pulseAbility != null && pulseAbility.IsEchoReturnWarningActive)
+            if (pulseAbility != null && pulseAbility.IsCharging)
+            {
+                pulse = $"Q 과충전 {pulseAbility.ChargePercent}%";
+            }
+            else if (pulseAbility != null && pulseAbility.IsEchoReturnWarningActive)
             {
                 string count = pulseAbility.LastEchoReturnThreatCount > 1 ? $" x{pulseAbility.LastEchoReturnThreatCount}" : string.Empty;
                 pulse = $"Q 응답{count} {pulseAbility.LastEchoReturnDistance:0.0}m";

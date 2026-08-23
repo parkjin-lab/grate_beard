@@ -22,6 +22,8 @@ namespace LostBreadcrumbs.Runtime.Map
 
         private static Sprite ringSprite;
 
+        public static Sprite SharedRingSprite => GetRingSprite();
+
         public void Configure(float targetRadius, Color color, float duration, int count, float interval, int order)
         {
             radius = Mathf.Max(0.3f, targetRadius);
