@@ -1335,7 +1335,11 @@ if (Test-Path $playerEchoPulsePath) {
         'LastCastWasAutoFullCharge',
         'EvaluateOverchargeRingColor',
         'autoFullCharge: true',
-        'stunDurationSeconds'
+        'stunDurationSeconds',
+        'smokeRevealRadiusMultiplier = 0.72f',
+        'LastCastWasInsideSmoke',
+        'EvaluateInsideSmoke',
+        '연막: 짧게 보고 조용히'
     )
     foreach ($hook in $echoOverchargeHooks) {
         if (-not $playerEchoPulseText.Contains($hook)) {
@@ -1354,13 +1358,16 @@ if (Test-Path $gameplayHudPath) {
     if (-not $gameplayHudOverchargeText.Contains('ChargePercent')) {
         $echoOverchargeMissing.Add('GameplayHudRuntime:ChargePercent')
     }
+    if (-not $gameplayHudOverchargeText.Contains('Q 과충전 {pulseAbility.ChargePercent}% 연막')) {
+        $echoOverchargeMissing.Add('GameplayHudRuntime:Q 과충전 연막')
+    }
 } else {
     $echoOverchargeMissing.Add('GameplayHudRuntime.cs missing')
 }
 
 if (Test-Path $playerTelemetryPath) {
     $playerTelemetryText = Get-Content $playerTelemetryPath -Raw
-    foreach ($hook in @('OverchargeCastCount', 'FullChargeAutoCastCount', 'LastPulseCharge01', 'RegisterPulseCast(float charge01, bool autoFullCharge)')) {
+    foreach ($hook in @('OverchargeCastCount', 'FullChargeAutoCastCount', 'LastPulseCharge01', 'RegisterPulseCast(float charge01, bool autoFullCharge)', 'LastPulseWasInsideSmoke', 'LastPulseRevealMultiplier', 'LastPulseNoiseMultiplier')) {
         if (-not $playerTelemetryText.Contains($hook)) {
             $echoOverchargeMissing.Add("PlayerBehaviorTelemetry:$hook")
         }
@@ -1371,7 +1378,7 @@ if (Test-Path $playerTelemetryPath) {
 
 if (Test-Path $regressionPath) {
     $regressionText = Get-Content $regressionPath -Raw
-    foreach ($hook in @('RunEchoOverchargeContractCheck', 'Echo.OverchargeContract', 'EvaluateOverchargePreview')) {
+    foreach ($hook in @('RunEchoOverchargeContractCheck', 'Echo.OverchargeContract', 'EvaluateOverchargePreview', 'EvaluateOverchargePreview(0f, true)', 'smokeRevealCut')) {
         if (-not $regressionText.Contains($hook)) {
             $echoOverchargeMissing.Add("RegressionChecklistRunner:$hook")
         }

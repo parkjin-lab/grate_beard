@@ -347,7 +347,9 @@ namespace LostBreadcrumbs.Runtime.UI
             string pulse;
             if (pulseAbility != null && pulseAbility.IsCharging)
             {
-                pulse = $"Q 과충전 {pulseAbility.ChargePercent}%";
+                pulse = pulseAbility.IsInsideSmoke
+                    ? $"Q 과충전 {pulseAbility.ChargePercent}% 연막"
+                    : $"Q 과충전 {pulseAbility.ChargePercent}%";
             }
             else if (pulseAbility != null && pulseAbility.IsEchoReturnWarningActive)
             {

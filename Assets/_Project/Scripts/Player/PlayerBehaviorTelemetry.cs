@@ -58,6 +58,9 @@ namespace LostBreadcrumbs.Runtime.Player
         private int overchargeCastCount;
         private int fullChargeAutoCastCount;
         private float lastPulseCharge01;
+        private bool lastPulseWasInsideSmoke;
+        private float lastPulseRevealMultiplier = 1f;
+        private float lastPulseNoiseMultiplier = 1f;
         private int decoyDeployCount;
         private int smokeDeployCount;
         private int flashlightToggleCount;
@@ -74,6 +77,9 @@ namespace LostBreadcrumbs.Runtime.Player
         public int OverchargeCastCount => overchargeCastCount;
         public int FullChargeAutoCastCount => fullChargeAutoCastCount;
         public float LastPulseCharge01 => Mathf.Clamp01(lastPulseCharge01);
+        public bool LastPulseWasInsideSmoke => lastPulseWasInsideSmoke;
+        public float LastPulseRevealMultiplier => Mathf.Max(0.1f, lastPulseRevealMultiplier);
+        public float LastPulseNoiseMultiplier => Mathf.Max(0.01f, lastPulseNoiseMultiplier);
         public int DecoyDeployCount => decoyDeployCount;
         public int SmokeDeployCount => smokeDeployCount;
         public int FlashlightToggleCount => flashlightToggleCount;
@@ -164,6 +170,9 @@ namespace LostBreadcrumbs.Runtime.Player
             overchargeCastCount = 0;
             fullChargeAutoCastCount = 0;
             lastPulseCharge01 = 0f;
+            lastPulseWasInsideSmoke = false;
+            lastPulseRevealMultiplier = 1f;
+            lastPulseNoiseMultiplier = 1f;
             decoyDeployCount = Mathf.Max(0, savedDecoyCount);
             smokeDeployCount = Mathf.Max(0, savedSmokeCount);
             flashlightToggleCount = Mathf.Max(0, savedFlashlightCount);
@@ -225,12 +234,20 @@ namespace LostBreadcrumbs.Runtime.Player
 
         public void RegisterPulseCast(float charge01, bool autoFullCharge)
         {
+            RegisterPulseCast(charge01, autoFullCharge, insideSmoke: false, revealMultiplier: 1f, noiseMultiplier: 1f);
+        }
+
+        public void RegisterPulseCast(float charge01, bool autoFullCharge, bool insideSmoke, float revealMultiplier, float noiseMultiplier)
+        {
             if (RegressionChecklistRunner.IsRegressionRunActive)
             {
                 return;
             }
 
             lastPulseCharge01 = Mathf.Clamp01(charge01);
+            lastPulseWasInsideSmoke = insideSmoke;
+            lastPulseRevealMultiplier = Mathf.Max(0.1f, revealMultiplier);
+            lastPulseNoiseMultiplier = Mathf.Max(0.01f, noiseMultiplier);
             pulseCastCount++;
             if (lastPulseCharge01 > 0.001f)
             {

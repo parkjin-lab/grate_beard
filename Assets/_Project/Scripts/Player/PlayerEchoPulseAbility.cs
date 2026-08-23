@@ -78,6 +78,7 @@ namespace LostBreadcrumbs.Runtime.Player
         [SerializeField, Range(0, 4)] private int overchargeExtraResonancePulses = 2;
         [SerializeField] private Color overchargeWarningColor = new(1f, 0.28f, 0.16f, 0.82f);
         [SerializeField] private bool spawnChargePreviewRings = true;
+        [SerializeField, Range(0.2f, 1f)] private float smokeRevealRadiusMultiplier = 0.72f;
 
         [Header("Debug")]
         [SerializeField] private bool logPulseResult = false;
@@ -89,6 +90,8 @@ namespace LostBreadcrumbs.Runtime.Player
         private float lastCharge01;
         private bool lastCastWasOvercharge;
         private bool lastCastWasAutoFullCharge;
+        private bool lastCastWasInsideSmoke;
+        private float lastRevealRadiusMultiplier = 1f;
         private bool isCharging;
         private float chargeHoldStartedAt;
         private float currentCharge01;
@@ -138,6 +141,11 @@ namespace LostBreadcrumbs.Runtime.Player
         public float LastCharge01 => Mathf.Clamp01(lastCharge01);
         public bool LastCastWasOvercharge => lastCastWasOvercharge;
         public bool LastCastWasAutoFullCharge => lastCastWasAutoFullCharge;
+        public bool LastCastWasInsideSmoke => lastCastWasInsideSmoke;
+        public bool IsInsideSmoke => EvaluateInsideSmoke();
+        public float LastRevealRadiusMultiplier => Mathf.Max(0.1f, lastRevealRadiusMultiplier);
+        public float LastAppliedNoiseMultiplier => lastNoiseScale;
+        public float SmokeRevealRadiusMultiplier => Mathf.Clamp(smokeRevealRadiusMultiplier, 0.2f, 1f);
         public float OverchargeRevealRadiusMultiplier => Mathf.Max(1f, overchargeRevealRadiusMultiplier);
         public float OverchargeNoiseMultiplier => Mathf.Max(1f, overchargeNoiseMultiplier);
         public int OverchargeExtraResonancePulses => Mathf.Max(0, overchargeExtraResonancePulses);
@@ -175,6 +183,8 @@ namespace LostBreadcrumbs.Runtime.Player
             lastCharge01 = 0f;
             lastCastWasOvercharge = false;
             lastCastWasAutoFullCharge = false;
+            lastCastWasInsideSmoke = false;
+            lastRevealRadiusMultiplier = 1f;
             CancelCharge(clearPreview: clearActiveVisuals);
             ClearEchoReturnState();
             StopEchoResonanceTail();
@@ -236,7 +246,8 @@ namespace LostBreadcrumbs.Runtime.Player
                 return false;
             }
 
-            EchoOverchargePreview preview = EvaluateOverchargePreview(charge01);
+            bool insideSmoke = EvaluateInsideSmoke();
+            EchoOverchargePreview preview = EvaluateOverchargePreview(charge01, insideSmoke);
             nextReadyTime = Time.time + EffectiveCooldownSeconds;
             lastStunnedCount = 0;
             lastScoutRevealCount = 0;
@@ -247,6 +258,8 @@ namespace LostBreadcrumbs.Runtime.Player
             lastCharge01 = preview.Charge01;
             lastCastWasOvercharge = preview.Charge01 > 0.001f;
             lastCastWasAutoFullCharge = autoFullCharge && preview.Charge01 >= 0.999f;
+            lastCastWasInsideSmoke = insideSmoke;
+            lastRevealRadiusMultiplier = preview.RevealRadiusMultiplier;
             CancelCharge(clearPreview: true);
 
             Vector2 origin = transform.position;
@@ -279,8 +292,13 @@ namespace LostBreadcrumbs.Runtime.Player
                 }
             }
 
-            behaviorTelemetry?.RegisterPulseCast(preview.Charge01, lastCastWasAutoFullCharge);
-            RuntimeEventBus.Raise(RuntimeEventType.Ability, BuildEchoPulseUsedMessage(lastStunnedCount, lastScoutRevealCount, preview.Charge01), this);
+            behaviorTelemetry?.RegisterPulseCast(
+                preview.Charge01,
+                lastCastWasAutoFullCharge,
+                insideSmoke,
+                preview.RevealRadiusMultiplier,
+                lastNoiseScale);
+            RuntimeEventBus.Raise(RuntimeEventType.Ability, BuildEchoPulseUsedMessage(lastStunnedCount, lastScoutRevealCount, preview.Charge01, insideSmoke), this);
 
             if (logPulseResult)
             {
@@ -527,15 +545,16 @@ namespace LostBreadcrumbs.Runtime.Player
             }
         }
 
-        private static string BuildEchoPulseUsedMessage(int stunnedCount, int scoutRevealCount, float charge01)
+        private static string BuildEchoPulseUsedMessage(int stunnedCount, int scoutRevealCount, float charge01, bool insideSmoke)
         {
             int chargePercent = Mathf.RoundToInt(Mathf.Clamp01(charge01) * 100f);
+            string smokeCue = insideSmoke ? "연막: 짧게 보고 조용히, " : string.Empty;
             if (chargePercent <= 0)
             {
-                return $"메아리 사용 (기절 {Mathf.Max(0, stunnedCount)}, 정찰 {Mathf.Max(0, scoutRevealCount)})";
+                return $"메아리 사용 ({smokeCue}기절 {Mathf.Max(0, stunnedCount)}, 정찰 {Mathf.Max(0, scoutRevealCount)})";
             }
 
-            return $"메아리 과충전 {chargePercent}% (기절 {Mathf.Max(0, stunnedCount)}, 정찰 {Mathf.Max(0, scoutRevealCount)})";
+            return $"메아리 과충전 {chargePercent}% ({smokeCue}기절 {Mathf.Max(0, stunnedCount)}, 정찰 {Mathf.Max(0, scoutRevealCount)})";
         }
 
         private static string BuildEchoReturnThreatMessage(float distance)
@@ -749,7 +768,7 @@ namespace LostBreadcrumbs.Runtime.Player
                 return;
             }
 
-            float revealRadius = Mathf.Max(0.1f, effectiveStunRadius * fogRevealRadiusMultiplier * Mathf.Max(1f, revealRadiusMultiplier));
+            float revealRadius = Mathf.Max(0.1f, effectiveStunRadius * fogRevealRadiusMultiplier * Mathf.Max(0.1f, revealRadiusMultiplier));
             fogSystem.ApplyEchoRevealPulse(origin, revealRadius, fogRevealSoftnessBoost);
         }
 
@@ -760,7 +779,7 @@ namespace LostBreadcrumbs.Runtime.Player
                 return 0;
             }
 
-            float radius = Mathf.Max(0.1f, effectiveStunRadius * scoutRadiusMultiplier * Mathf.Max(1f, revealRadiusMultiplier));
+            float radius = Mathf.Max(0.1f, effectiveStunRadius * scoutRadiusMultiplier * Mathf.Max(0.1f, revealRadiusMultiplier));
             int maxTargets = Mathf.Clamp(maxScoutRevealTargets, 1, 32);
             int revealedCount = 0;
 
@@ -983,16 +1002,32 @@ namespace LostBreadcrumbs.Runtime.Player
 
         public EchoOverchargePreview EvaluateOverchargePreview(float charge01)
         {
+            return EvaluateOverchargePreview(charge01, insideSmoke: false);
+        }
+
+        public EchoOverchargePreview EvaluateOverchargePreview(float charge01, bool insideSmoke)
+        {
             float safeCharge = Mathf.Clamp01(charge01);
             int extraPulses = Mathf.RoundToInt(overchargeExtraResonancePulses * safeCharge);
             int pulseCount = Mathf.Clamp(resonanceTailPulseCount + extraPulses, 1, 5);
+            float revealMultiplier = Mathf.Lerp(1f, OverchargeRevealRadiusMultiplier, safeCharge);
+            if (insideSmoke)
+            {
+                revealMultiplier *= SmokeRevealRadiusMultiplier;
+            }
+
             return new EchoOverchargePreview(
                 safeCharge,
-                Mathf.Lerp(1f, OverchargeRevealRadiusMultiplier, safeCharge),
+                revealMultiplier,
                 Mathf.Lerp(1f, OverchargeNoiseMultiplier, safeCharge),
                 pulseCount,
                 EffectiveStunRadius,
                 stunDurationSeconds);
+        }
+
+        public bool EvaluateInsideSmoke()
+        {
+            return SmokeScreenFieldDummy.EvaluateNoiseDampenAt(transform.position) > 0.001f;
         }
 
         private void TickOverchargeInput()
@@ -1071,7 +1106,7 @@ namespace LostBreadcrumbs.Runtime.Player
 
             chargePreviewRoot.position = new Vector3(transform.position.x, transform.position.y, 0f);
             Color color = EvaluateOverchargeRingColor(currentCharge01);
-            float revealScale = EvaluateOverchargePreview(currentCharge01).RevealRadiusMultiplier;
+            float revealScale = EvaluateOverchargePreview(currentCharge01, EvaluateInsideSmoke()).RevealRadiusMultiplier;
             float previewRadius = Mathf.Max(0.45f, EffectiveStunRadius * pulseVisualRadiusMultiplier * revealScale);
             float pulse = 0.86f + Mathf.Sin(Time.unscaledTime * 7.4f) * 0.08f;
             for (int i = 0; i < chargePreviewRings.Length; i++)
@@ -1156,7 +1191,7 @@ namespace LostBreadcrumbs.Runtime.Player
             float stunDurationSeconds)
         {
             Charge01 = Mathf.Clamp01(charge01);
-            RevealRadiusMultiplier = Mathf.Max(1f, revealRadiusMultiplier);
+            RevealRadiusMultiplier = Mathf.Max(0.1f, revealRadiusMultiplier);
             NoiseMultiplier = Mathf.Max(1f, noiseMultiplier);
             ResonancePulseCount = Mathf.Clamp(resonancePulseCount, 1, 5);
             StunRadius = Mathf.Max(0.1f, stunRadius);

@@ -20,6 +20,7 @@ Adds a repeatable risk-versus-information decision to the existing Q echo pulse.
 - Charge rings shift echo-blue toward warning-red before the noisy cast.
 - HUD shows Korean charge percent while holding (`Q 과충전 N%`).
 - Smoke may reduce base noise; overcharge still multiplies remaining noise.
+- Casting echo inside smoke also shortens reveal (default 0.72x). Stun radius/duration stay unchanged.
 - Do not retune charge feel from automation while rhythm evidence is `NO_EVIDENCE`.
 
 ## Implementation status (2026-08-23)
@@ -31,11 +32,11 @@ Shipped on this pass:
 - Overcharge telemetry (`OverchargeCastCount`, `FullChargeAutoCastCount`, `LastPulseCharge01`)
 - Low-touch regression contract `Echo.OverchargeContract`
 - Static preflight `code.echoOverchargeHooks`
+- Stability item 5: in-smoke echo trades reveal range for the existing smoke noise cut. Overcharge still multiplies remaining noise. Cue is Korean-first (`연막: 짧게 보고 조용히`). Telemetry records in-smoke yes/no plus the reveal/noise multipliers used.
 
 Still open:
 - Unity Editor compile confirmation
 - Play Mode feel check (tap grace / charge build seconds stay structural defaults until a person or snapshot says otherwise)
-- Echo-in-smoke reveal-for-noise trade (stability item 5; not started)
 
 ## Structural defaults (do not retune without Play Mode evidence)
 - `tapGraceSeconds = 0.16`
