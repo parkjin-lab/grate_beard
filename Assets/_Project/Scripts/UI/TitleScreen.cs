@@ -14,6 +14,10 @@ namespace LostBreadcrumbs.Runtime.UI
 
         private Canvas canvas;
         private CanvasGroup group;
+        private Image frameImage;
+        private Image startInkLine;
+        private Image continueInkLine;
+        private Text logoLabel;
         private Text startLabel;
         private Text continueLabel;
         private RectTransform startRect;
@@ -22,6 +26,7 @@ namespace LostBreadcrumbs.Runtime.UI
         private Action pendingContinue;
         private float ignoreInputUntil;
         private bool visible;
+        private Coroutine fadeRoutine;
 
         public bool IsShowing => visible;
         public bool HasContinueOption => pendingContinue != null && continueLabel != null && continueLabel.gameObject.activeSelf;
@@ -109,17 +114,18 @@ namespace LostBreadcrumbs.Runtime.UI
             RefreshChoiceLabels();
             visible = true;
             ignoreInputUntil = Time.unscaledTime + Mathf.Max(0.05f, inputGraceSeconds);
-            if (group != null)
-            {
-                group.alpha = 1f;
-                group.blocksRaycasts = true;
-                group.interactable = true;
-            }
-
             if (canvas != null)
             {
                 canvas.enabled = true;
             }
+
+            if (group != null)
+            {
+                group.blocksRaycasts = true;
+                group.interactable = true;
+            }
+
+            StartFade(1f);
         }
 
         public void HideImmediate()
@@ -127,6 +133,7 @@ namespace LostBreadcrumbs.Runtime.UI
             visible = false;
             pendingStart = null;
             pendingContinue = null;
+            StopFade();
             if (group != null)
             {
                 group.alpha = 0f;
@@ -143,19 +150,36 @@ namespace LostBreadcrumbs.Runtime.UI
         private void CompleteStart()
         {
             Action callback = pendingStart;
-            HideImmediate();
+            DismissChoices();
             callback?.Invoke();
         }
 
         private void CompleteContinue()
         {
             Action callback = pendingContinue;
-            HideImmediate();
+            DismissChoices();
             callback?.Invoke();
+        }
+
+        private void DismissChoices()
+        {
+            visible = false;
+            pendingStart = null;
+            pendingContinue = null;
+            if (group != null)
+            {
+                group.blocksRaycasts = false;
+                group.interactable = false;
+            }
         }
 
         private void RefreshChoiceLabels()
         {
+            if (logoLabel != null)
+            {
+                logoLabel.text = CampaignStoryCopy.TitleLogo;
+            }
+
             if (startLabel != null)
             {
                 startLabel.text = CampaignStoryCopy.StartLabel;
@@ -168,21 +192,35 @@ namespace LostBreadcrumbs.Runtime.UI
                 continueLabel.text = CampaignStoryCopy.ContinueRunLabel;
             }
 
+            if (continueInkLine != null)
+            {
+                continueInkLine.gameObject.SetActive(showContinue);
+            }
+
             if (startRect != null)
             {
                 if (showContinue)
                 {
-                    startRect.anchorMin = new Vector2(0.32f, 0.34f);
-                    startRect.anchorMax = new Vector2(0.68f, 0.44f);
+                    startRect.anchorMin = new Vector2(0.56f, 0.36f);
+                    startRect.anchorMax = new Vector2(0.86f, 0.46f);
                 }
                 else
                 {
-                    startRect.anchorMin = new Vector2(0.32f, 0.28f);
-                    startRect.anchorMax = new Vector2(0.68f, 0.42f);
+                    startRect.anchorMin = new Vector2(0.56f, 0.30f);
+                    startRect.anchorMax = new Vector2(0.86f, 0.42f);
                 }
 
                 startRect.offsetMin = Vector2.zero;
                 startRect.offsetMax = Vector2.zero;
+            }
+
+            if (startInkLine != null && startRect != null)
+            {
+                RectTransform lineRect = startInkLine.rectTransform;
+                lineRect.anchorMin = new Vector2(startRect.anchorMin.x + 0.04f, startRect.anchorMin.y - 0.01f);
+                lineRect.anchorMax = new Vector2(startRect.anchorMax.x - 0.04f, startRect.anchorMin.y + 0.008f);
+                lineRect.offsetMin = Vector2.zero;
+                lineRect.offsetMax = Vector2.zero;
             }
         }
 
@@ -205,49 +243,100 @@ namespace LostBreadcrumbs.Runtime.UI
             canvasObject.AddComponent<GraphicRaycaster>();
             group = canvasObject.AddComponent<CanvasGroup>();
 
-            Image background = CreateImage("Title_Frame", canvas.transform, Vector2.zero, Vector2.one, new Color(0.07f, 0.05f, 0.03f, 0.96f));
+            CreateImage("Title_Desk", canvas.transform, Vector2.zero, Vector2.one, new Color(0.08f, 0.05f, 0.03f, 1f));
+            frameImage = CreateImage("Title_Frame", canvas.transform, Vector2.zero, Vector2.one, new Color(0.16f, 0.1f, 0.06f, 0.96f));
             Sprite frame = CampaignArt.TryGetBookFrame();
             if (frame != null)
             {
-                background.sprite = frame;
-                background.color = Color.white;
+                frameImage.sprite = frame;
+                frameImage.color = Color.white;
+                frameImage.preserveAspect = true;
             }
 
-            Text logo = CreateText(
+            logoLabel = CreateText(
                 "Title_Logo",
                 canvas.transform,
-                new Vector2(0.18f, 0.52f),
-                new Vector2(0.82f, 0.78f),
-                72,
-                FontStyle.Bold,
+                new Vector2(0.54f, 0.52f),
+                new Vector2(0.88f, 0.72f),
+                54,
+                FontStyle.Normal,
                 TextAnchor.MiddleCenter,
-                new Color(0.20f, 0.10f, 0.05f, 1f));
-            logo.text = CampaignStoryCopy.TitleLogo;
+                new Color(0.24f, 0.12f, 0.06f, 0.96f));
+            logoLabel.text = CampaignStoryCopy.TitleLogo;
 
             startLabel = CreateText(
                 "Title_Start",
                 canvas.transform,
-                new Vector2(0.32f, 0.28f),
-                new Vector2(0.68f, 0.42f),
-                40,
-                FontStyle.Bold,
+                new Vector2(0.56f, 0.30f),
+                new Vector2(0.86f, 0.42f),
+                34,
+                FontStyle.Italic,
                 TextAnchor.MiddleCenter,
-                new Color(0.28f, 0.12f, 0.05f, 1f));
+                new Color(0.30f, 0.14f, 0.07f, 0.94f));
             startLabel.text = CampaignStoryCopy.StartLabel;
             startRect = startLabel.rectTransform;
+            startInkLine = CreateImage(
+                "Title_StartInk",
+                canvas.transform,
+                new Vector2(0.60f, 0.29f),
+                new Vector2(0.82f, 0.305f),
+                new Color(0.28f, 0.14f, 0.07f, 0.42f));
 
             continueLabel = CreateText(
                 "Title_Continue",
                 canvas.transform,
-                new Vector2(0.32f, 0.18f),
-                new Vector2(0.68f, 0.30f),
-                36,
-                FontStyle.Bold,
+                new Vector2(0.56f, 0.20f),
+                new Vector2(0.86f, 0.30f),
+                30,
+                FontStyle.Italic,
                 TextAnchor.MiddleCenter,
-                new Color(0.34f, 0.16f, 0.06f, 1f));
+                new Color(0.32f, 0.16f, 0.08f, 0.9f));
             continueLabel.text = CampaignStoryCopy.ContinueRunLabel;
             continueRect = continueLabel.rectTransform;
+            continueInkLine = CreateImage(
+                "Title_ContinueInk",
+                canvas.transform,
+                new Vector2(0.60f, 0.19f),
+                new Vector2(0.82f, 0.205f),
+                new Color(0.28f, 0.14f, 0.07f, 0.36f));
             continueLabel.gameObject.SetActive(false);
+            continueInkLine.gameObject.SetActive(false);
+        }
+
+        private void StartFade(float targetAlpha)
+        {
+            StopFade();
+            if (group == null)
+            {
+                return;
+            }
+
+            fadeRoutine = StartCoroutine(FadeRoutine(targetAlpha));
+        }
+
+        private void StopFade()
+        {
+            if (fadeRoutine != null)
+            {
+                StopCoroutine(fadeRoutine);
+                fadeRoutine = null;
+            }
+        }
+
+        private System.Collections.IEnumerator FadeRoutine(float targetAlpha)
+        {
+            float start = group.alpha;
+            float duration = 0.22f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                group.alpha = Mathf.Lerp(start, targetAlpha, Mathf.Clamp01(elapsed / duration));
+                yield return null;
+            }
+
+            group.alpha = targetAlpha;
+            fadeRoutine = null;
         }
 
         private static bool ContainsScreenPoint(RectTransform rect, Vector2 screenPoint)
