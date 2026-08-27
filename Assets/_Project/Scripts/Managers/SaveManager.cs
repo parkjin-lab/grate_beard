@@ -253,11 +253,12 @@ namespace LostBreadcrumbs.Runtime.Managers
             ResolveReferences();
             ApplySavedLoadoutToRuntime(saveData.meta.selectedLoadoutId, saveData.meta.unlockedLoadoutIds);
 
+            bool awaitingTitleChoice = StageManager.ActiveInstance != null && StageManager.ActiveInstance.IsAwaitingTitleChoice;
             if (autoLoadCheckpointOnStart && HasCheckpoint)
             {
                 TryLoadCheckpointToRuntime("StartupLoad");
             }
-            else if (startNewRunWhenNoCheckpoint)
+            else if (startNewRunWhenNoCheckpoint && !awaitingTitleChoice)
             {
                 BeginNewRun(incrementRunCounter: true, resetRuntimeStage: false, reason: "StartupNoCheckpoint");
             }

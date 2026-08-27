@@ -14,11 +14,17 @@ namespace LostBreadcrumbs.Runtime.UI
 
         private Canvas canvas;
         private CanvasGroup group;
+        private Text startLabel;
+        private Text continueLabel;
+        private RectTransform startRect;
+        private RectTransform continueRect;
         private Action pendingStart;
+        private Action pendingContinue;
         private float ignoreInputUntil;
         private bool visible;
 
         public bool IsShowing => visible;
+        public bool HasContinueOption => pendingContinue != null && continueLabel != null && continueLabel.gameObject.activeSelf;
 
         public static TitleScreen EnsureInstance()
         {
@@ -65,14 +71,42 @@ namespace LostBreadcrumbs.Runtime.UI
 
             if (CampaignUiInput.ConfirmPressed())
             {
+                if (HasContinueOption)
+                {
+                    CompleteContinue();
+                }
+                else
+                {
+                    CompleteStart();
+                }
+
+                return;
+            }
+
+            if (!CampaignUiInput.PrimaryClickDown())
+            {
+                return;
+            }
+
+            Vector2 pointer = CampaignUiInput.PointerScreenPosition();
+            if (HasContinueOption && ContainsScreenPoint(continueRect, pointer))
+            {
+                CompleteContinue();
+                return;
+            }
+
+            if (ContainsScreenPoint(startRect, pointer))
+            {
                 CompleteStart();
             }
         }
 
-        public void Show(Action onStart)
+        public void Show(Action onStart, Action onContinue = null)
         {
             BuildIfNeeded();
             pendingStart = onStart;
+            pendingContinue = onContinue;
+            RefreshChoiceLabels();
             visible = true;
             ignoreInputUntil = Time.unscaledTime + Mathf.Max(0.05f, inputGraceSeconds);
             if (group != null)
@@ -92,6 +126,7 @@ namespace LostBreadcrumbs.Runtime.UI
         {
             visible = false;
             pendingStart = null;
+            pendingContinue = null;
             if (group != null)
             {
                 group.alpha = 0f;
@@ -110,6 +145,45 @@ namespace LostBreadcrumbs.Runtime.UI
             Action callback = pendingStart;
             HideImmediate();
             callback?.Invoke();
+        }
+
+        private void CompleteContinue()
+        {
+            Action callback = pendingContinue;
+            HideImmediate();
+            callback?.Invoke();
+        }
+
+        private void RefreshChoiceLabels()
+        {
+            if (startLabel != null)
+            {
+                startLabel.text = CampaignStoryCopy.StartLabel;
+            }
+
+            bool showContinue = pendingContinue != null;
+            if (continueLabel != null)
+            {
+                continueLabel.gameObject.SetActive(showContinue);
+                continueLabel.text = CampaignStoryCopy.ContinueRunLabel;
+            }
+
+            if (startRect != null)
+            {
+                if (showContinue)
+                {
+                    startRect.anchorMin = new Vector2(0.32f, 0.34f);
+                    startRect.anchorMax = new Vector2(0.68f, 0.44f);
+                }
+                else
+                {
+                    startRect.anchorMin = new Vector2(0.32f, 0.28f);
+                    startRect.anchorMax = new Vector2(0.68f, 0.42f);
+                }
+
+                startRect.offsetMin = Vector2.zero;
+                startRect.offsetMax = Vector2.zero;
+            }
         }
 
         private void BuildIfNeeded()
@@ -150,7 +224,7 @@ namespace LostBreadcrumbs.Runtime.UI
                 new Color(0.20f, 0.10f, 0.05f, 1f));
             logo.text = CampaignStoryCopy.TitleLogo;
 
-            Text start = CreateText(
+            startLabel = CreateText(
                 "Title_Start",
                 canvas.transform,
                 new Vector2(0.32f, 0.28f),
@@ -159,7 +233,31 @@ namespace LostBreadcrumbs.Runtime.UI
                 FontStyle.Bold,
                 TextAnchor.MiddleCenter,
                 new Color(0.28f, 0.12f, 0.05f, 1f));
-            start.text = CampaignStoryCopy.StartLabel;
+            startLabel.text = CampaignStoryCopy.StartLabel;
+            startRect = startLabel.rectTransform;
+
+            continueLabel = CreateText(
+                "Title_Continue",
+                canvas.transform,
+                new Vector2(0.32f, 0.18f),
+                new Vector2(0.68f, 0.30f),
+                36,
+                FontStyle.Bold,
+                TextAnchor.MiddleCenter,
+                new Color(0.34f, 0.16f, 0.06f, 1f));
+            continueLabel.text = CampaignStoryCopy.ContinueRunLabel;
+            continueRect = continueLabel.rectTransform;
+            continueLabel.gameObject.SetActive(false);
+        }
+
+        private static bool ContainsScreenPoint(RectTransform rect, Vector2 screenPoint)
+        {
+            if (rect == null || !rect.gameObject.activeInHierarchy)
+            {
+                return false;
+            }
+
+            return RectTransformUtility.RectangleContainsScreenPoint(rect, screenPoint, null);
         }
 
         private static Image CreateImage(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Color color)

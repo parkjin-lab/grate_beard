@@ -32,6 +32,7 @@ namespace LostBreadcrumbs.Runtime.UI
         public const string EndingContinueHint = "시작으로";
         public const string TitleLogo = "헨젤과 그레텔";
         public const string StartLabel = "시작";
+        public const string ContinueRunLabel = "이어하기";
         public const string HoldUnlockCue = "멀리까지 들릴 수 있다";
     }
 
@@ -166,6 +167,16 @@ namespace LostBreadcrumbs.Runtime.UI
             return mouse != null && mouse.leftButton.wasPressedThisFrame;
 #else
             return Input.GetMouseButtonDown(0);
+#endif
+        }
+
+        public static Vector2 PointerScreenPosition()
+        {
+#if ENABLE_INPUT_SYSTEM
+            Mouse mouse = Mouse.current;
+            return mouse != null ? mouse.position.ReadValue() : Vector2.zero;
+#else
+            return Input.mousePosition;
 #endif
         }
     }

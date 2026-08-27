@@ -28,6 +28,9 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         public int CurrentStageIndex => Mathf.Max(1, currentStageIndex);
 
+        public bool IsAwaitingTitleChoice =>
+            showTitleOnPlay && !campaignStarted && !RegressionChecklistRunner.IsRegressionRunActive;
+
         public static int ResolvedStageIndex =>
             ActiveInstance != null ? ActiveInstance.CurrentStageIndex : 1;
 
@@ -70,7 +73,7 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             holdUnlockCueShownThisRun = false;
             FreezeGameplay();
-            titleScreen.Show(BeginPrologueFromTitle);
+            StartCoroutine(ShowTitleWhenSaveReady());
         }
 
         private void Update()
@@ -111,8 +114,28 @@ namespace LostBreadcrumbs.Runtime.Managers
             return true;
         }
 
+        private IEnumerator ShowTitleWhenSaveReady()
+        {
+            yield return null;
+            yield return null;
+            EnsureCampaignUi();
+            FreezeGameplay();
+            bool canContinue = CanContinueSavedRun();
+            titleScreen.Show(
+                BeginPrologueFromTitle,
+                canContinue ? BeginContinueFromTitle : null);
+        }
+
         private void BeginPrologueFromTitle()
         {
+            SaveManager.Instance?.BeginNewRun(
+                incrementRunCounter: true,
+                resetRuntimeStage: true,
+                reason: "TitleNewStart");
+            ResolveMap();
+            SyncStageFromMap();
+            currentStageIndex = 1;
+
             if (bookUi == null)
             {
                 BeginGameplayImmediate();
@@ -125,16 +148,59 @@ namespace LostBreadcrumbs.Runtime.Managers
                 () => StartCoroutine(EnterStageOneRoutine()));
         }
 
+        private void BeginContinueFromTitle()
+        {
+            StartCoroutine(ContinueFromTitleRoutine());
+        }
+
         private IEnumerator EnterStageOneRoutine()
         {
             yield return FadeTo(1f);
             titleScreen?.HideImmediate();
             bookUi?.HideImmediate();
+            ResolveMap();
+            if (mapSystem != null && mapSystem.CurrentStage != 1)
+            {
+                mapSystem.GenerateMapForStage(1);
+            }
+
+            SyncStageFromMap();
+            currentStageIndex = 1;
             campaignStarted = true;
             bookBusy = false;
             RestoreGameplay();
             yield return FadeTo(0f);
             TryAnnounceHoldUnlock();
+        }
+
+        private IEnumerator ContinueFromTitleRoutine()
+        {
+            FreezeGameplay();
+            yield return FadeTo(1f);
+            titleScreen?.HideImmediate();
+            bookUi?.HideImmediate();
+
+            bool loaded = SaveManager.Instance != null
+                          && SaveManager.Instance.TryLoadCheckpointToRuntime("TitleContinue");
+            ResolveMap();
+            SyncStageFromMap();
+            if (!loaded && mapSystem != null)
+            {
+                mapSystem.GenerateMapForStage(Mathf.Max(1, currentStageIndex));
+                SyncStageFromMap();
+            }
+
+            campaignStarted = true;
+            bookBusy = false;
+            RestoreGameplay();
+            yield return FadeTo(0f);
+            TryAnnounceHoldUnlock();
+        }
+
+        private static bool CanContinueSavedRun()
+        {
+            SaveManager save = SaveManager.Instance;
+            return save != null && save.HasCheckpoint && save.CheckpointStage >= 1;
         }
 
         private IEnumerator StageClearRoutine()
@@ -143,7 +209,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             FreezeGameplay();
             yield return FadeTo(1f);
 
-            if (TryGetClearPage(clearedStage, out string text, out Sprite illustration))
+            if (bookUi != null && TryGetClearPage(clearedStage, out string text, out Sprite illustration))
             {
                 bool pageDone = false;
                 bookUi.ShowPage(text, illustration, () => pageDone = true);
@@ -203,10 +269,20 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         private void ReturnToTitleAfterEnding()
         {
-            ResolveMap();
-            if (mapSystem != null)
+            if (SaveManager.Instance != null)
             {
-                mapSystem.ResetAndGenerate();
+                SaveManager.Instance.BeginNewRun(
+                    incrementRunCounter: false,
+                    resetRuntimeStage: true,
+                    reason: "CampaignEnding");
+            }
+            else
+            {
+                ResolveMap();
+                if (mapSystem != null)
+                {
+                    mapSystem.ResetAndGenerate();
+                }
             }
 
             currentStageIndex = 1;
@@ -215,7 +291,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             campaignStarted = false;
             bookUi?.HideImmediate();
             FreezeGameplay();
-            titleScreen?.Show(BeginPrologueFromTitle);
+            titleScreen?.Show(BeginPrologueFromTitle, null);
         }
 
         private static bool TryGetClearPage(int clearedStage, out string text, out Sprite illustration)
