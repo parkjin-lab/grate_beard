@@ -1,4 +1,5 @@
 using System.Collections;
+using LostBreadcrumbs.Runtime.Events;
 using LostBreadcrumbs.Runtime.Map;
 using LostBreadcrumbs.Runtime.Systems;
 using LostBreadcrumbs.Runtime.UI;
@@ -22,6 +23,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         private CanvasGroup fadeGroup;
         private bool campaignStarted;
         private bool bookBusy;
+        private bool holdUnlockCueShownThisRun;
         private float restoredTimeScale = 1f;
 
         public int CurrentStageIndex => Mathf.Max(1, currentStageIndex);
@@ -66,6 +68,7 @@ namespace LostBreadcrumbs.Runtime.Managers
                 return;
             }
 
+            holdUnlockCueShownThisRun = false;
             FreezeGameplay();
             titleScreen.Show(BeginPrologueFromTitle);
         }
@@ -131,6 +134,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             bookBusy = false;
             RestoreGameplay();
             yield return FadeTo(0f);
+            TryAnnounceHoldUnlock();
         }
 
         private IEnumerator StageClearRoutine()
@@ -164,6 +168,7 @@ namespace LostBreadcrumbs.Runtime.Managers
             RestoreGameplay();
             yield return FadeTo(0f);
             bookBusy = false;
+            TryAnnounceHoldUnlock();
         }
 
         private static bool TryGetClearPage(int clearedStage, out string text, out Sprite illustration)
@@ -199,6 +204,25 @@ namespace LostBreadcrumbs.Runtime.Managers
                 fadeGroup.alpha = 0f;
                 fadeGroup.blocksRaycasts = false;
             }
+
+            TryAnnounceHoldUnlock();
+        }
+
+        private void TryAnnounceHoldUnlock()
+        {
+            if (holdUnlockCueShownThisRun
+                || RegressionChecklistRunner.IsRegressionRunActive
+                || CurrentStageIndex < 3)
+            {
+                return;
+            }
+
+            holdUnlockCueShownThisRun = true;
+            RuntimeEventBus.Raise(
+                RuntimeEventType.Ability,
+                CampaignStoryCopy.HoldUnlockCue,
+                this,
+                CurrentStageIndex);
         }
 
         private bool ShouldHoldAtTitle()

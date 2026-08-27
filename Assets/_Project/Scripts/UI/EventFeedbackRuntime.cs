@@ -447,6 +447,12 @@ namespace LostBreadcrumbs.Runtime.UI
 
             int stage = ResolveEventStage(record);
             string message = record.Message ?? string.Empty;
+            if (message.Contains("멀리까지 들릴 수 있다"))
+            {
+                payload = new PriorityCuePayload("멀리까지 들릴 수 있다", new Color(0.16f, 0.22f, 0.38f, 0.9f), new Color(0.88f, 0.94f, 1f, 1f), stage);
+                return true;
+            }
+
             if (record.Semantic == RuntimeEventSemantic.RhythmShift && IsBuildReturnCue(message))
             {
                 payload = new PriorityCuePayload("다시 빨라진다", new Color(0.34f, 0.12f, 0.08f, 0.9f), new Color(1f, 0.9f, 0.82f, 1f), stage);

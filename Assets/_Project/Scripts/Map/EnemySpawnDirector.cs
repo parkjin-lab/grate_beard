@@ -343,7 +343,8 @@ namespace LostBreadcrumbs.Runtime.Map
                 return;
             }
 
-            int baseTargetCount = Mathf.Clamp(baseEnemyCount + (stage - 1) * enemyIncreasePerStage, 1, maxEnemyCount);
+            int stage3ExtraPatrols = stage == 3 ? 2 : 0;
+            int baseTargetCount = Mathf.Clamp(baseEnemyCount + (stage - 1) * enemyIncreasePerStage + stage3ExtraPatrols, 1, maxEnemyCount);
             int targetEnemyCount = Mathf.RoundToInt(baseTargetCount * runtimeEnemyCountMultiplier);
             targetEnemyCount = Mathf.Clamp(targetEnemyCount, 1, maxEnemyCount);
             targetEnemyCount = Mathf.Min(targetEnemyCount, spawnCandidates.Count);
@@ -918,7 +919,9 @@ namespace LostBreadcrumbs.Runtime.Map
 
             if (seekerIndex >= 0)
             {
-                bool shouldForceSeeker = (stage >= 3 && (stage + index) % 3 == 0) || (stage >= 5 && index == 0);
+                bool shouldForceSeeker = (stage == 3 && index <= 1)
+                                         || (stage >= 3 && (stage + index) % 3 == 0)
+                                         || (stage >= 5 && index == 0);
                 if (shouldForceSeeker)
                 {
                     return nonNull[seekerIndex];

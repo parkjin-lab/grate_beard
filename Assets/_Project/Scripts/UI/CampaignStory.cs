@@ -22,6 +22,7 @@ namespace LostBreadcrumbs.Runtime.UI
         public const string ContinueHint = "스페이스로 계속";
         public const string TitleLogo = "헨젤과 그레텔";
         public const string StartLabel = "시작";
+        public const string HoldUnlockCue = "멀리까지 들릴 수 있다";
     }
 
     public static class CampaignArt
