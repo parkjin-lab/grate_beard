@@ -198,6 +198,8 @@ namespace LostBreadcrumbs.Runtime.Map
         private bool pendingExitChoiceCarryover;
         private Coroutine exitChoiceCarryoverRoutine;
         private Coroutine riskCacheAftershockRoutine;
+        private float lateHouseMood01;
+        private bool lateHouseMoodApplied;
 
         public int CurrentStage { get; private set; } = 1;
         public int RequiredBreadcrumbs { get; private set; }
@@ -360,6 +362,17 @@ namespace LostBreadcrumbs.Runtime.Map
             UnsubscribeMapEvents();
         }
 
+        private void Update()
+        {
+            if (Time.timeScale <= 0.0001f || RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                return;
+            }
+
+            BreadcrumbPickup.TickForestLick();
+            TickLateHouseMood();
+        }
+
         private void Start()
         {
             ResolveReferences();
@@ -504,6 +517,8 @@ namespace LostBreadcrumbs.Runtime.Map
                 breadcrumbPositions.Add(breadcrumbCells[i].position);
             }
 
+            SpawnCorruptedTrailDecoys(candidates, breadcrumbPositions);
+
             if (spawnStaminaPickups && breadcrumbCells.Count < candidates.Count)
             {
                 int interval = Mathf.Max(1, staminaCountIncreaseStageInterval);
@@ -541,6 +556,7 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             SpawnRiskCaches(riskCacheCandidates, CurrentStage * 509 + cells.Count * 71, latePressure01);
+            TryEnsureLandmarkCacheForLateTrail();
 
             if (hasExit)
             {
@@ -619,6 +635,7 @@ namespace LostBreadcrumbs.Runtime.Map
 
             BreadcrumbPickup pickup = pickupObject.AddComponent<BreadcrumbPickup>();
             pickup.Collected += HandlePickupCollected;
+            pickup.ErasedByForest += HandleFaintTrailErased;
 
             activePickups.Add(pickup);
         }
@@ -660,6 +677,7 @@ namespace LostBreadcrumbs.Runtime.Map
             exitPortal = exitObject.AddComponent<ExitPortalDummy>();
             exitPortal.PlayerEntered += HandleExitEntered;
             exitPortal.SetUnlocked(false);
+            exitPortal.SetHouseThresholdHint(CurrentStage >= Mathf.Max(1, latePressureStartStage));
         }
 
         private void SpawnStaminaPickups(
@@ -1027,7 +1045,16 @@ namespace LostBreadcrumbs.Runtime.Map
             if (pickup != null)
             {
                 pickup.Collected -= HandlePickupCollected;
+                pickup.ErasedByForest -= HandleFaintTrailErased;
                 activePickups.Remove(pickup);
+                if (pickup.IsCorrupted)
+                {
+                    if (allowFeedback)
+                    {
+                        RuntimeEventBus.Raise(RuntimeEventType.Objective, "진해지지 않는 가루였다", this, CurrentStage);
+                    }
+                    return;
+                }
             }
 
             int momentumLevel = UpdateBreadcrumbMomentumLevel();
@@ -1251,7 +1278,7 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             float pressure = EvaluateLateStagePressure01(CurrentStage);
-            if (pressure < corruptedBreadcrumbPressureThreshold)
+            if (pressure < corruptedBreadcrumbPressureThreshold && CurrentStage > corruptedBreadcrumbStartStage)
             {
                 return;
             }
@@ -1568,7 +1595,17 @@ namespace LostBreadcrumbs.Runtime.Map
                 color.a *= fade * Mathf.Lerp(0.48f, 1f, flicker);
                 line.startColor = color;
                 line.endColor = color;
-                line.widthMultiplier = Mathf.Max(0.01f, corruptedBreadcrumbEchoWidth) * Mathf.Lerp(1.35f, 0.18f, t);
+                float hold01 = 0f;
+                if (momentumPlayer != null)
+                {
+                    PlayerEchoPulseAbility holdPulse = momentumPlayer.GetComponent<PlayerEchoPulseAbility>();
+                    if (holdPulse != null)
+                    {
+                        hold01 = holdPulse.Charge01;
+                    }
+                }
+                float widthScale = Mathf.Lerp(1.35f, 0.18f, t) * Mathf.Lerp(1f, 0.62f, hold01);
+                line.widthMultiplier = Mathf.Max(0.01f, corruptedBreadcrumbEchoWidth) * widthScale;
                 yield return null;
             }
 
@@ -2205,6 +2242,13 @@ namespace LostBreadcrumbs.Runtime.Map
             exitChoiceCacheTakenThisStage = false;
             exitChoiceCachePosition = Vector3.zero;
             nextCorruptedBreadcrumbEchoTime = 0f;
+            lateHouseMood01 = 0f;
+            if (lateHouseMoodApplied)
+            {
+                FogOfWarSystem.ActiveInstance?.ResetRuntimeStyleTuningForEditor();
+            }
+
+            lateHouseMoodApplied = false;
 
             for (int i = 0; i < activePickups.Count; i++)
             {
@@ -2212,6 +2256,7 @@ namespace LostBreadcrumbs.Runtime.Map
                 if (pickup != null)
                 {
                     pickup.Collected -= HandlePickupCollected;
+                    pickup.ErasedByForest -= HandleFaintTrailErased;
                     DestroySafe(pickup.gameObject);
                 }
             }
@@ -2330,6 +2375,110 @@ namespace LostBreadcrumbs.Runtime.Map
             }
         }
 
+
+        private void SpawnCorruptedTrailDecoys(IReadOnlyList<GeneratedMapCell> candidates, HashSet<Vector2Int> usedPositions)
+        {
+            if (RegressionChecklistRunner.IsRegressionRunActive
+                || candidates == null
+                || usedPositions == null
+                || CurrentStage < Mathf.Max(1, corruptedBreadcrumbStartStage))
+            {
+                return;
+            }
+
+            List<GeneratedMapCell> pool = new();
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                GeneratedMapCell cell = candidates[i];
+                if (!usedPositions.Contains(cell.position))
+                {
+                    pool.Add(cell);
+                }
+            }
+
+            int decoyCount = Mathf.Min(2, pool.Count);
+            System.Random random = new(CurrentStage * 811 + pool.Count * 17);
+            for (int i = 0; i < decoyCount && pool.Count > 0; i++)
+            {
+                int index = random.Next(0, pool.Count);
+                GeneratedMapCell selected = pool[index];
+                pool.RemoveAt(index);
+                usedPositions.Add(selected.position);
+                SpawnPickup(selected, 80 + i);
+                BreadcrumbPickup spawned = activePickups.Count > 0 ? activePickups[activePickups.Count - 1] : null;
+                spawned?.ConfigureCorrupted(true);
+            }
+        }
+
+        private void TryEnsureLandmarkCacheForLateTrail()
+        {
+            if (RegressionChecklistRunner.IsRegressionRunActive || CurrentStage < 4 || CountActiveRiskCaches() > 0)
+            {
+                return;
+            }
+
+            if (momentumPlayer == null)
+            {
+                momentumPlayer = FindFirstObjectByType<PlayerDummyController>();
+            }
+
+            Vector3 origin = momentumPlayer != null ? momentumPlayer.transform.position : Vector3.zero;
+            TryEnsureRiskCacheForRuntime(origin, out _, out _);
+        }
+
+        private void HandleFaintTrailErased(BreadcrumbPickup pickup)
+        {
+            if (pickup == null)
+            {
+                return;
+            }
+
+            pickup.Collected -= HandlePickupCollected;
+            pickup.ErasedByForest -= HandleFaintTrailErased;
+            activePickups.Remove(pickup);
+            if (!pickup.IsCorrupted)
+            {
+                RequiredBreadcrumbs = Mathf.Max(CollectedBreadcrumbs, RequiredBreadcrumbs - 1);
+            }
+
+            UpdateExitState();
+        }
+
+        private void TickLateHouseMood()
+        {
+            bool lateHouse = CurrentStage >= Mathf.Max(1, latePressureStartStage);
+            float previousMood = lateHouseMood01;
+            lateHouseMood01 = lateHouse
+                ? Mathf.MoveTowards(lateHouseMood01, 1f, Time.deltaTime / 36f)
+                : 0f;
+
+            FogOfWarSystem fog = FogOfWarSystem.ActiveInstance;
+            if (fog == null)
+            {
+                lateHouseMoodApplied = false;
+                return;
+            }
+
+            if (!lateHouse)
+            {
+                if (lateHouseMoodApplied)
+                {
+                    fog.ResetRuntimeStyleTuningForEditor();
+                    lateHouseMoodApplied = false;
+                }
+
+                return;
+            }
+
+            if (lateHouseMoodApplied && Mathf.Abs(lateHouseMood01 - previousMood) < 0.02f)
+            {
+                return;
+            }
+
+            Color woodTint = Color.Lerp(new Color(0.031f, 0.039f, 0.055f, 1f), new Color(0.055f, 0.028f, 0.016f, 1f), lateHouseMood01);
+            fog.ApplyRuntimeStyleTuningForEditor(woodTint, Mathf.Lerp(1f, 1.12f, lateHouseMood01), Mathf.Lerp(1f, 0.86f, lateHouseMood01));
+            lateHouseMoodApplied = true;
+        }
 
         private float EvaluateLateStagePressure01(int stage)
         {

@@ -21,6 +21,8 @@ namespace LostBreadcrumbs.Runtime.Map
         private SpriteRenderer spriteRenderer;
         private SpriteRenderer beaconRenderer;
         private Vector3 baseScale;
+        private bool houseThresholdHint;
+        private float houseHintStartedAt = -1f;
 
         public bool IsUnlocked => unlocked;
 
@@ -80,24 +82,44 @@ namespace LostBreadcrumbs.Runtime.Map
 
         private void Update()
         {
+            float house01 = EvaluateHouseHint01();
             float pulseSpeed = unlocked ? unlockedPulseSpeed : lockedPulseSpeed;
             float pulseScale = unlocked ? unlockedPulseScale : lockedPulseScale;
-            float pulse = 1f + Mathf.Sin(Time.time * pulseSpeed) * pulseScale;
+            float houseScale = houseThresholdHint ? Mathf.Lerp(1f, 1.18f, house01) : 1f;
+            float pulse = (1f + Mathf.Sin(Time.time * pulseSpeed) * pulseScale) * houseScale;
             transform.localScale = baseScale * pulse;
 
             if (beaconRenderer != null)
             {
                 float baseAlpha = unlocked ? 0.3f : 0.22f;
                 float alphaPulse = unlocked ? 0.12f : 0.08f;
+                if (houseThresholdHint)
+                {
+                    baseAlpha = Mathf.Lerp(0.24f, 0.52f, house01);
+                    alphaPulse = Mathf.Lerp(0.08f, 0.18f, house01);
+                }
+
                 Color color = beaconRenderer.color;
                 color.a = Mathf.Clamp01(baseAlpha + Mathf.Sin(Time.time * (pulseSpeed * 0.9f)) * alphaPulse);
                 beaconRenderer.color = color;
+            }
+
+            if (houseThresholdHint)
+            {
+                ApplyColor();
             }
         }
 
         public void SetUnlocked(bool isUnlocked)
         {
             unlocked = isUnlocked;
+            ApplyColor();
+        }
+
+        public void SetHouseThresholdHint(bool enabled)
+        {
+            houseThresholdHint = enabled;
+            houseHintStartedAt = enabled ? Time.time : -1f;
             ApplyColor();
         }
 
@@ -152,16 +174,52 @@ namespace LostBreadcrumbs.Runtime.Map
 
             if (spriteRenderer != null)
             {
-                spriteRenderer.color = unlocked ? unlockedColor : lockedColor;
+                spriteRenderer.color = EvaluatePortalColor();
             }
 
             if (beaconRenderer != null)
             {
-                Color beaconColor = unlocked
+                beaconRenderer.color = EvaluateBeaconColor();
+            }
+        }
+
+        private Color EvaluatePortalColor()
+        {
+            if (!houseThresholdHint)
+            {
+                return unlocked ? unlockedColor : lockedColor;
+            }
+
+            float house01 = EvaluateHouseHint01();
+            Color houseLocked = new(1f, 0.62f, 0.22f, 0.95f);
+            Color houseUnlocked = new(1f, 0.82f, 0.38f, 0.98f);
+            Color from = unlocked ? unlockedColor : lockedColor;
+            Color to = unlocked ? houseUnlocked : houseLocked;
+            return Color.Lerp(from, to, house01);
+        }
+
+        private Color EvaluateBeaconColor()
+        {
+            if (!houseThresholdHint)
+            {
+                return unlocked
                     ? new Color(0.35f, 1f, 0.58f, 0.3f)
                     : new Color(1f, 0.52f, 0.18f, 0.24f);
-                beaconRenderer.color = beaconColor;
             }
+
+            float house01 = EvaluateHouseHint01();
+            Color warm = new(1f, 0.72f, 0.28f, Mathf.Lerp(0.28f, 0.55f, house01));
+            return warm;
+        }
+
+        private float EvaluateHouseHint01()
+        {
+            if (!houseThresholdHint || houseHintStartedAt < 0f)
+            {
+                return 0f;
+            }
+
+            return Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((Time.time - houseHintStartedAt) / 36f));
         }
     }
 }

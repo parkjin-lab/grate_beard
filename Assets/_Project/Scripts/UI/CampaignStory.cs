@@ -19,7 +19,17 @@ namespace LostBreadcrumbs.Runtime.UI
         public const string Stage3 =
             "심장이 빠르게 뛰었다. 고요한 순간이 올 때까지 숨을 죽이고, 멀리까지 귀를 기울여야 했다.";
 
+        public const string Stage4 =
+            "아이들은 옅은 가루로 길을 남겼다.\n밤이 오자 숲이 그 길을 혀로 닦았다.\n숨겨 둔 짙은 묶음만 땅에 남았다.\n그 이정표를 밟고 다음 장이 열렸다.";
+
+        public const string Stage5 =
+            "숲이 같은 가루로 거짓 길을 심었다.\n늦게 갈수록 집의 불이 가루를 물들였다.\n진해지지 않는 것은 길이 아니었다.\n아이들은 문을 보고 장을 넘겼다.";
+
+        public const string Ending =
+            "집은 달콤했고 오븐은 열려 있었다.\n아이들은 그 장을 닫고 숲 밖으로 나왔다.";
+
         public const string ContinueHint = "스페이스로 계속";
+        public const string EndingContinueHint = "시작으로";
         public const string TitleLogo = "헨젤과 그레텔";
         public const string StartLabel = "시작";
         public const string HoldUnlockCue = "멀리까지 들릴 수 있다";

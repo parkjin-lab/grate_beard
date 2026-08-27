@@ -75,6 +75,11 @@ namespace LostBreadcrumbs.Runtime.UI
 
         public void ShowPage(string text, Sprite illust = null, Action onComplete = null)
         {
+            ShowPage(text, illust, null, onComplete);
+        }
+
+        public void ShowPage(string text, Sprite illust, string continueLabel, Action onComplete)
+        {
             BuildIfNeeded();
             pendingComplete = onComplete;
             pageVisible = true;
@@ -99,7 +104,9 @@ namespace LostBreadcrumbs.Runtime.UI
 
             if (continueHint != null)
             {
-                continueHint.text = CampaignStoryCopy.ContinueHint;
+                continueHint.text = string.IsNullOrWhiteSpace(continueLabel)
+                    ? CampaignStoryCopy.ContinueHint
+                    : continueLabel;
             }
 
             if (illustration != null)

@@ -156,6 +156,12 @@ namespace LostBreadcrumbs.Runtime.Managers
                 yield return FadeTo(1f);
             }
 
+            if (clearedStage >= 5)
+            {
+                yield return ShowEndingAndReturnToTitle();
+                yield break;
+            }
+
             currentStageIndex = Mathf.Max(1, clearedStage + 1);
             ResolveMap();
             if (mapSystem != null)
@@ -169,6 +175,47 @@ namespace LostBreadcrumbs.Runtime.Managers
             yield return FadeTo(0f);
             bookBusy = false;
             TryAnnounceHoldUnlock();
+        }
+
+        private IEnumerator ShowEndingAndReturnToTitle()
+        {
+            if (bookUi != null)
+            {
+                bool endingDone = false;
+                bookUi.ShowPage(
+                    CampaignStoryCopy.Ending,
+                    null,
+                    CampaignStoryCopy.EndingContinueHint,
+                    () => endingDone = true);
+                yield return FadeTo(0f);
+                while (!endingDone)
+                {
+                    yield return null;
+                }
+
+                yield return FadeTo(1f);
+            }
+
+            ReturnToTitleAfterEnding();
+            yield return FadeTo(0f);
+            bookBusy = false;
+        }
+
+        private void ReturnToTitleAfterEnding()
+        {
+            ResolveMap();
+            if (mapSystem != null)
+            {
+                mapSystem.ResetAndGenerate();
+            }
+
+            currentStageIndex = 1;
+            SyncStageFromMap();
+            holdUnlockCueShownThisRun = false;
+            campaignStarted = false;
+            bookUi?.HideImmediate();
+            FreezeGameplay();
+            titleScreen?.Show(BeginPrologueFromTitle);
         }
 
         private static bool TryGetClearPage(int clearedStage, out string text, out Sprite illustration)
@@ -185,6 +232,12 @@ namespace LostBreadcrumbs.Runtime.Managers
                     return true;
                 case 3:
                     text = CampaignStoryCopy.Stage3;
+                    return true;
+                case 4:
+                    text = CampaignStoryCopy.Stage4;
+                    return true;
+                case 5:
+                    text = CampaignStoryCopy.Stage5;
                     return true;
                 default:
                     text = null;
