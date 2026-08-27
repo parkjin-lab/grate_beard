@@ -16,8 +16,10 @@ namespace LostBreadcrumbs.Runtime.UI
 
         private Canvas canvas;
         private CanvasGroup group;
+        private Image deskImage;
         private Image background;
         private Image illustration;
+        private Text pictureCaption;
         private Text narration;
         private Text continueHint;
         private Action pendingComplete;
@@ -84,6 +86,11 @@ namespace LostBreadcrumbs.Runtime.UI
 
         public void ShowPage(string text, Sprite illust, string continueLabel, Action onComplete)
         {
+            ShowPage(text, illust, continueLabel, null, onComplete);
+        }
+
+        public void ShowPage(string text, Sprite illust, string continueLabel, string pictureLabel, Action onComplete)
+        {
             BuildIfNeeded();
             StopFade();
             completing = false;
@@ -102,6 +109,11 @@ namespace LostBreadcrumbs.Runtime.UI
                 canvas.enabled = true;
             }
 
+            if (deskImage != null)
+            {
+                deskImage.enabled = string.IsNullOrWhiteSpace(pictureLabel);
+            }
+
             if (narration != null)
             {
                 narration.text = string.IsNullOrWhiteSpace(text) ? string.Empty : text;
@@ -112,6 +124,13 @@ namespace LostBreadcrumbs.Runtime.UI
                 continueHint.text = string.IsNullOrWhiteSpace(continueLabel)
                     ? CampaignStoryCopy.ContinueHint
                     : continueLabel;
+            }
+
+            if (pictureCaption != null)
+            {
+                bool showCaption = !string.IsNullOrWhiteSpace(pictureLabel);
+                pictureCaption.gameObject.SetActive(showCaption);
+                pictureCaption.text = showCaption ? pictureLabel : string.Empty;
             }
 
             if (illustration != null)
@@ -203,7 +222,7 @@ namespace LostBreadcrumbs.Runtime.UI
             canvasObject.AddComponent<GraphicRaycaster>();
             group = canvasObject.AddComponent<CanvasGroup>();
 
-            CreateImage("Book_Desk", canvas.transform, Vector2.zero, Vector2.one, new Color(0.08f, 0.05f, 0.03f, 1f));
+            deskImage = CreateImage("Book_Desk", canvas.transform, Vector2.zero, Vector2.one, new Color(0.08f, 0.05f, 0.03f, 1f));
             background = CreateImage("Book_Frame", canvas.transform, Vector2.zero, Vector2.one, new Color(0.16f, 0.1f, 0.06f, 0.96f));
             Sprite frame = CampaignArt.TryGetBookFrame();
             if (frame != null)
@@ -216,6 +235,17 @@ namespace LostBreadcrumbs.Runtime.UI
             illustration = CreateImage("IllustrationSlot", canvas.transform, new Vector2(0.09f, 0.24f), new Vector2(0.46f, 0.78f), Color.white);
             illustration.preserveAspect = true;
             illustration.enabled = false;
+
+            pictureCaption = CreateText(
+                "PictureCaption",
+                canvas.transform,
+                new Vector2(0.09f, 0.17f),
+                new Vector2(0.46f, 0.24f),
+                26,
+                FontStyle.Italic,
+                TextAnchor.MiddleCenter,
+                new Color(0.26f, 0.13f, 0.07f, 0.94f));
+            pictureCaption.gameObject.SetActive(false);
 
             narration = CreateText(
                 "NarrationText",

@@ -207,6 +207,13 @@ namespace LostBreadcrumbs.Runtime.Managers
         {
             int clearedStage = CurrentStageIndex;
             FreezeGameplay();
+
+            if (clearedStage >= 5)
+            {
+                yield return ShowEndingAndReturnToTitle();
+                yield break;
+            }
+
             yield return FadeTo(1f);
 
             if (bookUi != null && TryGetClearPage(clearedStage, out string text, out Sprite illustration))
@@ -220,12 +227,6 @@ namespace LostBreadcrumbs.Runtime.Managers
                 }
 
                 yield return FadeTo(1f);
-            }
-
-            if (clearedStage >= 5)
-            {
-                yield return ShowEndingAndReturnToTitle();
-                yield break;
             }
 
             currentStageIndex = Mathf.Max(1, clearedStage + 1);
@@ -245,15 +246,22 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         private IEnumerator ShowEndingAndReturnToTitle()
         {
+            if (fadeGroup != null)
+            {
+                fadeGroup.alpha = 0f;
+                fadeGroup.blocksRaycasts = false;
+            }
+
             if (bookUi != null)
             {
                 bool endingDone = false;
+                Sprite picture = TryCaptureLiveThresholdPicture() ?? CampaignArt.TryGetWitchHouseIllustration();
                 bookUi.ShowPage(
                     CampaignStoryCopy.Ending,
-                    CampaignArt.TryGetWitchHouseIllustration(),
-                    CampaignStoryCopy.EndingContinueHint,
+                    picture,
+                    null,
+                    CampaignStoryCopy.ThresholdPictureLabel,
                     () => endingDone = true);
-                yield return FadeTo(0f);
                 while (!endingDone)
                 {
                     yield return null;
@@ -265,6 +273,44 @@ namespace LostBreadcrumbs.Runtime.Managers
             ReturnToTitleAfterEnding();
             yield return FadeTo(0f);
             bookBusy = false;
+        }
+
+        private Sprite TryCaptureLiveThresholdPicture()
+        {
+            Camera camera = Camera.main;
+            if (camera == null || !camera.isActiveAndEnabled)
+            {
+                return null;
+            }
+
+            int width = Mathf.Max(16, camera.pixelWidth);
+            int height = Mathf.Max(16, camera.pixelHeight);
+            RenderTexture temporary = RenderTexture.GetTemporary(width, height, 24);
+            RenderTexture previousTarget = camera.targetTexture;
+            RenderTexture previousActive = RenderTexture.active;
+            camera.targetTexture = temporary;
+            camera.Render();
+            camera.targetTexture = previousTarget;
+            RenderTexture.active = temporary;
+
+            Texture2D texture = new Texture2D(width, height, TextureFormat.RGB24, false)
+            {
+                hideFlags = HideFlags.HideAndDontSave,
+                filterMode = FilterMode.Bilinear
+            };
+            texture.ReadPixels(new Rect(0f, 0f, width, height), 0, 0);
+            texture.Apply(false, false);
+            RenderTexture.active = previousActive;
+            RenderTexture.ReleaseTemporary(temporary);
+
+            Sprite sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, width, height),
+                new Vector2(0.5f, 0.5f),
+                100f);
+            sprite.name = "ThresholdHouseCapture";
+            sprite.hideFlags = HideFlags.HideAndDontSave;
+            return sprite;
         }
 
         private void ReturnToTitleAfterEnding()

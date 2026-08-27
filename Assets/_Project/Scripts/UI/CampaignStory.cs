@@ -26,8 +26,9 @@ namespace LostBreadcrumbs.Runtime.UI
             "숲이 같은 가루로 거짓 길을 심었다.\n늦게 갈수록 집의 불이 가루를 물들였다.\n진해지지 않는 것은 길이 아니었다.\n아이들은 문을 보고 장을 넘겼다.";
 
         public const string Ending =
-            "집은 달콤했고 오븐은 열려 있었다.\n아이들은 그 장을 닫고 숲 밖으로 나왔다.";
+            "그 집 문턱에서 이야기는 덮였다.";
 
+        public const string ThresholdPictureLabel = "집";
         public const string ContinueHint = "스페이스로 계속";
         public const string EndingContinueHint = "시작으로";
         public const string TitleLogo = "헨젤과 그레텔";
