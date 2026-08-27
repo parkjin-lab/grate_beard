@@ -1,4 +1,5 @@
 using System;
+using LostBreadcrumbs.Runtime.Managers;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -151,6 +152,7 @@ namespace LostBreadcrumbs.Runtime.UI
         {
             Action callback = pendingStart;
             DismissChoices();
+            AudioDummyLoopRuntime.TryPlayPageTurnRustle();
             callback?.Invoke();
         }
 
@@ -158,6 +160,7 @@ namespace LostBreadcrumbs.Runtime.UI
         {
             Action callback = pendingContinue;
             DismissChoices();
+            AudioDummyLoopRuntime.TryPlayPageTurnRustle();
             callback?.Invoke();
         }
 

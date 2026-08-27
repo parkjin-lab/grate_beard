@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using LostBreadcrumbs.Runtime.Managers;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -132,6 +133,7 @@ namespace LostBreadcrumbs.Runtime.UI
             }
 
             StartFade(1f, null);
+            AudioDummyLoopRuntime.TryPlayPageTurnRustle();
         }
 
         public void HideImmediate()
