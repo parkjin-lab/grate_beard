@@ -184,7 +184,7 @@ namespace LostBreadcrumbs.Runtime.Managers
                 bool endingDone = false;
                 bookUi.ShowPage(
                     CampaignStoryCopy.Ending,
-                    null,
+                    CampaignArt.TryGetWitchHouseIllustration(),
                     CampaignStoryCopy.EndingContinueHint,
                     () => endingDone = true);
                 yield return FadeTo(0f);
@@ -238,6 +238,7 @@ namespace LostBreadcrumbs.Runtime.Managers
                     return true;
                 case 5:
                     text = CampaignStoryCopy.Stage5;
+                    illustration = CampaignArt.TryGetWitchHouseIllustration();
                     return true;
                 default:
                     text = null;

@@ -24,6 +24,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const float ForestEraseFadeSeconds = 0.85f;
 
         private Vector3 initialScale;
+        private Vector3 restLocalPosition;
         private SpriteRenderer bodyRenderer;
         private Color baseColor = Color.white;
         private float releaseGlow01;
@@ -148,11 +149,12 @@ namespace LostBreadcrumbs.Runtime.Map
                 return;
             }
 
-            baseColor = new Color(0.38f, 0.58f, 0.92f, 0.7f);
-            bodyRenderer.color = baseColor;
-            initialScale *= 0.88f;
-            transform.localScale = initialScale;
             faintLifeRemaining = -1f;
+            forestEraseStarted = false;
+            baseColor = new Color(0.62f, 0.38f, 0.86f, 0.78f);
+            bodyRenderer.color = baseColor;
+            initialScale = Vector3.one * 0.42f;
+            transform.localScale = initialScale;
         }
 
         public void MarkDense()
@@ -167,17 +169,17 @@ namespace LostBreadcrumbs.Runtime.Map
             forestEraseStarted = false;
             if (bodyRenderer != null)
             {
-                baseColor = new Color(1f, 0.86f, 0.28f, 1f);
+                baseColor = new Color(1f, 0.84f, 0.22f, 1f);
                 bodyRenderer.color = baseColor;
             }
 
-            initialScale *= 1.16f;
+            initialScale = Vector3.one * 0.58f;
             transform.localScale = initialScale;
         }
 
         public void PlayReleaseTrailGlow(float durationSeconds)
         {
-            if (!isActiveAndEnabled)
+            if (!isActiveAndEnabled || IsCorrupted)
             {
                 return;
             }
@@ -193,6 +195,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private void Awake()
         {
             initialScale = transform.localScale;
+            restLocalPosition = transform.localPosition;
             bodyRenderer = GetComponent<SpriteRenderer>();
             if (bodyRenderer == null)
             {
@@ -238,20 +241,34 @@ namespace LostBreadcrumbs.Runtime.Map
                 return;
             }
 
+            TickFaintErase();
+
             if (releaseGlow01 <= 0f && ShouldSkipDistantPulse())
             {
                 return;
             }
 
-            TickFaintErase();
-
             float wave = SharedPulseWave(pulseSpeed) * pulseScale;
-            float denseLift = IsDense ? 0.08f : 0f;
-            transform.localScale = initialScale * (1f + wave + releaseGlow01 * 0.14f + denseLift);
+            float denseLift = IsDense ? 0.1f : 0f;
+            float faintShrink = !IsDense && !IsCorrupted && faintLifeRemaining >= 0f ? -0.08f : 0f;
+            Vector3 wobble = Vector3.zero;
+            if (IsCorrupted)
+            {
+                wobble = new Vector3(
+                    Mathf.Sin(Time.time * 7.6f + transform.position.y) * 0.045f,
+                    Mathf.Cos(Time.time * 5.8f + transform.position.x) * 0.03f,
+                    0f);
+            }
+
+            transform.localScale = initialScale * (1f + wave + releaseGlow01 * 0.14f + denseLift + faintShrink);
+            if (IsCorrupted)
+            {
+                transform.localPosition = restLocalPosition + wobble;
+            }
             if (bodyRenderer != null)
             {
                 Color drawn = baseColor;
-                if (releaseGlow01 > 0f)
+                if (releaseGlow01 > 0f && !IsCorrupted)
                 {
                     Color glow = new Color(1f, 0.86f, 0.22f, 1f);
                     drawn = Color.Lerp(baseColor, glow, releaseGlow01);
@@ -259,17 +276,18 @@ namespace LostBreadcrumbs.Runtime.Map
 
                 if (IsCorrupted)
                 {
-                    float flicker = 0.72f + Mathf.Sin(Time.time * 11.4f) * 0.28f;
+                    float flicker = 0.42f + Mathf.Abs(Mathf.Sin(Time.time * 13.2f)) * 0.58f;
                     drawn.a *= flicker;
+                    drawn = Color.Lerp(drawn, new Color(0.28f, 0.22f, 0.4f, drawn.a), 0.35f);
+                }
+                else if (!IsDense && faintLifeRemaining >= 0f)
+                {
+                    drawn.a *= Mathf.Lerp(0.22f, 0.7f, Mathf.Clamp01(faintLifeRemaining / FaintTrailLifetimeMax));
                 }
 
                 if (forestEraseStarted && faintLifeRemaining >= 0f)
                 {
                     drawn.a *= Mathf.Clamp01(faintLifeRemaining / ForestEraseFadeSeconds);
-                }
-                else if (!IsDense && !IsCorrupted && faintLifeRemaining >= 0f && faintLifeRemaining < 3.2f)
-                {
-                    drawn.a *= Mathf.Lerp(0.28f, 1f, faintLifeRemaining / 3.2f);
                 }
 
                 bodyRenderer.color = drawn;
@@ -362,9 +380,11 @@ namespace LostBreadcrumbs.Runtime.Map
             float hash = Mathf.Abs((transform.position.x * 12.7f) + (transform.position.y * 3.1f));
             float blend = Mathf.Repeat(hash, 1f);
             faintLifeRemaining = Mathf.Lerp(FaintTrailLifetimeMin, FaintTrailLifetimeMax, blend);
+            initialScale = Vector3.one * 0.28f;
+            transform.localScale = initialScale;
             if (bodyRenderer != null && !IsDense)
             {
-                baseColor.a = Mathf.Min(baseColor.a, 0.78f);
+                baseColor = new Color(0.78f, 0.7f, 0.58f, 0.42f);
                 bodyRenderer.color = baseColor;
             }
         }

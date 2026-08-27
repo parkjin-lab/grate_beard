@@ -20,9 +20,12 @@ namespace LostBreadcrumbs.Runtime.Map
 
         private SpriteRenderer spriteRenderer;
         private SpriteRenderer beaconRenderer;
+        private SpriteRenderer doorGlowRenderer;
+        private SpriteRenderer windowGlowRenderer;
         private Vector3 baseScale;
         private bool houseThresholdHint;
         private float houseHintStartedAt = -1f;
+        private static Sprite houseGlowSprite;
 
         public bool IsUnlocked => unlocked;
 
@@ -95,8 +98,8 @@ namespace LostBreadcrumbs.Runtime.Map
                 float alphaPulse = unlocked ? 0.12f : 0.08f;
                 if (houseThresholdHint)
                 {
-                    baseAlpha = Mathf.Lerp(0.24f, 0.52f, house01);
-                    alphaPulse = Mathf.Lerp(0.08f, 0.18f, house01);
+                    baseAlpha = Mathf.Lerp(0.16f, 0.28f, house01);
+                    alphaPulse = Mathf.Lerp(0.04f, 0.08f, house01);
                 }
 
                 Color color = beaconRenderer.color;
@@ -107,6 +110,7 @@ namespace LostBreadcrumbs.Runtime.Map
             if (houseThresholdHint)
             {
                 ApplyColor();
+                PulseHouseOpenings(house01);
             }
         }
 
@@ -120,6 +124,11 @@ namespace LostBreadcrumbs.Runtime.Map
         {
             houseThresholdHint = enabled;
             houseHintStartedAt = enabled ? Time.time : -1f;
+            if (enabled)
+            {
+                EnsureHouseGlowParts();
+            }
+
             ApplyColor();
         }
 
@@ -181,6 +190,8 @@ namespace LostBreadcrumbs.Runtime.Map
             {
                 beaconRenderer.color = EvaluateBeaconColor();
             }
+
+            PulseHouseOpenings(EvaluateHouseHint01());
         }
 
         private Color EvaluatePortalColor()
@@ -191,11 +202,9 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             float house01 = EvaluateHouseHint01();
-            Color houseLocked = new(1f, 0.62f, 0.22f, 0.95f);
-            Color houseUnlocked = new(1f, 0.82f, 0.38f, 0.98f);
-            Color from = unlocked ? unlockedColor : lockedColor;
-            Color to = unlocked ? houseUnlocked : houseLocked;
-            return Color.Lerp(from, to, house01);
+            Color cottage = new(0.28f, 0.14f, 0.08f, 0.96f);
+            Color litCottage = new(0.42f, 0.2f, 0.1f, 0.98f);
+            return Color.Lerp(cottage, litCottage, house01);
         }
 
         private Color EvaluateBeaconColor()
@@ -208,8 +217,88 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             float house01 = EvaluateHouseHint01();
-            Color warm = new(1f, 0.72f, 0.28f, Mathf.Lerp(0.28f, 0.55f, house01));
-            return warm;
+            return new Color(1f, 0.62f, 0.2f, Mathf.Lerp(0.1f, 0.2f, house01));
+        }
+
+        private void EnsureHouseGlowParts()
+        {
+            Sprite glowSprite = GetHouseGlowSprite();
+            if (spriteRenderer != null && glowSprite != null)
+            {
+                spriteRenderer.sprite = glowSprite;
+            }
+
+            if (beaconRenderer != null)
+            {
+                beaconRenderer.transform.localPosition = new Vector3(0f, -0.18f, 0f);
+                beaconRenderer.transform.localScale = new Vector3(1.8f, 0.55f, 1f);
+                if (glowSprite != null)
+                {
+                    beaconRenderer.sprite = glowSprite;
+                }
+            }
+
+            doorGlowRenderer = EnsureGlowChild("ExitHouse_Door", new Vector3(0f, -0.08f, 0f), new Vector3(0.34f, 0.58f, 1f), 122);
+            windowGlowRenderer = EnsureGlowChild("ExitHouse_Window", new Vector3(0.22f, 0.18f, 0f), new Vector3(0.2f, 0.2f, 1f), 123);
+        }
+
+        private SpriteRenderer EnsureGlowChild(string childName, Vector3 localPosition, Vector3 localScale, int sortingOrder)
+        {
+            Transform existing = transform.Find(childName);
+            GameObject child = existing != null ? existing.gameObject : new GameObject(childName);
+            child.transform.SetParent(transform, false);
+            child.transform.localPosition = localPosition;
+            child.transform.localScale = localScale;
+            SpriteRenderer renderer = child.GetComponent<SpriteRenderer>();
+            if (renderer == null)
+            {
+                renderer = child.AddComponent<SpriteRenderer>();
+            }
+
+            renderer.sprite = GetHouseGlowSprite();
+            renderer.sortingOrder = sortingOrder;
+            return renderer;
+        }
+
+        private void PulseHouseOpenings(float house01)
+        {
+            if (!houseThresholdHint)
+            {
+                return;
+            }
+
+            float breath = 0.5f + Mathf.Sin(Time.time * 2.1f) * 0.5f;
+            float doorAlpha = Mathf.Lerp(0.42f, 0.92f, house01) * Mathf.Lerp(0.82f, 1f, breath);
+            float windowAlpha = Mathf.Lerp(0.55f, 1f, house01) * Mathf.Lerp(0.75f, 1f, breath);
+            if (doorGlowRenderer != null)
+            {
+                doorGlowRenderer.color = new Color(1f, 0.72f, 0.28f, doorAlpha);
+            }
+
+            if (windowGlowRenderer != null)
+            {
+                windowGlowRenderer.color = new Color(1f, 0.86f, 0.42f, windowAlpha);
+            }
+        }
+
+        private static Sprite GetHouseGlowSprite()
+        {
+            if (houseGlowSprite != null)
+            {
+                return houseGlowSprite;
+            }
+
+            Texture2D texture = new(1, 1, TextureFormat.RGBA32, false)
+            {
+                name = "HouseGlowTexture",
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            texture.SetPixel(0, 0, Color.white);
+            texture.Apply();
+            houseGlowSprite = Sprite.Create(texture, new Rect(0f, 0f, 1f, 1f), new Vector2(0.5f, 0.5f), 1f);
+            houseGlowSprite.name = "HouseGlowSprite";
+            houseGlowSprite.hideFlags = HideFlags.HideAndDontSave;
+            return houseGlowSprite;
         }
 
         private float EvaluateHouseHint01()

@@ -39,11 +39,14 @@ namespace LostBreadcrumbs.Runtime.UI
     {
         private const string FrameResourcePath = "Story/StorybookOpenParchmentFrame";
         private const string Stage1ResourcePath = "Story/StorybookHanselGretelForestPath";
+        private const string WitchHouseResourcePath = "Story/StorybookWitchHouse";
         private const string FrameFileName = "StorybookOpenParchmentFrame.png";
         private const string Stage1FileName = "StorybookHanselGretelForestPath.png";
+        private const string WitchHouseFileName = "StorybookWitchHouse.png";
 
         private static Sprite bookFrame;
         private static Sprite stage1Illustration;
+        private static Sprite witchHouseIllustration;
 
         public static Sprite TryGetBookFrame()
         {
@@ -65,6 +68,17 @@ namespace LostBreadcrumbs.Runtime.UI
 
             stage1Illustration = LoadSprite(Stage1ResourcePath, Stage1FileName, "StorybookHanselGretelForestPath");
             return stage1Illustration;
+        }
+
+        public static Sprite TryGetWitchHouseIllustration()
+        {
+            if (witchHouseIllustration != null)
+            {
+                return witchHouseIllustration;
+            }
+
+            witchHouseIllustration = LoadSprite(WitchHouseResourcePath, WitchHouseFileName, "StorybookWitchHouse");
+            return witchHouseIllustration;
         }
 
         private static Sprite LoadSprite(string resourcePath, string fileName, string spriteName)
