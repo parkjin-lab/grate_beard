@@ -656,8 +656,19 @@ namespace LostBreadcrumbs.Runtime.Map
             exitObject.transform.localScale = Vector3.one * exitScale;
 
             SpriteRenderer renderer = exitObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = new Color(1f, 0.25f, 0.25f, 0.95f);
+            bool houseThreshold = CurrentStage >= Mathf.Max(1, latePressureStartStage);
+            Sprite houseSprite = houseThreshold ? MapReadableArt.TryGetHouseThresholdExitSprite() : null;
+            if (houseSprite != null)
+            {
+                renderer.sprite = houseSprite;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = new Color(1f, 0.25f, 0.25f, 0.95f);
+            }
+
             renderer.sortingOrder = 120;
 
             GameObject beaconObject = new("ExitPortal_Beacon");
@@ -677,7 +688,7 @@ namespace LostBreadcrumbs.Runtime.Map
             exitPortal = exitObject.AddComponent<ExitPortalDummy>();
             exitPortal.PlayerEntered += HandleExitEntered;
             exitPortal.SetUnlocked(false);
-            exitPortal.SetHouseThresholdHint(CurrentStage >= Mathf.Max(1, latePressureStartStage));
+            exitPortal.SetHouseThresholdHint(houseThreshold);
         }
 
         private void SpawnStaminaPickups(

@@ -10,17 +10,20 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string FaintBreadResourcePath = "Map/FaintLickedBreadcrumb";
         private const string CorruptedBreadResourcePath = "Map/CorruptedFalseBreadcrumb";
         private const string LandmarkCacheResourcePath = "Map/LandmarkTrailCache";
+        private const string HouseThresholdResourcePath = "Map/HouseThresholdDoorGlow";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
         private const string CorruptedBreadFileName = "CorruptedFalseBreadcrumb.png";
         private const string LandmarkCacheFileName = "LandmarkTrailCache.png";
+        private const string HouseThresholdFileName = "HouseThresholdDoorGlow.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
         private static Sprite faintBreadSprite;
         private static Sprite corruptedBreadSprite;
         private static Sprite landmarkCacheSprite;
+        private static Sprite houseThresholdExitSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -75,6 +78,20 @@ namespace LostBreadcrumbs.Runtime.Map
 
             landmarkCacheSprite = LoadSprite(LandmarkCacheResourcePath, LandmarkCacheFileName, "LandmarkTrailCache");
             return landmarkCacheSprite != null ? landmarkCacheSprite : TryGetBreadcrumbSprite();
+        }
+
+        public static Sprite TryGetHouseThresholdExitSprite()
+        {
+            if (houseThresholdExitSprite != null)
+            {
+                return houseThresholdExitSprite;
+            }
+
+            houseThresholdExitSprite = LoadSprite(
+                HouseThresholdResourcePath,
+                HouseThresholdFileName,
+                "HouseThresholdDoorGlow");
+            return houseThresholdExitSprite;
         }
 
         private static Sprite LoadSprite(string resourcePath, string fileName, string spriteName)

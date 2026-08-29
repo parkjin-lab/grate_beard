@@ -201,6 +201,12 @@ namespace LostBreadcrumbs.Runtime.Map
                 return unlocked ? unlockedColor : lockedColor;
             }
 
+            // Painted cottage art already carries door/window light; keep tint white.
+            if (MapReadableArt.TryGetHouseThresholdExitSprite() != null)
+            {
+                return Color.white;
+            }
+
             float house01 = EvaluateHouseHint01();
             Color cottage = new(0.28f, 0.14f, 0.08f, 0.96f);
             Color litCottage = new(0.42f, 0.2f, 0.1f, 0.98f);
@@ -285,6 +291,13 @@ namespace LostBreadcrumbs.Runtime.Map
         {
             if (houseGlowSprite != null)
             {
+                return houseGlowSprite;
+            }
+
+            Sprite artSprite = MapReadableArt.TryGetHouseThresholdExitSprite();
+            if (artSprite != null)
+            {
+                houseGlowSprite = artSprite;
                 return houseGlowSprite;
             }
 
