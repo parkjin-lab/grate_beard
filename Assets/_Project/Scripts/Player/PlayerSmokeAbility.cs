@@ -134,8 +134,19 @@ namespace LostBreadcrumbs.Runtime.Player
             smokeObject.transform.localScale = Vector3.one;
 
             SpriteRenderer renderer = smokeObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = smokeColor;
+            Sprite puffSprite = MapReadableArt.TryGetSmokeSprite();
+            if (puffSprite != null)
+            {
+                renderer.sprite = puffSprite;
+                // Keep soft mist alpha from smokeColor; leave RGB white so the PNG is not muddied.
+                renderer.color = new Color(1f, 1f, 1f, smokeColor.a);
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = smokeColor;
+            }
+
             renderer.sortingOrder = 24;
 
             float effectiveRadius = smokeRadius * runtimeRadiusMultiplier;
