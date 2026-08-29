@@ -351,12 +351,15 @@ namespace LostBreadcrumbs.Runtime.Managers
                     return true;
                 case 2:
                     text = CampaignStoryCopy.Stage2;
+                    illustration = CampaignArt.TryGetStage2Illustration();
                     return true;
                 case 3:
                     text = CampaignStoryCopy.Stage3;
+                    illustration = CampaignArt.TryGetStage3Illustration();
                     return true;
                 case 4:
                     text = CampaignStoryCopy.Stage4;
+                    illustration = CampaignArt.TryGetStage4Illustration();
                     return true;
                 case 5:
                     text = CampaignStoryCopy.Stage5;

@@ -41,13 +41,22 @@ namespace LostBreadcrumbs.Runtime.UI
     {
         private const string FrameResourcePath = "Story/StorybookOpenParchmentFrame";
         private const string Stage1ResourcePath = "Story/StorybookHanselGretelForestPath";
+        private const string Stage2ResourcePath = "Story/StorybookSmokeAndCache";
+        private const string Stage3ResourcePath = "Story/StorybookHoldAndListen";
+        private const string Stage4ResourcePath = "Story/StorybookLickedTrailCache";
         private const string WitchHouseResourcePath = "Story/StorybookWitchHouse";
         private const string FrameFileName = "StorybookOpenParchmentFrame.png";
         private const string Stage1FileName = "StorybookHanselGretelForestPath.png";
+        private const string Stage2FileName = "StorybookSmokeAndCache.png";
+        private const string Stage3FileName = "StorybookHoldAndListen.png";
+        private const string Stage4FileName = "StorybookLickedTrailCache.png";
         private const string WitchHouseFileName = "StorybookWitchHouse.png";
 
         private static Sprite bookFrame;
         private static Sprite stage1Illustration;
+        private static Sprite stage2Illustration;
+        private static Sprite stage3Illustration;
+        private static Sprite stage4Illustration;
         private static Sprite witchHouseIllustration;
 
         public static Sprite TryGetBookFrame()
@@ -70,6 +79,39 @@ namespace LostBreadcrumbs.Runtime.UI
 
             stage1Illustration = LoadSprite(Stage1ResourcePath, Stage1FileName, "StorybookHanselGretelForestPath");
             return stage1Illustration;
+        }
+
+        public static Sprite TryGetStage2Illustration()
+        {
+            if (stage2Illustration != null)
+            {
+                return stage2Illustration;
+            }
+
+            stage2Illustration = LoadSprite(Stage2ResourcePath, Stage2FileName, "StorybookSmokeAndCache");
+            return stage2Illustration;
+        }
+
+        public static Sprite TryGetStage3Illustration()
+        {
+            if (stage3Illustration != null)
+            {
+                return stage3Illustration;
+            }
+
+            stage3Illustration = LoadSprite(Stage3ResourcePath, Stage3FileName, "StorybookHoldAndListen");
+            return stage3Illustration;
+        }
+
+        public static Sprite TryGetStage4Illustration()
+        {
+            if (stage4Illustration != null)
+            {
+                return stage4Illustration;
+            }
+
+            stage4Illustration = LoadSprite(Stage4ResourcePath, Stage4FileName, "StorybookLickedTrailCache");
+            return stage4Illustration;
         }
 
         public static Sprite TryGetWitchHouseIllustration()
