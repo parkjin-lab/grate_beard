@@ -7,11 +7,20 @@ namespace LostBreadcrumbs.Runtime.Map
     {
         private const string WallResourcePath = "Map/ForestMossyStoneWall";
         private const string BreadResourcePath = "Map/GoldenGlowBreadcrumb";
+        private const string FaintBreadResourcePath = "Map/FaintLickedBreadcrumb";
+        private const string CorruptedBreadResourcePath = "Map/CorruptedFalseBreadcrumb";
+        private const string LandmarkCacheResourcePath = "Map/LandmarkTrailCache";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
+        private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
+        private const string CorruptedBreadFileName = "CorruptedFalseBreadcrumb.png";
+        private const string LandmarkCacheFileName = "LandmarkTrailCache.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
+        private static Sprite faintBreadSprite;
+        private static Sprite corruptedBreadSprite;
+        private static Sprite landmarkCacheSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -33,6 +42,39 @@ namespace LostBreadcrumbs.Runtime.Map
 
             breadSprite = LoadSprite(BreadResourcePath, BreadFileName, "GoldenGlowBreadcrumb");
             return breadSprite;
+        }
+
+        public static Sprite TryGetFaintBreadcrumbSprite()
+        {
+            if (faintBreadSprite != null)
+            {
+                return faintBreadSprite;
+            }
+
+            faintBreadSprite = LoadSprite(FaintBreadResourcePath, FaintBreadFileName, "FaintLickedBreadcrumb");
+            return faintBreadSprite != null ? faintBreadSprite : TryGetBreadcrumbSprite();
+        }
+
+        public static Sprite TryGetCorruptedBreadcrumbSprite()
+        {
+            if (corruptedBreadSprite != null)
+            {
+                return corruptedBreadSprite;
+            }
+
+            corruptedBreadSprite = LoadSprite(CorruptedBreadResourcePath, CorruptedBreadFileName, "CorruptedFalseBreadcrumb");
+            return corruptedBreadSprite != null ? corruptedBreadSprite : TryGetBreadcrumbSprite();
+        }
+
+        public static Sprite TryGetLandmarkCacheSprite()
+        {
+            if (landmarkCacheSprite != null)
+            {
+                return landmarkCacheSprite;
+            }
+
+            landmarkCacheSprite = LoadSprite(LandmarkCacheResourcePath, LandmarkCacheFileName, "LandmarkTrailCache");
+            return landmarkCacheSprite != null ? landmarkCacheSprite : TryGetBreadcrumbSprite();
         }
 
         private static Sprite LoadSprite(string resourcePath, string fileName, string spriteName)

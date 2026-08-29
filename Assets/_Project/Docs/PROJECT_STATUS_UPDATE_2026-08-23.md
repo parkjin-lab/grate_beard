@@ -27,15 +27,16 @@ Updated: 2026-08-27
 - 그림책 타이틀/책장: 타이틀은 기존 펼친 책 프레임 위(`preserveAspect`)에 `헨젤과 그레텔`과 잉크 밑줄 `시작`/`이어하기`를 오른쪽에 둔다. 책 페이지는 같은 CanvasGroup으로 짧게 페이드 인/아웃(0.22s/0.16s)한다. 힌트는 `스페이스로 계속`, 스킵과 그림 없는 텍스트 페이지는 그대로다. 캠페인 규칙/게이트/세이브/사망-무책은 손대지 않았다.
 - 책장 소리: `AudioDummyLoopRuntime`이 기존 generated dummy 스타일로 짧은 종이 넘김을 만들어, 책 `ShowPage`와 타이틀 `시작`/`이어하기` 확인에서만 한 번 낸다. 새 오디오 엔진/스팅어 종류/사망-책은 없다.
 - 2–4층 클리어 그림: `StorybookSmokeAndCache` / `StorybookHoldAndListen` / `StorybookLickedTrailCache` PNG를 Art와 Resources/Story에 두었고, `TryGetStage2/3/4Illustration`이 클리어 책 왼쪽에 넣는다. 문구는 그대로, 파일이 없으면 텍스트만.
+- 숲 빵가루 가독: `FaintLickedBreadcrumb` / `CorruptedFalseBreadcrumb` / `LandmarkTrailCache` PNG를 Art와 Resources/Map에 두었다. `MapReadableArt`가 각각 옅은·거짓·랜드마크 캐시로 로드하고, 없으면 `GoldenGlowBreadcrumb`로 떨어진다. S1 진짜 길은 황금 가루 그대로다. 숫자/캠페인/책 규칙은 손대지 않았다.
 
 ## 아직 열린 것
 - Unity 6000.5.9f1 에디터 컴파일 확인
-- Play Mode에서 2–4층 클리어 책 왼쪽 그림, 5층 문턱 한 장, 사망-무책만 본다
+- Play Mode에서 4층 옅은 가루·랜드마크 묶음, 5층 거짓 가루가 서로 다른 스프라이트로 보이는지 본다
 - 리듬 스냅샷은 여전히 `NO_EVIDENCE`. 페이즈 초/압박/과충전/연막 숫자는 손대지 말 것
 
 ## 다음 에이전트
 1. Unity 콘솔에서 컴파일만 확인한다.
-2. Play Mode에서 2/3/4층 클리어 책이 매칭 그림을 보여 주는지 본다. 숫자를 바꾸지 않는다.
+2. Play Mode에서 S4 옅은/캐시, S5 거짓 가루 스프라이트만 확인한다. 숫자를 바꾸지 않는다.
 
 ## 한 줄 판정
-2–4층 클리어 책 왼쪽에 연막·경청·핥긴 길 그림이 뜬다.
+S4 옅은 가루·랜드마크 캐시와 S5 거짓 가루가 서로 다른 PNG로 읽힌다.

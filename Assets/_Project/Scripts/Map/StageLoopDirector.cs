@@ -980,8 +980,18 @@ namespace LostBreadcrumbs.Runtime.Map
             cacheObject.transform.localScale = Vector3.one * Mathf.Max(0.1f, riskCacheScale);
 
             SpriteRenderer renderer = cacheObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = riskCacheColor;
+            Sprite cacheSprite = MapReadableArt.TryGetLandmarkCacheSprite();
+            if (cacheSprite != null)
+            {
+                renderer.sprite = cacheSprite;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = riskCacheColor;
+            }
+
             renderer.sortingOrder = riskCacheSortingOrder;
 
             CircleCollider2D trigger = cacheObject.AddComponent<CircleCollider2D>();

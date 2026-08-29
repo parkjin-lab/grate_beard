@@ -151,7 +151,17 @@ namespace LostBreadcrumbs.Runtime.Map
 
             faintLifeRemaining = -1f;
             forestEraseStarted = false;
-            baseColor = new Color(0.62f, 0.38f, 0.86f, 0.78f);
+            Sprite corruptedSprite = MapReadableArt.TryGetCorruptedBreadcrumbSprite();
+            if (corruptedSprite != null)
+            {
+                bodyRenderer.sprite = corruptedSprite;
+                baseColor = Color.white;
+            }
+            else
+            {
+                baseColor = new Color(0.62f, 0.38f, 0.86f, 0.78f);
+            }
+
             bodyRenderer.color = baseColor;
             initialScale = Vector3.one * 0.42f;
             transform.localScale = initialScale;
@@ -169,7 +179,17 @@ namespace LostBreadcrumbs.Runtime.Map
             forestEraseStarted = false;
             if (bodyRenderer != null)
             {
-                baseColor = new Color(1f, 0.84f, 0.22f, 1f);
+                Sprite denseSprite = MapReadableArt.TryGetBreadcrumbSprite();
+                if (denseSprite != null)
+                {
+                    bodyRenderer.sprite = denseSprite;
+                    baseColor = Color.white;
+                }
+                else
+                {
+                    baseColor = new Color(1f, 0.84f, 0.22f, 1f);
+                }
+
                 bodyRenderer.color = baseColor;
             }
 
@@ -384,7 +404,17 @@ namespace LostBreadcrumbs.Runtime.Map
             transform.localScale = initialScale;
             if (bodyRenderer != null && !IsDense)
             {
-                baseColor = new Color(0.78f, 0.7f, 0.58f, 0.42f);
+                Sprite faintSprite = MapReadableArt.TryGetFaintBreadcrumbSprite();
+                if (faintSprite != null)
+                {
+                    bodyRenderer.sprite = faintSprite;
+                    baseColor = Color.white;
+                }
+                else
+                {
+                    baseColor = new Color(0.78f, 0.7f, 0.58f, 0.42f);
+                }
+
                 bodyRenderer.color = baseColor;
             }
         }
