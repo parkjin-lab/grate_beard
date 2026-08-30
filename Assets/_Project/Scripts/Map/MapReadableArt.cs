@@ -17,6 +17,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string SeekerThreatResourcePath = "Map/ForestSeekerThreat";
         private const string PlayerBodyResourcePath = "Map/ForestSiblingTraveler";
         private const string StageExitPortalResourcePath = "Map/ForestStageExitPortal";
+        private const string SafeHavenResourcePath = "Map/ForestSafeHavenMossRing";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -29,6 +30,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string SeekerThreatFileName = "ForestSeekerThreat.png";
         private const string PlayerBodyFileName = "ForestSiblingTraveler.png";
         private const string StageExitPortalFileName = "ForestStageExitPortal.png";
+        private const string SafeHavenFileName = "ForestSafeHavenMossRing.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -42,6 +44,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite seekerThreatSprite;
         private static Sprite playerBodySprite;
         private static Sprite stageExitPortalSprite;
+        private static Sprite safeHavenSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -191,6 +194,21 @@ namespace LostBreadcrumbs.Runtime.Map
                 StageExitPortalFileName,
                 "ForestStageExitPortal");
             return stageExitPortalSprite;
+        }
+
+        public static Sprite TryGetSafeHavenSprite()
+        {
+            if (safeHavenSprite != null)
+            {
+                return safeHavenSprite;
+            }
+
+            // Unit-world sprite; SpawnSafeHaven keeps localScale 0.95 and trigger radius unchanged.
+            safeHavenSprite = LoadUnitWorldSprite(
+                SafeHavenResourcePath,
+                SafeHavenFileName,
+                "ForestSafeHavenMossRing");
+            return safeHavenSprite;
         }
 
         private static Sprite LoadUnitWorldSprite(string resourcePath, string fileName, string spriteName)

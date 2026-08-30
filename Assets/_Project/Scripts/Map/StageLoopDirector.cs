@@ -1044,8 +1044,18 @@ namespace LostBreadcrumbs.Runtime.Map
             havenObject.transform.localScale = Vector3.one * 0.95f;
 
             SpriteRenderer renderer = havenObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = safeHavenColor;
+            Sprite havenSprite = MapReadableArt.TryGetSafeHavenSprite();
+            if (havenSprite != null)
+            {
+                renderer.sprite = havenSprite;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = safeHavenColor;
+            }
+
             renderer.sortingOrder = 23;
 
             CircleCollider2D trigger = havenObject.AddComponent<CircleCollider2D>();
