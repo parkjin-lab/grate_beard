@@ -30,15 +30,16 @@ Updated: 2026-08-27
 - 숲 빵가루 가독: `FaintLickedBreadcrumb` / `CorruptedFalseBreadcrumb` / `LandmarkTrailCache` PNG를 Art와 Resources/Map에 두었다. `MapReadableArt`가 각각 옅은·거짓·랜드마크 캐시로 로드하고, 없으면 `GoldenGlowBreadcrumb`로 떨어진다. S1 진짜 길은 황금 가루 그대로다. 숫자/캠페인/책 규칙은 손대지 않았다.
 - 5층 집 문턱 출구: `HouseThresholdDoorGlow` PNG를 Art와 Resources/Map에 두고, `TryGetHouseThresholdExitSprite` / `ExitPortalDummy.GetHouseGlowSprite`가 쓴다. 빨간 디버그 네모·초록 핑 대신 문/창 불 오두막으로 읽힌다. 파일이 없으면 기존 1×1 흰 픽셀. 출구 언락 숫자·캠페인 규칙은 그대로다.
 - S2 연막 가독: `ForestEchoSmokePuff` PNG를 Art와 Resources/Map에 두고, `MapReadableArt.TryGetSmokeSprite` / `PlayerSmokeAbility` 전개 / `SmokeScreenFieldDummy.Awake`가 쓴다. 회색 디버그 원판 대신 숲 안개 뭉치로 읽힌다. 없으면 기존 디버그 원. 반경·수명·시야가림·소음감쇠 숫자는 그대로다.
+- Q 메아리 링: `ForestEchoPulseRing` PNG를 Art와 Resources/Map에 두고, `TryGetEchoPulseSprite` / `EchoPulseVisualDummy.GetRingSprite`(`SharedRingSprite`)가 쓴다. 탭·홀드 시전과 과충전 미리보기가 같은 링을 쓴다. 없으면 기존 128px 절차형 고리. 차지 숫자·색·시간은 그대로다.
 
 ## 아직 열린 것
 - Unity 6000.5.9f1 에디터 컴파일 확인
-- Play Mode에서 R 연막이 안개 PNG인지, 5층 출구 오두막·가루 구분을 본다
+- Play Mode에서 Q 링이 그린 링인지, R 연막·5층 출구·가루 구분을 본다
 - 리듬 스냅샷은 여전히 `NO_EVIDENCE`. 페이즈 초/압박/과충전/연막 숫자는 손대지 말 것
 
 ## 다음 에이전트
 1. Unity 콘솔에서 컴파일만 확인한다.
-2. Play Mode에서 S2 R 연막 스프라이트만 확인한다. 숫자를 바꾸지 않는다.
+2. Play Mode에서 Q 탭/홀드 링과 과충전 미리보기만 확인한다. 숫자를 바꾸지 않는다.
 
 ## 한 줄 판정
-S2 연막이 숲 안개 PNG로 읽힌다.
+Q 메아리 링이 `ForestEchoPulseRing`으로 읽힌다.

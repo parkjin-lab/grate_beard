@@ -12,6 +12,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string LandmarkCacheResourcePath = "Map/LandmarkTrailCache";
         private const string HouseThresholdResourcePath = "Map/HouseThresholdDoorGlow";
         private const string SmokeResourcePath = "Map/ForestEchoSmokePuff";
+        private const string EchoPulseResourcePath = "Map/ForestEchoPulseRing";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -19,6 +20,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string LandmarkCacheFileName = "LandmarkTrailCache.png";
         private const string HouseThresholdFileName = "HouseThresholdDoorGlow.png";
         private const string SmokeFileName = "ForestEchoSmokePuff.png";
+        private const string EchoPulseFileName = "ForestEchoPulseRing.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -27,6 +29,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite landmarkCacheSprite;
         private static Sprite houseThresholdExitSprite;
         private static Sprite smokeSprite;
+        private static Sprite echoPulseSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -106,6 +109,17 @@ namespace LostBreadcrumbs.Runtime.Map
 
             smokeSprite = LoadSprite(SmokeResourcePath, SmokeFileName, "ForestEchoSmokePuff");
             return smokeSprite;
+        }
+
+        public static Sprite TryGetEchoPulseSprite()
+        {
+            if (echoPulseSprite != null)
+            {
+                return echoPulseSprite;
+            }
+
+            echoPulseSprite = LoadSprite(EchoPulseResourcePath, EchoPulseFileName, "ForestEchoPulseRing");
+            return echoPulseSprite;
         }
 
         private static Sprite LoadSprite(string resourcePath, string fileName, string spriteName)

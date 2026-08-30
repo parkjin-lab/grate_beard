@@ -148,6 +148,29 @@ namespace LostBreadcrumbs.Runtime.Map
                 return ringSprite;
             }
 
+            Sprite artSprite = MapReadableArt.TryGetEchoPulseSprite();
+            if (artSprite != null)
+            {
+                // Procedural fallback uses PPU == texture size so localScale diameter == world diameter.
+                float unitPixels = Mathf.Max(1f, artSprite.rect.width);
+                if (!Mathf.Approximately(artSprite.pixelsPerUnit, unitPixels))
+                {
+                    ringSprite = Sprite.Create(
+                        artSprite.texture,
+                        artSprite.rect,
+                        new Vector2(0.5f, 0.5f),
+                        unitPixels);
+                    ringSprite.name = artSprite.name;
+                    ringSprite.hideFlags = HideFlags.HideAndDontSave;
+                }
+                else
+                {
+                    ringSprite = artSprite;
+                }
+
+                return ringSprite;
+            }
+
             const int size = 128;
             const float outerRadius = 0.48f;
             const float ringHalfThickness = 0.06f;
