@@ -16,6 +16,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string PatrolThreatResourcePath = "Map/ForestPatrolThreat";
         private const string SeekerThreatResourcePath = "Map/ForestSeekerThreat";
         private const string PlayerBodyResourcePath = "Map/ForestSiblingTraveler";
+        private const string StageExitPortalResourcePath = "Map/ForestStageExitPortal";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -27,6 +28,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string PatrolThreatFileName = "ForestPatrolThreat.png";
         private const string SeekerThreatFileName = "ForestSeekerThreat.png";
         private const string PlayerBodyFileName = "ForestSiblingTraveler.png";
+        private const string StageExitPortalFileName = "ForestStageExitPortal.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -39,6 +41,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite patrolThreatSprite;
         private static Sprite seekerThreatSprite;
         private static Sprite playerBodySprite;
+        private static Sprite stageExitPortalSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -173,6 +176,21 @@ namespace LostBreadcrumbs.Runtime.Map
                 PlayerBodyFileName,
                 "ForestSiblingTraveler");
             return playerBodySprite;
+        }
+
+        public static Sprite TryGetStageExitPortalSprite()
+        {
+            if (stageExitPortalSprite != null)
+            {
+                return stageExitPortalSprite;
+            }
+
+            // Unit-world sprite; SpawnExit keeps existing exitScale (collider radius 0.55 unchanged).
+            stageExitPortalSprite = LoadUnitWorldSprite(
+                StageExitPortalResourcePath,
+                StageExitPortalFileName,
+                "ForestStageExitPortal");
+            return stageExitPortalSprite;
         }
 
         private static Sprite LoadUnitWorldSprite(string resourcePath, string fileName, string spriteName)

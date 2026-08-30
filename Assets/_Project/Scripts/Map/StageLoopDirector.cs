@@ -657,10 +657,12 @@ namespace LostBreadcrumbs.Runtime.Map
 
             SpriteRenderer renderer = exitObject.AddComponent<SpriteRenderer>();
             bool houseThreshold = CurrentStage >= Mathf.Max(1, latePressureStartStage);
-            Sprite houseSprite = houseThreshold ? MapReadableArt.TryGetHouseThresholdExitSprite() : null;
-            if (houseSprite != null)
+            Sprite exitSprite = houseThreshold
+                ? MapReadableArt.TryGetHouseThresholdExitSprite()
+                : MapReadableArt.TryGetStageExitPortalSprite();
+            if (exitSprite != null)
             {
-                renderer.sprite = houseSprite;
+                renderer.sprite = exitSprite;
                 renderer.color = Color.white;
             }
             else

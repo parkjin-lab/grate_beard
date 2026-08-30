@@ -198,6 +198,12 @@ namespace LostBreadcrumbs.Runtime.Map
         {
             if (!houseThresholdHint)
             {
+                // Painted stage-exit arch already carries glow; keep tint white.
+                if (MapReadableArt.TryGetStageExitPortalSprite() != null)
+                {
+                    return Color.white;
+                }
+
                 return unlocked ? unlockedColor : lockedColor;
             }
 
