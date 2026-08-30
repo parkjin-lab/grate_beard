@@ -15,6 +15,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string EchoPulseResourcePath = "Map/ForestEchoPulseRing";
         private const string PatrolThreatResourcePath = "Map/ForestPatrolThreat";
         private const string SeekerThreatResourcePath = "Map/ForestSeekerThreat";
+        private const string PlayerBodyResourcePath = "Map/ForestSiblingTraveler";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -25,6 +26,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string EchoPulseFileName = "ForestEchoPulseRing.png";
         private const string PatrolThreatFileName = "ForestPatrolThreat.png";
         private const string SeekerThreatFileName = "ForestSeekerThreat.png";
+        private const string PlayerBodyFileName = "ForestSiblingTraveler.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -36,6 +38,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite echoPulseSprite;
         private static Sprite patrolThreatSprite;
         private static Sprite seekerThreatSprite;
+        private static Sprite playerBodySprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -155,6 +158,21 @@ namespace LostBreadcrumbs.Runtime.Map
                 SeekerThreatFileName,
                 "ForestSeekerThreat");
             return seekerThreatSprite;
+        }
+
+        public static Sprite TryGetPlayerBodySprite()
+        {
+            if (playerBodySprite != null)
+            {
+                return playerBodySprite;
+            }
+
+            // Unit-world sprite so PlayerBodyArtScale ~0.85 matches collider radius 0.35.
+            playerBodySprite = LoadUnitWorldSprite(
+                PlayerBodyResourcePath,
+                PlayerBodyFileName,
+                "ForestSiblingTraveler");
+            return playerBodySprite;
         }
 
         private static Sprite LoadUnitWorldSprite(string resourcePath, string fileName, string spriteName)

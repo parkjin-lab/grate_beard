@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using LostBreadcrumbs.Runtime.Map;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -28,6 +29,9 @@ namespace LostBreadcrumbs.Runtime.Player
         [SerializeField] private Color arrowColor = new(1f, 0.95f, 0.3f, 1f);
         [SerializeField, Min(0.2f)] private float avatarScale = 0.65f;
         [SerializeField] private bool addCollision = true;
+
+        // Painted sibling body when undead frames are unavailable; collider radius stays 0.35.
+        private const float PlayerBodyArtScale = 0.85f;
 
         private static Sprite cachedSprite;
 
@@ -60,7 +64,7 @@ namespace LostBreadcrumbs.Runtime.Player
                 bodyRenderer.sprite = EvaluateInitialFrame();
                 DestroyChildIfExists(avatar, "FacingArrow");
             }
-            else
+            else if (!TrySetupPaintedBodyVisual())
             {
                 SetupDebugFallbackVisual();
             }
@@ -149,6 +153,24 @@ namespace LostBreadcrumbs.Runtime.Player
             {
                 bodyRenderer.flipX = dx < 0f;
             }
+        }
+
+        private bool TrySetupPaintedBodyVisual()
+        {
+            Sprite bodyArt = MapReadableArt.TryGetPlayerBodySprite();
+            if (bodyArt == null || bodyRenderer == null || avatar == null)
+            {
+                return false;
+            }
+
+            flipByMovementX = true;
+            avatar.localScale = Vector3.one * PlayerBodyArtScale;
+            bodyRenderer.sprite = bodyArt;
+            bodyRenderer.color = Color.white;
+            bodyRenderer.flipX = false;
+            DestroyChildIfExists(avatar, "FacingArrow");
+            facingArrow = null;
+            return true;
         }
 
         private void SetupDebugFallbackVisual()
