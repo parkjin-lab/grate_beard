@@ -13,6 +13,8 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string HouseThresholdResourcePath = "Map/HouseThresholdDoorGlow";
         private const string SmokeResourcePath = "Map/ForestEchoSmokePuff";
         private const string EchoPulseResourcePath = "Map/ForestEchoPulseRing";
+        private const string PatrolThreatResourcePath = "Map/ForestPatrolThreat";
+        private const string SeekerThreatResourcePath = "Map/ForestSeekerThreat";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -21,6 +23,8 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string HouseThresholdFileName = "HouseThresholdDoorGlow.png";
         private const string SmokeFileName = "ForestEchoSmokePuff.png";
         private const string EchoPulseFileName = "ForestEchoPulseRing.png";
+        private const string PatrolThreatFileName = "ForestPatrolThreat.png";
+        private const string SeekerThreatFileName = "ForestSeekerThreat.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -30,6 +34,8 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite houseThresholdExitSprite;
         private static Sprite smokeSprite;
         private static Sprite echoPulseSprite;
+        private static Sprite patrolThreatSprite;
+        private static Sprite seekerThreatSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -120,6 +126,59 @@ namespace LostBreadcrumbs.Runtime.Map
 
             echoPulseSprite = LoadSprite(EchoPulseResourcePath, EchoPulseFileName, "ForestEchoPulseRing");
             return echoPulseSprite;
+        }
+
+        public static Sprite TryGetPatrolThreatSprite()
+        {
+            if (patrolThreatSprite != null)
+            {
+                return patrolThreatSprite;
+            }
+
+            // Unit-world sprite (PPU == width) so spawn scale ~0.9 matches collider radius 0.38.
+            patrolThreatSprite = LoadUnitWorldSprite(
+                PatrolThreatResourcePath,
+                PatrolThreatFileName,
+                "ForestPatrolThreat");
+            return patrolThreatSprite;
+        }
+
+        public static Sprite TryGetSeekerThreatSprite()
+        {
+            if (seekerThreatSprite != null)
+            {
+                return seekerThreatSprite;
+            }
+
+            seekerThreatSprite = LoadUnitWorldSprite(
+                SeekerThreatResourcePath,
+                SeekerThreatFileName,
+                "ForestSeekerThreat");
+            return seekerThreatSprite;
+        }
+
+        private static Sprite LoadUnitWorldSprite(string resourcePath, string fileName, string spriteName)
+        {
+            Sprite loaded = LoadSprite(resourcePath, fileName, spriteName);
+            if (loaded == null)
+            {
+                return null;
+            }
+
+            float unitPixels = Mathf.Max(1f, loaded.rect.width);
+            if (Mathf.Approximately(loaded.pixelsPerUnit, unitPixels))
+            {
+                return loaded;
+            }
+
+            Sprite unitSprite = Sprite.Create(
+                loaded.texture,
+                loaded.rect,
+                new Vector2(0.5f, 0.5f),
+                unitPixels);
+            unitSprite.name = spriteName;
+            unitSprite.hideFlags = HideFlags.HideAndDontSave;
+            return unitSprite;
         }
 
         private static Sprite LoadSprite(string resourcePath, string fileName, string spriteName)

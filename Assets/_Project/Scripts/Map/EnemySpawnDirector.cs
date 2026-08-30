@@ -58,6 +58,8 @@ namespace LostBreadcrumbs.Runtime.Map
         [SerializeField] private RuntimeAnimatorController undeadEnemyBaseController;
         [SerializeField] private AnimatorOverrideController[] undeadEnemyOverrideControllers;
         [SerializeField, Min(0.1f)] private float undeadEnemyScale = 1.05f;
+        // Painted patrol/seeker bodies: ~0.9 keeps CircleCollider2D radius 0.38 feeling fair.
+        private const float ForestThreatArtScale = 0.9f;
         [SerializeField] private bool autoBindUndeadAssetsInEditor = true;
 
         private readonly List<EnemyController> activeEnemies = new();
@@ -740,9 +742,21 @@ namespace LostBreadcrumbs.Runtime.Map
             }
             else
             {
-                enemyObject.transform.localScale = Vector3.one * 0.7f;
-                renderer.sprite = GetDebugSprite();
-                renderer.color = GetEnemyColor(profile, cell.kind);
+                Sprite threatArt = IsSeekerProfile(profile)
+                    ? MapReadableArt.TryGetSeekerThreatSprite()
+                    : MapReadableArt.TryGetPatrolThreatSprite();
+                if (threatArt != null)
+                {
+                    renderer.sprite = threatArt;
+                    renderer.color = Color.white;
+                    enemyObject.transform.localScale = Vector3.one * ForestThreatArtScale;
+                }
+                else
+                {
+                    enemyObject.transform.localScale = Vector3.one * 0.7f;
+                    renderer.sprite = GetDebugSprite();
+                    renderer.color = GetEnemyColor(profile, cell.kind);
+                }
             }
 
             CircleCollider2D collider = enemyObject.AddComponent<CircleCollider2D>();
@@ -1071,7 +1085,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private float ResolveEnemySpawnClearanceRadius()
         {
             float radius = Mathf.Max(0.05f, enemySpawnClearanceRadius);
-            float scale = useUndeadSurvivorVisuals ? Mathf.Max(0.1f, undeadEnemyScale) : 0.7f;
+            float scale = useUndeadSurvivorVisuals ? Mathf.Max(0.1f, undeadEnemyScale) : ForestThreatArtScale;
             return Mathf.Max(radius, enemySpawnClearanceRadius * scale + Mathf.Max(0f, enemySpawnColliderPadding));
         }
 
