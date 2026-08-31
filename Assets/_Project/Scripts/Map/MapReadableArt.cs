@@ -19,6 +19,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string StageExitPortalResourcePath = "Map/ForestStageExitPortal";
         private const string SafeHavenResourcePath = "Map/ForestSafeHavenMossRing";
         private const string StaminaPickupResourcePath = "Map/ForestStaminaDewBerry";
+        private const string ExitChoiceCacheResourcePath = "Map/ForestExitChoiceCache";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -33,6 +34,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string StageExitPortalFileName = "ForestStageExitPortal.png";
         private const string SafeHavenFileName = "ForestSafeHavenMossRing.png";
         private const string StaminaPickupFileName = "ForestStaminaDewBerry.png";
+        private const string ExitChoiceCacheFileName = "ForestExitChoiceCache.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -48,6 +50,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite stageExitPortalSprite;
         private static Sprite safeHavenSprite;
         private static Sprite staminaPickupSprite;
+        private static Sprite exitChoiceCacheSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -142,6 +145,21 @@ namespace LostBreadcrumbs.Runtime.Map
                 StaminaPickupFileName,
                 "ForestStaminaDewBerry");
             return staminaPickupSprite;
+        }
+
+        public static Sprite TryGetExitChoiceCacheSprite()
+        {
+            if (exitChoiceCacheSprite != null)
+            {
+                return exitChoiceCacheSprite;
+            }
+
+            // Same LoadSprite PPU 100 pattern as crumbs/smoke/stamina; SpawnExitChoiceCache keeps scale 0.82.
+            exitChoiceCacheSprite = LoadSprite(
+                ExitChoiceCacheResourcePath,
+                ExitChoiceCacheFileName,
+                "ForestExitChoiceCache");
+            return exitChoiceCacheSprite;
         }
 
         public static Sprite TryGetEchoPulseSprite()

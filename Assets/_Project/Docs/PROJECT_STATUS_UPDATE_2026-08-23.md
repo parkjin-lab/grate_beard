@@ -35,16 +35,17 @@ Updated: 2026-08-27
 - 플레이어 몸: undead 프레임 없을 때 `ForestSiblingTraveler` PNG를 Art와 Resources/Map에서 쓴다. `TryGetPlayerBodySprite` → `PlayerDummyVisual`. 스케일 0.85(콜라이더 0.35 유지). undead 애니 경로 그대로. 없으면 시안 디버그 네모+화살.
 - S1–S4 출구: `ForestStageExitPortal` PNG를 Art와 Resources/Map에 두고, `TryGetStageExitPortalSprite` → `SpawnExit` 비-문턱 경로. 빨간 디버그 네모 대신 이끼 아치/등불 문. 5층 `HouseThresholdDoorGlow` 그대로. 콜라이더 0.55·언락 숫자 그대로.
 - 안전 쉼터: `ForestSafeHavenMossRing` PNG를 Art와 Resources/Map에 두고, `TryGetSafeHavenSprite` → `SpawnSafeHaven`. 청록 디버그 네모 대신 이끼·버섯 고리. localScale 0.95·트리거 반경·드레드 숫자 그대로.
-- 스태미나 픽업: `ForestStaminaDewBerry` PNG를 Art와 Resources/Map에 두고, `TryGetStaminaPickupSprite` → `SpawnStaminaPickup`. 시안 디버그 네모 대신 이슬 열매 뭉치. localScale 0.4·콜라이더 0.4·회복량 그대로. ExitChoiceCache는 그대로.
+- 스태미나 픽업: `ForestStaminaDewBerry` PNG를 Art와 Resources/Map에 두고, `TryGetStaminaPickupSprite` → `SpawnStaminaPickup`. 시안 디버그 네모 대신 이슬 열매 뭉치. localScale 0.4·콜라이더 0.4·회복량 그대로.
+- 출구 선택 캐시: `ForestExitChoiceCache` PNG를 Art와 Resources/Map에 두고, `TryGetExitChoiceCacheSprite` → `SpawnExitChoiceCache`. 주황 디버그 네모 대신 호박색 등불 항아리. scale 0.82·회복 1.05·거리/노이즈 그대로. 비콘 VFX는 그대로.
 
 ## 아직 열린 것
 - Unity 6000.5.9f1 에디터 컴파일 확인
-- Play Mode에서 스태미나 이슬 열매, 안전 쉼터 고리, S1–S4 출구 아치를 본다
+- Play Mode에서 출구 선택 캐시 등불, 스태미나 이슬 열매, 안전 쉼터 고리를 본다
 - 리듬 스냅샷은 여전히 `NO_EVIDENCE`. 페이즈 초/압박/과충전/연막 숫자는 손대지 말 것
 
 ## 다음 에이전트
 1. Unity 콘솔에서 컴파일만 확인한다.
-2. Play Mode에서 스태미나 픽업이 이슬 열매 PNG인지 확인한다. 숫자를 바꾸지 않는다.
+2. Play Mode에서 ExitChoiceCache가 호박 등불 PNG인지 확인한다. 숫자를 바꾸지 않는다.
 
 ## 한 줄 판정
-스태미나 픽업이 시안 네모 대신 이슬 열매 PNG로 읽힌다.
+출구 선택 캐시가 주황 네모 대신 호박 등불 PNG로 읽힌다.
