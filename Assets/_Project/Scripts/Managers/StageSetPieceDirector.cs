@@ -607,7 +607,13 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             float intensityBias = Mathf.Lerp(0.92f, 1.12f, Mathf.Clamp01(Mathf.InverseLerp(0.85f, 1.2f, runtimeIntensity)));
             float multiplier = Mathf.Lerp(minBeaconCountMultiplier, maxBeaconCountMultiplier, tension01) * intensityBias;
-            return ScaleCount(baseCount, multiplier, 1, maxExtraBeacons);
+            int count = ScaleCount(baseCount, multiplier, 1, maxExtraBeacons);
+            if (tier == StageSetPieceTier.Stage3ForkLure)
+            {
+                count += 1;
+            }
+
+            return count;
         }
 
         private int EvaluateReinforcementCount(StageSetPieceTier tier, float tension01, float runtimeIntensity)
@@ -620,7 +626,13 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             float intensityBias = Mathf.Lerp(0.9f, 1.2f, Mathf.Clamp01(Mathf.InverseLerp(0.85f, 1.2f, runtimeIntensity)));
             float multiplier = Mathf.Lerp(minReinforcementCountMultiplier, maxReinforcementCountMultiplier, tension01) * intensityBias;
-            return ScaleCount(baseCount, multiplier, 0, maxExtraReinforcements);
+            int count = ScaleCount(baseCount, multiplier, 0, maxExtraReinforcements);
+            if (tier == StageSetPieceTier.Stage3ForkLure)
+            {
+                count += 1;
+            }
+
+            return count;
         }
 
         private float EvaluateBeaconLifetime(StageSetPieceTier tier, float tension01)

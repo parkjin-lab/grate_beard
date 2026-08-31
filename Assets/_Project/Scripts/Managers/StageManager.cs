@@ -1,4 +1,5 @@
 using System.Collections;
+using LostBreadcrumbs.Runtime.Events;
 using LostBreadcrumbs.Runtime.Map;
 using LostBreadcrumbs.Runtime.Systems;
 using LostBreadcrumbs.Runtime.UI;
@@ -22,9 +23,13 @@ namespace LostBreadcrumbs.Runtime.Managers
         private CanvasGroup fadeGroup;
         private bool campaignStarted;
         private bool bookBusy;
+        private bool holdUnlockCueShownThisRun;
         private float restoredTimeScale = 1f;
 
         public int CurrentStageIndex => Mathf.Max(1, currentStageIndex);
+
+        public bool IsAwaitingTitleChoice =>
+            showTitleOnPlay && !campaignStarted && !RegressionChecklistRunner.IsRegressionRunActive;
 
         public static int ResolvedStageIndex =>
             ActiveInstance != null ? ActiveInstance.CurrentStageIndex : 1;
@@ -66,8 +71,9 @@ namespace LostBreadcrumbs.Runtime.Managers
                 return;
             }
 
+            holdUnlockCueShownThisRun = false;
             FreezeGameplay();
-            titleScreen.Show(BeginPrologueFromTitle);
+            StartCoroutine(ShowTitleWhenSaveReady());
         }
 
         private void Update()
@@ -108,8 +114,28 @@ namespace LostBreadcrumbs.Runtime.Managers
             return true;
         }
 
+        private IEnumerator ShowTitleWhenSaveReady()
+        {
+            yield return null;
+            yield return null;
+            EnsureCampaignUi();
+            FreezeGameplay();
+            bool canContinue = CanContinueSavedRun();
+            titleScreen.Show(
+                BeginPrologueFromTitle,
+                canContinue ? BeginContinueFromTitle : null);
+        }
+
         private void BeginPrologueFromTitle()
         {
+            SaveManager.Instance?.BeginNewRun(
+                incrementRunCounter: true,
+                resetRuntimeStage: true,
+                reason: "TitleNewStart");
+            ResolveMap();
+            SyncStageFromMap();
+            currentStageIndex = 1;
+
             if (bookUi == null)
             {
                 BeginGameplayImmediate();
@@ -122,24 +148,75 @@ namespace LostBreadcrumbs.Runtime.Managers
                 () => StartCoroutine(EnterStageOneRoutine()));
         }
 
+        private void BeginContinueFromTitle()
+        {
+            StartCoroutine(ContinueFromTitleRoutine());
+        }
+
         private IEnumerator EnterStageOneRoutine()
         {
             yield return FadeTo(1f);
             titleScreen?.HideImmediate();
             bookUi?.HideImmediate();
+            ResolveMap();
+            if (mapSystem != null && mapSystem.CurrentStage != 1)
+            {
+                mapSystem.GenerateMapForStage(1);
+            }
+
+            SyncStageFromMap();
+            currentStageIndex = 1;
             campaignStarted = true;
             bookBusy = false;
             RestoreGameplay();
             yield return FadeTo(0f);
+            TryAnnounceHoldUnlock();
+        }
+
+        private IEnumerator ContinueFromTitleRoutine()
+        {
+            FreezeGameplay();
+            yield return FadeTo(1f);
+            titleScreen?.HideImmediate();
+            bookUi?.HideImmediate();
+
+            bool loaded = SaveManager.Instance != null
+                          && SaveManager.Instance.TryLoadCheckpointToRuntime("TitleContinue");
+            ResolveMap();
+            SyncStageFromMap();
+            if (!loaded && mapSystem != null)
+            {
+                mapSystem.GenerateMapForStage(Mathf.Max(1, currentStageIndex));
+                SyncStageFromMap();
+            }
+
+            campaignStarted = true;
+            bookBusy = false;
+            RestoreGameplay();
+            yield return FadeTo(0f);
+            TryAnnounceHoldUnlock();
+        }
+
+        private static bool CanContinueSavedRun()
+        {
+            SaveManager save = SaveManager.Instance;
+            return save != null && save.HasCheckpoint && save.CheckpointStage >= 1;
         }
 
         private IEnumerator StageClearRoutine()
         {
             int clearedStage = CurrentStageIndex;
             FreezeGameplay();
+
+            if (clearedStage >= 5)
+            {
+                yield return ShowEndingAndReturnToTitle();
+                yield break;
+            }
+
             yield return FadeTo(1f);
 
-            if (TryGetClearPage(clearedStage, out string text, out Sprite illustration))
+            if (bookUi != null && TryGetClearPage(clearedStage, out string text, out Sprite illustration))
             {
                 bool pageDone = false;
                 bookUi.ShowPage(text, illustration, () => pageDone = true);
@@ -164,6 +241,103 @@ namespace LostBreadcrumbs.Runtime.Managers
             RestoreGameplay();
             yield return FadeTo(0f);
             bookBusy = false;
+            TryAnnounceHoldUnlock();
+        }
+
+        private IEnumerator ShowEndingAndReturnToTitle()
+        {
+            if (fadeGroup != null)
+            {
+                fadeGroup.alpha = 0f;
+                fadeGroup.blocksRaycasts = false;
+            }
+
+            if (bookUi != null)
+            {
+                bool endingDone = false;
+                Sprite picture = TryCaptureLiveThresholdPicture() ?? CampaignArt.TryGetWitchHouseIllustration();
+                bookUi.ShowPage(
+                    CampaignStoryCopy.Ending,
+                    picture,
+                    null,
+                    CampaignStoryCopy.ThresholdPictureLabel,
+                    () => endingDone = true);
+                while (!endingDone)
+                {
+                    yield return null;
+                }
+
+                yield return FadeTo(1f);
+            }
+
+            ReturnToTitleAfterEnding();
+            yield return FadeTo(0f);
+            bookBusy = false;
+        }
+
+        private Sprite TryCaptureLiveThresholdPicture()
+        {
+            Camera camera = Camera.main;
+            if (camera == null || !camera.isActiveAndEnabled)
+            {
+                return null;
+            }
+
+            int width = Mathf.Max(16, camera.pixelWidth);
+            int height = Mathf.Max(16, camera.pixelHeight);
+            RenderTexture temporary = RenderTexture.GetTemporary(width, height, 24);
+            RenderTexture previousTarget = camera.targetTexture;
+            RenderTexture previousActive = RenderTexture.active;
+            camera.targetTexture = temporary;
+            camera.Render();
+            camera.targetTexture = previousTarget;
+            RenderTexture.active = temporary;
+
+            Texture2D texture = new Texture2D(width, height, TextureFormat.RGB24, false)
+            {
+                hideFlags = HideFlags.HideAndDontSave,
+                filterMode = FilterMode.Bilinear
+            };
+            texture.ReadPixels(new Rect(0f, 0f, width, height), 0, 0);
+            texture.Apply(false, false);
+            RenderTexture.active = previousActive;
+            RenderTexture.ReleaseTemporary(temporary);
+
+            Sprite sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, width, height),
+                new Vector2(0.5f, 0.5f),
+                100f);
+            sprite.name = "ThresholdHouseCapture";
+            sprite.hideFlags = HideFlags.HideAndDontSave;
+            return sprite;
+        }
+
+        private void ReturnToTitleAfterEnding()
+        {
+            if (SaveManager.Instance != null)
+            {
+                SaveManager.Instance.BeginNewRun(
+                    incrementRunCounter: false,
+                    resetRuntimeStage: true,
+                    reason: "CampaignEnding");
+            }
+            else
+            {
+                ResolveMap();
+                if (mapSystem != null)
+                {
+                    mapSystem.ResetAndGenerate();
+                }
+            }
+
+            currentStageIndex = 1;
+            SyncStageFromMap();
+            holdUnlockCueShownThisRun = false;
+            campaignStarted = false;
+            bookUi?.HideImmediate();
+            FreezeGameplay();
+            titleScreen?.Show(BeginPrologueFromTitle, null);
         }
 
         private static bool TryGetClearPage(int clearedStage, out string text, out Sprite illustration)
@@ -177,9 +351,19 @@ namespace LostBreadcrumbs.Runtime.Managers
                     return true;
                 case 2:
                     text = CampaignStoryCopy.Stage2;
+                    illustration = CampaignArt.TryGetStage2Illustration();
                     return true;
                 case 3:
                     text = CampaignStoryCopy.Stage3;
+                    illustration = CampaignArt.TryGetStage3Illustration();
+                    return true;
+                case 4:
+                    text = CampaignStoryCopy.Stage4;
+                    illustration = CampaignArt.TryGetStage4Illustration();
+                    return true;
+                case 5:
+                    text = CampaignStoryCopy.Stage5;
+                    illustration = CampaignArt.TryGetWitchHouseIllustration();
                     return true;
                 default:
                     text = null;
@@ -199,6 +383,25 @@ namespace LostBreadcrumbs.Runtime.Managers
                 fadeGroup.alpha = 0f;
                 fadeGroup.blocksRaycasts = false;
             }
+
+            TryAnnounceHoldUnlock();
+        }
+
+        private void TryAnnounceHoldUnlock()
+        {
+            if (holdUnlockCueShownThisRun
+                || RegressionChecklistRunner.IsRegressionRunActive
+                || CurrentStageIndex < 3)
+            {
+                return;
+            }
+
+            holdUnlockCueShownThisRun = true;
+            RuntimeEventBus.Raise(
+                RuntimeEventType.Ability,
+                CampaignStoryCopy.HoldUnlockCue,
+                this,
+                CurrentStageIndex);
         }
 
         private bool ShouldHoldAtTitle()

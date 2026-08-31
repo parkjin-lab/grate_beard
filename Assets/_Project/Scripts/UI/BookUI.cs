@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using LostBreadcrumbs.Runtime.Managers;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,13 +16,17 @@ namespace LostBreadcrumbs.Runtime.UI
 
         private Canvas canvas;
         private CanvasGroup group;
+        private Image deskImage;
         private Image background;
         private Image illustration;
+        private Text pictureCaption;
         private Text narration;
         private Text continueHint;
         private Action pendingComplete;
         private float ignoreInputUntil;
         private bool pageVisible;
+        private bool completing;
+        private Coroutine fadeRoutine;
 
         public bool IsShowing => pageVisible;
 
@@ -75,14 +81,25 @@ namespace LostBreadcrumbs.Runtime.UI
 
         public void ShowPage(string text, Sprite illust = null, Action onComplete = null)
         {
+            ShowPage(text, illust, null, onComplete);
+        }
+
+        public void ShowPage(string text, Sprite illust, string continueLabel, Action onComplete)
+        {
+            ShowPage(text, illust, continueLabel, null, onComplete);
+        }
+
+        public void ShowPage(string text, Sprite illust, string continueLabel, string pictureLabel, Action onComplete)
+        {
             BuildIfNeeded();
+            StopFade();
+            completing = false;
             pendingComplete = onComplete;
             pageVisible = true;
             ignoreInputUntil = Time.unscaledTime + Mathf.Max(0.05f, inputGraceSeconds);
 
             if (group != null)
             {
-                group.alpha = 1f;
                 group.blocksRaycasts = true;
                 group.interactable = true;
             }
@@ -92,6 +109,11 @@ namespace LostBreadcrumbs.Runtime.UI
                 canvas.enabled = true;
             }
 
+            if (deskImage != null)
+            {
+                deskImage.enabled = string.IsNullOrWhiteSpace(pictureLabel);
+            }
+
             if (narration != null)
             {
                 narration.text = string.IsNullOrWhiteSpace(text) ? string.Empty : text;
@@ -99,7 +121,16 @@ namespace LostBreadcrumbs.Runtime.UI
 
             if (continueHint != null)
             {
-                continueHint.text = CampaignStoryCopy.ContinueHint;
+                continueHint.text = string.IsNullOrWhiteSpace(continueLabel)
+                    ? CampaignStoryCopy.ContinueHint
+                    : continueLabel;
+            }
+
+            if (pictureCaption != null)
+            {
+                bool showCaption = !string.IsNullOrWhiteSpace(pictureLabel);
+                pictureCaption.gameObject.SetActive(showCaption);
+                pictureCaption.text = showCaption ? pictureLabel : string.Empty;
             }
 
             if (illustration != null)
@@ -116,13 +147,18 @@ namespace LostBreadcrumbs.Runtime.UI
                 {
                     background.sprite = frame;
                     background.color = Color.white;
-                    background.preserveAspect = false;
+                    background.preserveAspect = true;
                 }
             }
+
+            StartFade(1f, null);
+            AudioDummyLoopRuntime.TryPlayPageTurnRustle();
         }
 
         public void HideImmediate()
         {
+            StopFade();
+            completing = false;
             pageVisible = false;
             pendingComplete = null;
             if (group != null)
@@ -140,9 +176,31 @@ namespace LostBreadcrumbs.Runtime.UI
 
         private void CompletePage()
         {
+            if (completing)
+            {
+                return;
+            }
+
+            completing = true;
+            pageVisible = false;
             Action callback = pendingComplete;
-            HideImmediate();
-            callback?.Invoke();
+            pendingComplete = null;
+            StartFade(0f, () =>
+            {
+                if (group != null)
+                {
+                    group.blocksRaycasts = false;
+                    group.interactable = false;
+                }
+
+                if (canvas != null)
+                {
+                    canvas.enabled = false;
+                }
+
+                completing = false;
+                callback?.Invoke();
+            });
         }
 
         private void BuildIfNeeded()
@@ -164,17 +222,30 @@ namespace LostBreadcrumbs.Runtime.UI
             canvasObject.AddComponent<GraphicRaycaster>();
             group = canvasObject.AddComponent<CanvasGroup>();
 
+            deskImage = CreateImage("Book_Desk", canvas.transform, Vector2.zero, Vector2.one, new Color(0.08f, 0.05f, 0.03f, 1f));
             background = CreateImage("Book_Frame", canvas.transform, Vector2.zero, Vector2.one, new Color(0.16f, 0.1f, 0.06f, 0.96f));
             Sprite frame = CampaignArt.TryGetBookFrame();
             if (frame != null)
             {
                 background.sprite = frame;
                 background.color = Color.white;
+                background.preserveAspect = true;
             }
 
             illustration = CreateImage("IllustrationSlot", canvas.transform, new Vector2(0.09f, 0.24f), new Vector2(0.46f, 0.78f), Color.white);
             illustration.preserveAspect = true;
             illustration.enabled = false;
+
+            pictureCaption = CreateText(
+                "PictureCaption",
+                canvas.transform,
+                new Vector2(0.09f, 0.17f),
+                new Vector2(0.46f, 0.24f),
+                26,
+                FontStyle.Italic,
+                TextAnchor.MiddleCenter,
+                new Color(0.26f, 0.13f, 0.07f, 0.94f));
+            pictureCaption.gameObject.SetActive(false);
 
             narration = CreateText(
                 "NarrationText",
@@ -198,6 +269,44 @@ namespace LostBreadcrumbs.Runtime.UI
                 TextAnchor.MiddleCenter,
                 new Color(0.32f, 0.18f, 0.08f, 0.92f));
             continueHint.text = CampaignStoryCopy.ContinueHint;
+        }
+
+        private void StartFade(float targetAlpha, Action onDone)
+        {
+            StopFade();
+            if (group == null)
+            {
+                onDone?.Invoke();
+                return;
+            }
+
+            fadeRoutine = StartCoroutine(FadeRoutine(targetAlpha, onDone));
+        }
+
+        private void StopFade()
+        {
+            if (fadeRoutine != null)
+            {
+                StopCoroutine(fadeRoutine);
+                fadeRoutine = null;
+            }
+        }
+
+        private IEnumerator FadeRoutine(float targetAlpha, Action onDone)
+        {
+            float start = group.alpha;
+            float duration = targetAlpha > 0.5f ? 0.22f : 0.16f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                group.alpha = Mathf.Lerp(start, targetAlpha, Mathf.Clamp01(elapsed / duration));
+                yield return null;
+            }
+
+            group.alpha = targetAlpha;
+            fadeRoutine = null;
+            onDone?.Invoke();
         }
 
         private Image CreateImage(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax, Color color)

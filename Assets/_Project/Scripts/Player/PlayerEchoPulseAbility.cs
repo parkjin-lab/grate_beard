@@ -1063,6 +1063,7 @@ namespace LostBreadcrumbs.Runtime.Player
                 ? 0f
                 : Mathf.Clamp01((heldSeconds - tapGraceSeconds) / Mathf.Max(0.15f, chargeBuildSeconds));
             UpdateChargePreviewRings();
+            TryDensifyHeldTrail();
 
             if (currentCharge01 >= 0.999f)
             {
@@ -1093,6 +1094,18 @@ namespace LostBreadcrumbs.Runtime.Player
             {
                 DestroyChargePreviewRings();
             }
+        }
+
+        private void TryDensifyHeldTrail()
+        {
+            if (currentCharge01 <= 0.001f)
+            {
+                return;
+            }
+
+            EchoOverchargePreview preview = EvaluateOverchargePreview(currentCharge01, EvaluateInsideSmoke());
+            float radius = Mathf.Max(0.45f, EffectiveStunRadius * scoutRadiusMultiplier * preview.RevealRadiusMultiplier);
+            BreadcrumbPickup.TryDensifyNear(transform.position, radius);
         }
 
         private void UpdateChargePreviewRings()

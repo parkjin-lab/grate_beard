@@ -1,5 +1,5 @@
 # 프로젝트 상황 업데이트
-Updated: 2026-08-23
+Updated: 2026-08-27
 
 ## 이번 슬라이스에서 반영한 것
 - Echo Overcharge를 remote에 처음 착륙시켰다. Q 탭은 기존 메아리, 홀드는 충전, 릴리즈는 현재 충전으로 시전, 풀충전은 자동 시전한다.
@@ -18,15 +18,35 @@ Updated: 2026-08-23
 - 사망 안개: `resetFogOnDeath`로 탐험 안개는 그대로 지운다. 같은 프레임에 플레이어를 다시 묶고 시야 반경만 파서, 부활 직후 통째로 검게 서 있지 않게 한다.
 - 첫 플레이 캠페인: 타이틀 `[시작]` → 프롤로그 이야기책 → 1층. 출구는 `OnStageClear`로 책을 보여 준 뒤 `GenerateNextStage()`를 부른다. 사망은 책을 열지 않는다.
 - 커리큘럼: 1층은 Q 탭만, 2층부터 연막과 위험보상, 3층부터 Q 홀드 과충전. 리듬 초/압박 숫자는 그대로다.
+- 3층 고요를 기다리며: 2층 클리어 책은 기존 문장, 3층은 순찰/탐색자가 더 많고 세트피스 표식·증원이 한 단계 짙다. 홀드가 처음 열리면 `멀리까지 들릴 수 있다`와 HUD `Q 홀드`. 페이즈 초/압박 배율은 그대로다.
+- 4층: 옅은 빵가루만 시간이 지나거나 숲이 핥을 때 지워진다. 위험보상 묶음은 남는다. 3층 책은 기존 문장 뒤 4층. 4층 클리어 책은 `짙은` 묶음 문장.
+- 5층: 기존 5층 거짓 가루/늦은 압박을 쓴다. 같은 BreadcrumbPickup을 거짓 길로 심고, Q 홀드는 진짜만 진하게 한다. 거짓 가루는 연쇄/밀도를 받지 않는다. 늦은 압박은 숫자 HUD 없이 나무 안개와 집 불만 짙어진다. 출구가 집 문턱이다.
+- 엔딩: 5층 문턱에서 숲/집 실루엣을 먼저 페이드하지 않는다. 그 화면이 마지막 그림이 되고(캡처, 실패 시 마녀 집 아트), 라벨은 `집`, 문장은 `그 집 문턱에서 이야기는 덮였다.` 한 장만 보여 준 뒤 책을 덮고 타이틀로 돌아간다. 5층 긴 페이지/오븐 문장/6층은 없다. 사망은 책을 열지 않는다.
+- 가독 아트: 5층/엔딩 책에 마녀 집 그림. 4층 옅은 가루는 작고 창백하고, 5층 거짓 가루는 보라로 흔들리며, 위험보상은 짙은 빵묶음이다. 5층 출구는 문/창 불이지 초록 핑이 아니다.
+- 타이틀 이어하기: 체크포인트가 있으면 `시작`과 `이어하기`를 보여 준다. 이어하기는 기존 `SaveManager` 체크포인트로 그 층에 바로 들어가고 이전 책을 다시 읽지 않는다. 새 시작은 여전히 프롤로그 → 1층이며, 엔딩 뒤 체크포인트는 비운다.
+- 그림책 타이틀/책장: 타이틀은 기존 펼친 책 프레임 위(`preserveAspect`)에 `헨젤과 그레텔`과 잉크 밑줄 `시작`/`이어하기`를 오른쪽에 둔다. 책 페이지는 같은 CanvasGroup으로 짧게 페이드 인/아웃(0.22s/0.16s)한다. 힌트는 `스페이스로 계속`, 스킵과 그림 없는 텍스트 페이지는 그대로다. 캠페인 규칙/게이트/세이브/사망-무책은 손대지 않았다.
+- 책장 소리: `AudioDummyLoopRuntime`이 기존 generated dummy 스타일로 짧은 종이 넘김을 만들어, 책 `ShowPage`와 타이틀 `시작`/`이어하기` 확인에서만 한 번 낸다. 새 오디오 엔진/스팅어 종류/사망-책은 없다.
+- 2–4층 클리어 그림: `StorybookSmokeAndCache` / `StorybookHoldAndListen` / `StorybookLickedTrailCache` PNG를 Art와 Resources/Story에 두었고, `TryGetStage2/3/4Illustration`이 클리어 책 왼쪽에 넣는다. 문구는 그대로, 파일이 없으면 텍스트만.
+- 숲 빵가루 가독: `FaintLickedBreadcrumb` / `CorruptedFalseBreadcrumb` / `LandmarkTrailCache` PNG를 Art와 Resources/Map에 두었다. `MapReadableArt`가 각각 옅은·거짓·랜드마크 캐시로 로드하고, 없으면 `GoldenGlowBreadcrumb`로 떨어진다. S1 진짜 길은 황금 가루 그대로다. 숫자/캠페인/책 규칙은 손대지 않았다.
+- 5층 집 문턱 출구: `HouseThresholdDoorGlow` PNG를 Art와 Resources/Map에 두고, `TryGetHouseThresholdExitSprite` / `ExitPortalDummy.GetHouseGlowSprite`가 쓴다. 빨간 디버그 네모·초록 핑 대신 문/창 불 오두막으로 읽힌다. 파일이 없으면 기존 1×1 흰 픽셀. 출구 언락 숫자·캠페인 규칙은 그대로다.
+- S2 연막 가독: `ForestEchoSmokePuff` PNG를 Art와 Resources/Map에 두고, `MapReadableArt.TryGetSmokeSprite` / `PlayerSmokeAbility` 전개 / `SmokeScreenFieldDummy.Awake`가 쓴다. 회색 디버그 원판 대신 숲 안개 뭉치로 읽힌다. 없으면 기존 디버그 원. 반경·수명·시야가림·소음감쇠 숫자는 그대로다.
+- Q 메아리 링: `ForestEchoPulseRing` PNG를 Art와 Resources/Map에 두고, `TryGetEchoPulseSprite` / `EchoPulseVisualDummy.GetRingSprite`(`SharedRingSprite`)가 쓴다. 탭·홀드 시전과 과충전 미리보기가 같은 링을 쓴다. 없으면 기존 128px 절차형 고리. 차지 숫자·색·시간은 그대로다.
+- 숲 위협 몸: undead 애니 미적용 시 `ForestPatrolThreat` / `ForestSeekerThreat` PNG를 Art와 Resources/Map에서 쓴다. `TryGetPatrolThreatSprite` / `TryGetSeekerThreatSprite` → `EnemySpawnDirector.SpawnEnemy`. 스케일 0.9(콜라이더 0.38 유지). 없으면 기존 틴트 디버그 네모.
+- 플레이어 몸: undead 프레임 없을 때 `ForestSiblingTraveler` PNG를 Art와 Resources/Map에서 쓴다. `TryGetPlayerBodySprite` → `PlayerDummyVisual`. 스케일 0.85(콜라이더 0.35 유지). undead 애니 경로 그대로. 없으면 시안 디버그 네모+화살.
+- S1–S4 출구: `ForestStageExitPortal` PNG를 Art와 Resources/Map에 두고, `TryGetStageExitPortalSprite` → `SpawnExit` 비-문턱 경로. 빨간 디버그 네모 대신 이끼 아치/등불 문. 5층 `HouseThresholdDoorGlow` 그대로. 콜라이더 0.55·언락 숫자 그대로.
+- 안전 쉼터: `ForestSafeHavenMossRing` PNG를 Art와 Resources/Map에 두고, `TryGetSafeHavenSprite` → `SpawnSafeHaven`. 청록 디버그 네모 대신 이끼·버섯 고리. localScale 0.95·트리거 반경·드레드 숫자 그대로.
+- 스태미나 픽업: `ForestStaminaDewBerry` PNG를 Art와 Resources/Map에 두고, `TryGetStaminaPickupSprite` → `SpawnStaminaPickup`. 시안 디버그 네모 대신 이슬 열매 뭉치. localScale 0.4·콜라이더 0.4·회복량 그대로.
+- 출구 선택 캐시: `ForestExitChoiceCache` PNG를 Art와 Resources/Map에 두고, `TryGetExitChoiceCacheSprite` → `SpawnExitChoiceCache`. 주황 디버그 네모 대신 호박색 등불 항아리. scale 0.82·회복 1.05·거리/노이즈 그대로. 비콘 VFX는 그대로.
+- 출구 해금 비콘: `ForestExitUnlockBeacon` PNG를 Art와 Resources/Map에 두고, `TryGetExitUnlockBeaconSprite` → `SpawnExitUnlockBeacon`이 `EchoPulseVisualDummy` Configure 오버라이드로 전달. Q 에코 링(`ForestEchoPulseRing`)과 분리된 민트/금 등불-이끼 플레어. 없으면 기존 초록 tint 공유 링. 반경·수명·링수·노이즈 숫자 그대로.
 
 ## 아직 열린 것
-- Unity 6000.3.8f1 에디터 컴파일 확인
-- Play Mode에서 타이틀→책→1층→출구→책→2층, 연막/홀드 해금만 확인
+- Unity 6000.5.9f1 에디터 컴파일 확인
+- Play Mode에서 출구 선택 캐시 등불, 스태미나 이슬 열매, 안전 쉼터 고리를 본다
 - 리듬 스냅샷은 여전히 `NO_EVIDENCE`. 페이즈 초/압박/과충전/연막 숫자는 손대지 말 것
 
 ## 다음 에이전트
 1. Unity 콘솔에서 컴파일만 확인한다.
-2. Play Mode에서 타이틀, 프롤로그 스킵, 1층 빵가루+출구, 클리어 책, 2층 연막/위험보상만 본다. 숫자를 바꾸지 않는다.
+2. Play Mode에서 출구 해금 비콘이 `ForestExitUnlockBeacon` 등불-이끼 플레어인지, Q 펄스는 기존 `ForestEchoPulseRing`인지 확인한다. 숫자를 바꾸지 않는다.
 
 ## 한 줄 판정
-새 플레이어는 이야기책이 다음 숲으로 페이지를 넘기는 동안, 빵가루와 탭 메아리부터 배울 수 있다.
+출구 선택 캐시가 주황 네모 대신 호박 등불 PNG로 읽힌다.

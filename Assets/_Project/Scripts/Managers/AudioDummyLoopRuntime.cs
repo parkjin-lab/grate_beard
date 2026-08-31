@@ -49,11 +49,15 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Min(0.1f)] private float dreadLayerFadeOutSpeed = 2.2f;
 
         private const string DreadLayerSourceName = "DreadDrone_Runtime";
+        private const string PageTurnSourceName = "PageTurn_Runtime";
 
         private AudioClip generatedBgmClip;
         private AudioClip generatedAmbienceClip;
         private AudioClip generatedDreadLayerClip;
+        private AudioClip generatedPageTurnClip;
         private AudioSource dreadLayerSource;
+        private AudioSource pageTurnSource;
+        private float nextPageTurnTime;
         private float nextReferenceResolveTime;
         private float nextDreadLayerResolveTime;
         private float currentDreadLayerTension;
@@ -165,6 +169,29 @@ namespace LostBreadcrumbs.Runtime.Managers
             {
                 cachedAmbienceVolume = ambienceSource.volume;
             }
+        }
+
+        public static void TryPlayPageTurnRustle()
+        {
+            AudioDummyLoopRuntime runtime = FindFirstObjectByType<AudioDummyLoopRuntime>();
+            runtime?.PlayPageTurnRustle();
+        }
+
+        public void PlayPageTurnRustle()
+        {
+            if (!Application.isPlaying || Time.unscaledTime < nextPageTurnTime)
+            {
+                return;
+            }
+
+            EnsurePageTurnSource();
+            if (pageTurnSource == null || generatedPageTurnClip == null)
+            {
+                return;
+            }
+
+            nextPageTurnTime = Time.unscaledTime + 0.12f;
+            pageTurnSource.PlayOneShot(generatedPageTurnClip, 0.34f);
         }
 
         public void SetSourcesForEditor(
@@ -517,6 +544,58 @@ namespace LostBreadcrumbs.Runtime.Managers
             }
 
             AudioClip clip = AudioClip.Create(clipName, sampleCount, 1, sampleRate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
+        private void EnsurePageTurnSource()
+        {
+            generatedPageTurnClip ??= CreatePageTurnRustleClip();
+            if (pageTurnSource == null)
+            {
+                Transform existingSource = transform.Find(PageTurnSourceName);
+                if (existingSource != null)
+                {
+                    pageTurnSource = existingSource.GetComponent<AudioSource>();
+                }
+
+                if (pageTurnSource == null)
+                {
+                    GameObject sourceObject = new(PageTurnSourceName);
+                    sourceObject.transform.SetParent(transform, false);
+                    pageTurnSource = sourceObject.AddComponent<AudioSource>();
+                }
+            }
+
+            pageTurnSource.playOnAwake = false;
+            pageTurnSource.loop = false;
+            pageTurnSource.spatialBlend = 0f;
+            pageTurnSource.dopplerLevel = 0f;
+            pageTurnSource.priority = 80;
+        }
+
+        private static AudioClip CreatePageTurnRustleClip()
+        {
+            const int sampleRate = 44100;
+            int sampleCount = Mathf.Max(2, Mathf.CeilToInt(0.18f * sampleRate));
+            float[] data = new float[sampleCount];
+            System.Random rustleRandom = new(4181);
+            float filtered = 0f;
+            float previous = 0f;
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float n = sampleCount <= 1 ? 1f : i / (float)(sampleCount - 1);
+                float envelope = Mathf.Clamp01(n / 0.07f) * Mathf.Clamp01((1f - n) / 0.42f);
+                float noise = ((float)rustleRandom.NextDouble() * 2f) - 1f;
+                filtered = Mathf.Lerp(filtered, noise, 0.32f);
+                float high = noise - previous;
+                previous = noise;
+                float flap = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(320f, 130f, n) * (i / (float)sampleRate)) * 0.16f;
+                data[i] = Mathf.Clamp((filtered * 0.4f + high * 0.3f + flap) * envelope, -0.95f, 0.95f);
+            }
+
+            AudioClip clip = AudioClip.Create("DummyPageTurnRustle", sampleCount, 1, sampleRate, false);
             clip.SetData(data, 0);
             return clip;
         }

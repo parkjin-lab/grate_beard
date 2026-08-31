@@ -372,7 +372,8 @@ namespace LostBreadcrumbs.Runtime.UI
             }
             else
             {
-                pulse = FormatAbility("Q 펄스", pulseAbility != null && pulseAbility.IsReady, pulseAbility != null ? pulseAbility.CooldownRemaining : 0f);
+                string pulseLabel = StageManager.IsOverchargeHoldUnlocked ? "Q 홀드" : "Q 펄스";
+                pulse = FormatAbility(pulseLabel, pulseAbility != null && pulseAbility.IsReady, pulseAbility != null ? pulseAbility.CooldownRemaining : 0f);
             }
 
             string decoy = FormatAbility("E 디코이", decoyAbility != null && decoyAbility.IsReady, decoyAbility != null ? decoyAbility.CooldownRemaining : 0f);

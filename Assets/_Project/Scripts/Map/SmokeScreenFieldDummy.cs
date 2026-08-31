@@ -33,10 +33,31 @@ namespace LostBreadcrumbs.Runtime.Map
         private void Awake()
         {
             spriteRenderer = GetComponent<SpriteRenderer>();
-            if (spriteRenderer != null)
+            if (spriteRenderer == null)
             {
-                spriteRenderer.color = smokeColor;
+                return;
             }
+
+            if (spriteRenderer.sprite == null)
+            {
+                Sprite puffSprite = MapReadableArt.TryGetSmokeSprite();
+                if (puffSprite != null)
+                {
+                    spriteRenderer.sprite = puffSprite;
+                    spriteRenderer.color = new Color(1f, 1f, 1f, smokeColor.a);
+                    return;
+                }
+            }
+
+            // Prefer not to re-tint painted mist that was already assigned with white RGB.
+            if (spriteRenderer.sprite != null
+                && spriteRenderer.sprite.name == "ForestEchoSmokePuff")
+            {
+                spriteRenderer.color = new Color(1f, 1f, 1f, smokeColor.a);
+                return;
+            }
+
+            spriteRenderer.color = smokeColor;
         }
 
         private void OnEnable()

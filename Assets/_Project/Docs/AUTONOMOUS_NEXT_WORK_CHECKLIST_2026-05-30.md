@@ -5,7 +5,7 @@
 - Runtime pressure, threat readability, escape relief, risk rewards, exit choice carryover, semantic stingers, and Korean-first HUD copy are implemented.
 - Debug validation now shows rhythm phase observation and semantic stinger telemetry.
 - Large vendor packages are ignored until license, scope, and repository size are approved.
-- 2026-08-23: Echo Overcharge and stability 1-5 shipped. Facing flips from move input. Echo scout uses active lists. Release enter now has a one-shot lived cue (`숨이 트인다`, ambient settle, breadcrumb glow) on the existing relief hook. Walls use mossy stone art, crumbs use glowing bread, fog no longer Find-by-tag every frame, and death still wipes explored fog but recarves vision around the player on the same frame. First playable campaign: title → prologue book → Stage 1 tap-only → exit book → Stage 2 smoke + risk cache; hold unlocks at Stage 3. Death never opens the book. Still open: Unity compile, Play Mode campaign loop check. Rhythm numbers untouched.
+- 2026-08-27: Stage 3 now densifies patrols/searchers and Stage3ForkLure beacons/reinforcements without touching phase seconds or pressure multipliers. Clearing stage 2 still shows the Stage 2 book, then hold unlocks with `멀리까지 들릴 수 있다` / HUD `Q 홀드`. Death still never opens the book. Rhythm numbers untouched.
 
 ## Latest Code Review Notes
 | Area | Finding | Action |
