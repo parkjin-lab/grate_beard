@@ -20,6 +20,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string SafeHavenResourcePath = "Map/ForestSafeHavenMossRing";
         private const string StaminaPickupResourcePath = "Map/ForestStaminaDewBerry";
         private const string ExitChoiceCacheResourcePath = "Map/ForestExitChoiceCache";
+        private const string ExitChoiceCacheBeaconResourcePath = "Map/ForestExitChoiceCacheBeacon";
         private const string ExitUnlockBeaconResourcePath = "Map/ForestExitUnlockBeacon";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
@@ -36,6 +37,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string SafeHavenFileName = "ForestSafeHavenMossRing.png";
         private const string StaminaPickupFileName = "ForestStaminaDewBerry.png";
         private const string ExitChoiceCacheFileName = "ForestExitChoiceCache.png";
+        private const string ExitChoiceCacheBeaconFileName = "ForestExitChoiceCacheBeacon.png";
         private const string ExitUnlockBeaconFileName = "ForestExitUnlockBeacon.png";
 
         private static Sprite wallSprite;
@@ -53,6 +55,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite safeHavenSprite;
         private static Sprite staminaPickupSprite;
         private static Sprite exitChoiceCacheSprite;
+        private static Sprite exitChoiceCacheBeaconSprite;
         private static Sprite exitUnlockBeaconSprite;
 
         public static Sprite TryGetWallSprite()
@@ -163,6 +166,22 @@ namespace LostBreadcrumbs.Runtime.Map
                 ExitChoiceCacheFileName,
                 "ForestExitChoiceCache");
             return exitChoiceCacheSprite;
+        }
+
+        public static Sprite TryGetExitChoiceCacheBeaconSprite()
+        {
+            if (exitChoiceCacheBeaconSprite != null)
+            {
+                return exitChoiceCacheBeaconSprite;
+            }
+
+            // Same LoadSprite PPU 100 pattern as smoke/echo/stamina/unlock beacon;
+            // EchoPulseVisualDummy recreates unit-world PPU when this sprite is passed as override.
+            exitChoiceCacheBeaconSprite = LoadSprite(
+                ExitChoiceCacheBeaconResourcePath,
+                ExitChoiceCacheBeaconFileName,
+                "ForestExitChoiceCacheBeacon");
+            return exitChoiceCacheBeaconSprite;
         }
 
         public static Sprite TryGetEchoPulseSprite()

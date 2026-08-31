@@ -2113,15 +2113,34 @@ namespace LostBreadcrumbs.Runtime.Map
 
             beaconObject.transform.position = new Vector3(position.x, position.y, 0f);
             EchoPulseVisualDummy visual = beaconObject.AddComponent<EchoPulseVisualDummy>();
-            Color color = exitChoiceCacheColor;
-            color.a *= Mathf.Clamp01(alphaScale);
-            visual.Configure(
-                Mathf.Max(0.1f, exitChoiceCacheBeaconRadius),
-                color,
-                Mathf.Max(0.1f, exitChoiceCacheBeaconDuration),
-                2,
-                Mathf.Max(0.08f, exitChoiceCacheBeaconDuration * 0.18f),
-                exitChoiceCacheSortingOrder);
+            Sprite choiceBeaconSprite = MapReadableArt.TryGetExitChoiceCacheBeaconSprite();
+            Color color;
+            if (choiceBeaconSprite != null)
+            {
+                // Painted amber/pumpkin flare - white RGB so exitChoiceCacheColor does not double-tint; keep base alpha * alphaScale.
+                color = Color.white;
+                color.a = exitChoiceCacheColor.a * Mathf.Clamp01(alphaScale);
+                visual.Configure(
+                    Mathf.Max(0.1f, exitChoiceCacheBeaconRadius),
+                    color,
+                    Mathf.Max(0.1f, exitChoiceCacheBeaconDuration),
+                    2,
+                    Mathf.Max(0.08f, exitChoiceCacheBeaconDuration * 0.18f),
+                    exitChoiceCacheSortingOrder,
+                    choiceBeaconSprite);
+            }
+            else
+            {
+                color = exitChoiceCacheColor;
+                color.a *= Mathf.Clamp01(alphaScale);
+                visual.Configure(
+                    Mathf.Max(0.1f, exitChoiceCacheBeaconRadius),
+                    color,
+                    Mathf.Max(0.1f, exitChoiceCacheBeaconDuration),
+                    2,
+                    Mathf.Max(0.08f, exitChoiceCacheBeaconDuration * 0.18f),
+                    exitChoiceCacheSortingOrder);
+            }
         }
 
         private void SpawnExitUnlockBeacon(Vector3 position, float alphaScale)
