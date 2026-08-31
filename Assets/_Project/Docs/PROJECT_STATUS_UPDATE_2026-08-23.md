@@ -39,6 +39,7 @@ Updated: 2026-08-27
 - 출구 선택 캐시: `ForestExitChoiceCache` PNG를 Art와 Resources/Map에 두고, `TryGetExitChoiceCacheSprite` → `SpawnExitChoiceCache`. 주황 디버그 네모 대신 호박색 등불 항아리. scale 0.82·회복 1.05·거리/노이즈 그대로. 픽업 본체만; 비콘은 `ForestExitChoiceCacheBeacon` 별도.
 - 출구 해금 비콘: `ForestExitUnlockBeacon` PNG를 Art와 Resources/Map에 두고, `TryGetExitUnlockBeaconSprite` → `SpawnExitUnlockBeacon`이 `EchoPulseVisualDummy` Configure 오버라이드로 전달. Q 에코 링(`ForestEchoPulseRing`)과 분리된 민트/금 등불-이끼 플레어. 없으면 기존 초록 tint 공유 링. 반경·수명·링수·노이즈 숫자 그대로.
 - 출구 선택 캐시 비콘: `ForestExitChoiceCacheBeacon` PNG를 Art와 Resources/Map에 두고, `TryGetExitChoiceCacheBeaconSprite` → `SpawnExitChoiceCacheBeacon`이 Configure 오버라이드로 전달. 호박/호박색 플레어 링. Q 에코·해금 민트 비콘과 분리. 없으면 기존 주황 tint 공유 링. 반경·수명·링수 그대로.
+- E 미끼 디코이: `ForestDecoyEchoLure` PNG를 Art와 Resources/Map에 두고, `TryGetDecoySprite` → `PlayerDecoyAbility` 배치. 마젠타 디버그 네모 대신 이끼 그루터기+분홍 휘슬벨. scale 0.4·콜라이더 0.28·쿨다운/수명/소음 그대로. 펄스 링 VFX는 그대로.
 
 ## 아직 열린 것
 - Unity 6000.5.9f1 에디터 컴파일 확인
@@ -47,7 +48,7 @@ Updated: 2026-08-27
 
 ## 다음 에이전트
 1. Unity 콘솔에서 컴파일만 확인한다.
-2. Play Mode에서 출구 선택 캐시 비콘이 `ForestExitChoiceCacheBeacon` 호박 플레어인지, 해금 비콘은 `ForestExitUnlockBeacon`, Q는 `ForestEchoPulseRing`인지 확인한다. 숫자를 바꾸지 않는다.
+2. Play Mode에서 E 미끼가 `ForestDecoyEchoLure`인지, 출구 선택 캐시 비콘/해금 비콘/Q 링이 각자 스프라이트인지 확인한다. 숫자를 바꾸지 않는다.
 
 ## 한 줄 판정
 출구 선택 캐시가 주황 네모 대신 호박 등불 PNG로 읽힌다.

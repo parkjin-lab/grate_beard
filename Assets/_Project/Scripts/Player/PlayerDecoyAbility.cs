@@ -124,8 +124,18 @@ namespace LostBreadcrumbs.Runtime.Player
             decoyObject.transform.localScale = Vector3.one * 0.4f;
 
             SpriteRenderer renderer = decoyObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = decoyColor;
+            Sprite decoyArt = MapReadableArt.TryGetDecoySprite();
+            if (decoyArt != null)
+            {
+                renderer.sprite = decoyArt;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = decoyColor;
+            }
+
             renderer.sortingOrder = 26;
 
             CircleCollider2D trigger = decoyObject.AddComponent<CircleCollider2D>();

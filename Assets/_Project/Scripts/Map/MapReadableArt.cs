@@ -22,6 +22,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string ExitChoiceCacheResourcePath = "Map/ForestExitChoiceCache";
         private const string ExitChoiceCacheBeaconResourcePath = "Map/ForestExitChoiceCacheBeacon";
         private const string ExitUnlockBeaconResourcePath = "Map/ForestExitUnlockBeacon";
+        private const string DecoyResourcePath = "Map/ForestDecoyEchoLure";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -39,6 +40,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string ExitChoiceCacheFileName = "ForestExitChoiceCache.png";
         private const string ExitChoiceCacheBeaconFileName = "ForestExitChoiceCacheBeacon.png";
         private const string ExitUnlockBeaconFileName = "ForestExitUnlockBeacon.png";
+        private const string DecoyFileName = "ForestDecoyEchoLure.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -57,6 +59,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite exitChoiceCacheSprite;
         private static Sprite exitChoiceCacheBeaconSprite;
         private static Sprite exitUnlockBeaconSprite;
+        private static Sprite decoySprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -166,6 +169,21 @@ namespace LostBreadcrumbs.Runtime.Map
                 ExitChoiceCacheFileName,
                 "ForestExitChoiceCache");
             return exitChoiceCacheSprite;
+        }
+
+        public static Sprite TryGetDecoySprite()
+        {
+            if (decoySprite != null)
+            {
+                return decoySprite;
+            }
+
+            // Same LoadSprite PPU 100 pattern as crumbs/smoke/stamina; PlayerDecoyAbility keeps localScale 0.4.
+            decoySprite = LoadSprite(
+                DecoyResourcePath,
+                DecoyFileName,
+                "ForestDecoyEchoLure");
+            return decoySprite;
         }
 
         public static Sprite TryGetExitChoiceCacheBeaconSprite()
