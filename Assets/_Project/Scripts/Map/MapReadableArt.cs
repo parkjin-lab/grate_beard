@@ -20,6 +20,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string SafeHavenResourcePath = "Map/ForestSafeHavenMossRing";
         private const string StaminaPickupResourcePath = "Map/ForestStaminaDewBerry";
         private const string ExitChoiceCacheResourcePath = "Map/ForestExitChoiceCache";
+        private const string ExitUnlockBeaconResourcePath = "Map/ForestExitUnlockBeacon";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -35,6 +36,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string SafeHavenFileName = "ForestSafeHavenMossRing.png";
         private const string StaminaPickupFileName = "ForestStaminaDewBerry.png";
         private const string ExitChoiceCacheFileName = "ForestExitChoiceCache.png";
+        private const string ExitUnlockBeaconFileName = "ForestExitUnlockBeacon.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -51,6 +53,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite safeHavenSprite;
         private static Sprite staminaPickupSprite;
         private static Sprite exitChoiceCacheSprite;
+        private static Sprite exitUnlockBeaconSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -171,6 +174,22 @@ namespace LostBreadcrumbs.Runtime.Map
 
             echoPulseSprite = LoadSprite(EchoPulseResourcePath, EchoPulseFileName, "ForestEchoPulseRing");
             return echoPulseSprite;
+        }
+
+        public static Sprite TryGetExitUnlockBeaconSprite()
+        {
+            if (exitUnlockBeaconSprite != null)
+            {
+                return exitUnlockBeaconSprite;
+            }
+
+            // Same LoadSprite PPU 100 pattern as smoke/echo/stamina; EchoPulseVisualDummy
+            // recreates unit-world PPU for ring diameter sizing when this sprite is passed in.
+            exitUnlockBeaconSprite = LoadSprite(
+                ExitUnlockBeaconResourcePath,
+                ExitUnlockBeaconFileName,
+                "ForestExitUnlockBeacon");
+            return exitUnlockBeaconSprite;
         }
 
         public static Sprite TryGetPatrolThreatSprite()

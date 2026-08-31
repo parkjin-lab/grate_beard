@@ -2135,15 +2135,34 @@ namespace LostBreadcrumbs.Runtime.Map
 
             beaconObject.transform.position = new Vector3(position.x, position.y, 0f);
             EchoPulseVisualDummy visual = beaconObject.AddComponent<EchoPulseVisualDummy>();
-            Color color = exitUnlockBeaconColor;
-            color.a *= Mathf.Clamp01(alphaScale);
-            visual.Configure(
-                Mathf.Max(0.2f, exitUnlockBeaconRadius),
-                color,
-                Mathf.Max(0.1f, exitUnlockBeaconDuration),
-                Mathf.Clamp(exitUnlockBeaconRingCount, 1, 4),
-                Mathf.Max(0.08f, exitUnlockBeaconDuration * 0.16f),
-                exitUnlockBeaconSortingOrder);
+            Sprite unlockBeaconSprite = MapReadableArt.TryGetExitUnlockBeaconSprite();
+            Color color;
+            if (unlockBeaconSprite != null)
+            {
+                // Painted mint/gold lantern flare - white RGB so exitUnlockBeaconColor does not double-tint; keep base alpha * alphaScale.
+                color = Color.white;
+                color.a = exitUnlockBeaconColor.a * Mathf.Clamp01(alphaScale);
+                visual.Configure(
+                    Mathf.Max(0.2f, exitUnlockBeaconRadius),
+                    color,
+                    Mathf.Max(0.1f, exitUnlockBeaconDuration),
+                    Mathf.Clamp(exitUnlockBeaconRingCount, 1, 4),
+                    Mathf.Max(0.08f, exitUnlockBeaconDuration * 0.16f),
+                    exitUnlockBeaconSortingOrder,
+                    unlockBeaconSprite);
+            }
+            else
+            {
+                color = exitUnlockBeaconColor;
+                color.a *= Mathf.Clamp01(alphaScale);
+                visual.Configure(
+                    Mathf.Max(0.2f, exitUnlockBeaconRadius),
+                    color,
+                    Mathf.Max(0.1f, exitUnlockBeaconDuration),
+                    Mathf.Clamp(exitUnlockBeaconRingCount, 1, 4),
+                    Mathf.Max(0.08f, exitUnlockBeaconDuration * 0.16f),
+                    exitUnlockBeaconSortingOrder);
+            }
         }
 
         private void TryStartExitChoiceCarryover()
