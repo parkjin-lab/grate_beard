@@ -878,8 +878,18 @@ namespace LostBreadcrumbs.Runtime.Map
             pickupObject.transform.localScale = Vector3.one * 0.4f;
 
             SpriteRenderer renderer = pickupObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = staminaPickupColor;
+            Sprite staminaSprite = MapReadableArt.TryGetStaminaPickupSprite();
+            if (staminaSprite != null)
+            {
+                renderer.sprite = staminaSprite;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = staminaPickupColor;
+            }
+
             renderer.sortingOrder = 24;
 
             CircleCollider2D trigger = pickupObject.AddComponent<CircleCollider2D>();

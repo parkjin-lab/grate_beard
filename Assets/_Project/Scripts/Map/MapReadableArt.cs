@@ -18,6 +18,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string PlayerBodyResourcePath = "Map/ForestSiblingTraveler";
         private const string StageExitPortalResourcePath = "Map/ForestStageExitPortal";
         private const string SafeHavenResourcePath = "Map/ForestSafeHavenMossRing";
+        private const string StaminaPickupResourcePath = "Map/ForestStaminaDewBerry";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -31,6 +32,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string PlayerBodyFileName = "ForestSiblingTraveler.png";
         private const string StageExitPortalFileName = "ForestStageExitPortal.png";
         private const string SafeHavenFileName = "ForestSafeHavenMossRing.png";
+        private const string StaminaPickupFileName = "ForestStaminaDewBerry.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -45,6 +47,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite playerBodySprite;
         private static Sprite stageExitPortalSprite;
         private static Sprite safeHavenSprite;
+        private static Sprite staminaPickupSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -124,6 +127,21 @@ namespace LostBreadcrumbs.Runtime.Map
 
             smokeSprite = LoadSprite(SmokeResourcePath, SmokeFileName, "ForestEchoSmokePuff");
             return smokeSprite;
+        }
+
+        public static Sprite TryGetStaminaPickupSprite()
+        {
+            if (staminaPickupSprite != null)
+            {
+                return staminaPickupSprite;
+            }
+
+            // Same LoadSprite PPU 100 pattern as crumbs/smoke; SpawnStaminaPickup keeps localScale 0.4.
+            staminaPickupSprite = LoadSprite(
+                StaminaPickupResourcePath,
+                StaminaPickupFileName,
+                "ForestStaminaDewBerry");
+            return staminaPickupSprite;
         }
 
         public static Sprite TryGetEchoPulseSprite()
