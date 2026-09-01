@@ -1762,15 +1762,34 @@ namespace LostBreadcrumbs.Runtime.Map
 
             pulseObject.transform.position = new Vector3(position.x, position.y, 0f);
             EchoPulseVisualDummy visual = pulseObject.AddComponent<EchoPulseVisualDummy>();
-            Color color = riskCacheColor;
-            color.a *= 0.68f;
-            visual.Configure(
-                1.45f,
-                color,
-                1.1f,
-                2,
-                0.2f,
-                riskCacheSortingOrder);
+            Sprite riskPulseSprite = MapReadableArt.TryGetRiskCachePulseSprite();
+            Color color;
+            if (riskPulseSprite != null)
+            {
+                // Painted ember flare - white RGB so riskCacheColor does not double-tint; keep same alpha scale.
+                color = Color.white;
+                color.a = riskCacheColor.a * 0.68f;
+                visual.Configure(
+                    1.45f,
+                    color,
+                    1.1f,
+                    2,
+                    0.2f,
+                    riskCacheSortingOrder,
+                    riskPulseSprite);
+            }
+            else
+            {
+                color = riskCacheColor;
+                color.a *= 0.68f;
+                visual.Configure(
+                    1.45f,
+                    color,
+                    1.1f,
+                    2,
+                    0.2f,
+                    riskCacheSortingOrder);
+            }
         }
 
         private static string BuildRiskCacheRewardMessage(

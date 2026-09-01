@@ -24,6 +24,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string ExitUnlockBeaconResourcePath = "Map/ForestExitUnlockBeacon";
         private const string DecoyResourcePath = "Map/ForestDecoyEchoLure";
         private const string DecoyPulseResourcePath = "Map/ForestDecoyEchoPulse";
+        private const string RiskCachePulseResourcePath = "Map/ForestRiskCacheRewardPulse";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -43,6 +44,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string ExitUnlockBeaconFileName = "ForestExitUnlockBeacon.png";
         private const string DecoyFileName = "ForestDecoyEchoLure.png";
         private const string DecoyPulseFileName = "ForestDecoyEchoPulse.png";
+        private const string RiskCachePulseFileName = "ForestRiskCacheRewardPulse.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -63,6 +65,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite exitUnlockBeaconSprite;
         private static Sprite decoySprite;
         private static Sprite decoyPulseSprite;
+        private static Sprite riskCachePulseSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -203,6 +206,22 @@ namespace LostBreadcrumbs.Runtime.Map
                 DecoyPulseFileName,
                 "ForestDecoyEchoPulse");
             return decoyPulseSprite;
+        }
+
+        public static Sprite TryGetRiskCachePulseSprite()
+        {
+            if (riskCachePulseSprite != null)
+            {
+                return riskCachePulseSprite;
+            }
+
+            // Same LoadSprite PPU 100 pattern as decoy/unlock/choice-cache beacons;
+            // EchoPulseVisualDummy recreates unit-world PPU when this sprite is passed as override.
+            riskCachePulseSprite = LoadSprite(
+                RiskCachePulseResourcePath,
+                RiskCachePulseFileName,
+                "ForestRiskCacheRewardPulse");
+            return riskCachePulseSprite;
         }
 
         public static Sprite TryGetExitChoiceCacheBeaconSprite()
