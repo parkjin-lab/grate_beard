@@ -1594,15 +1594,39 @@ namespace LostBreadcrumbs.Runtime.Map
             pulseObject.transform.position = new Vector3(position.x, position.y, 0f);
             EchoPulseVisualDummy visual = pulseObject.AddComponent<EchoPulseVisualDummy>();
             int steps = Mathf.Max(0, momentumLevel - 2);
-            Color color = breadcrumbMomentumPulseColor;
-            color.a *= Mathf.Lerp(0.86f, 1.18f, Mathf.Clamp01((momentumLevel - 2f) / Mathf.Max(1f, BreadcrumbMomentumMaxLevel - 2f)));
-            visual.Configure(
-                Mathf.Max(0.1f, breadcrumbMomentumPulseRadius) * (1f + steps * 0.18f) * EvaluateBreadcrumbBuildMultiplier(breadcrumbBuildPulseRadiusMultiplier),
-                color,
-                Mathf.Max(0.1f, breadcrumbMomentumPulseDuration) * (1f + steps * 0.12f),
-                Mathf.Clamp(2 + steps, 2, 4),
-                Mathf.Max(0.08f, breadcrumbMomentumPulseDuration * 0.18f),
-                breadcrumbMomentumPulseSortingOrder);
+            float alphaScale = Mathf.Lerp(0.86f, 1.18f, Mathf.Clamp01((momentumLevel - 2f) / Mathf.Max(1f, BreadcrumbMomentumMaxLevel - 2f)));
+            float radius = Mathf.Max(0.1f, breadcrumbMomentumPulseRadius) * (1f + steps * 0.18f) * EvaluateBreadcrumbBuildMultiplier(breadcrumbBuildPulseRadiusMultiplier);
+            float duration = Mathf.Max(0.1f, breadcrumbMomentumPulseDuration) * (1f + steps * 0.12f);
+            int ringCount = Mathf.Clamp(2 + steps, 2, 4);
+            float interval = Mathf.Max(0.08f, breadcrumbMomentumPulseDuration * 0.18f);
+            Sprite momentumPulseSprite = MapReadableArt.TryGetBreadcrumbMomentumPulseSprite();
+            Color color;
+            if (momentumPulseSprite != null)
+            {
+                // Painted honey-gold crumb flare - white RGB so breadcrumbMomentumPulseColor does not double-tint.
+                color = Color.white;
+                color.a = breadcrumbMomentumPulseColor.a * alphaScale;
+                visual.Configure(
+                    radius,
+                    color,
+                    duration,
+                    ringCount,
+                    interval,
+                    breadcrumbMomentumPulseSortingOrder,
+                    momentumPulseSprite);
+            }
+            else
+            {
+                color = breadcrumbMomentumPulseColor;
+                color.a *= alphaScale;
+                visual.Configure(
+                    radius,
+                    color,
+                    duration,
+                    ringCount,
+                    interval,
+                    breadcrumbMomentumPulseSortingOrder);
+            }
         }
 
         private IEnumerator CorruptedBreadcrumbEchoRoutine(GameObject echoObject, LineRenderer line, Vector3[] basePoints, float pressure)

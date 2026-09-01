@@ -25,6 +25,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string DecoyResourcePath = "Map/ForestDecoyEchoLure";
         private const string DecoyPulseResourcePath = "Map/ForestDecoyEchoPulse";
         private const string RiskCachePulseResourcePath = "Map/ForestRiskCacheRewardPulse";
+        private const string BreadcrumbMomentumPulseResourcePath = "Map/ForestBreadcrumbMomentumPulse";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -45,6 +46,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string DecoyFileName = "ForestDecoyEchoLure.png";
         private const string DecoyPulseFileName = "ForestDecoyEchoPulse.png";
         private const string RiskCachePulseFileName = "ForestRiskCacheRewardPulse.png";
+        private const string BreadcrumbMomentumPulseFileName = "ForestBreadcrumbMomentumPulse.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -66,6 +68,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite decoySprite;
         private static Sprite decoyPulseSprite;
         private static Sprite riskCachePulseSprite;
+        private static Sprite breadcrumbMomentumPulseSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -222,6 +225,22 @@ namespace LostBreadcrumbs.Runtime.Map
                 RiskCachePulseFileName,
                 "ForestRiskCacheRewardPulse");
             return riskCachePulseSprite;
+        }
+
+        public static Sprite TryGetBreadcrumbMomentumPulseSprite()
+        {
+            if (breadcrumbMomentumPulseSprite != null)
+            {
+                return breadcrumbMomentumPulseSprite;
+            }
+
+            // Same LoadSprite PPU 100 pattern as decoy/unlock/choice-cache/risk-cache pulses;
+            // EchoPulseVisualDummy recreates unit-world PPU when this sprite is passed as override.
+            breadcrumbMomentumPulseSprite = LoadSprite(
+                BreadcrumbMomentumPulseResourcePath,
+                BreadcrumbMomentumPulseFileName,
+                "ForestBreadcrumbMomentumPulse");
+            return breadcrumbMomentumPulseSprite;
         }
 
         public static Sprite TryGetExitChoiceCacheBeaconSprite()
