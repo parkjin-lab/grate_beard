@@ -27,6 +27,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string RiskCachePulseResourcePath = "Map/ForestRiskCacheRewardPulse";
         private const string BreadcrumbMomentumPulseResourcePath = "Map/ForestBreadcrumbMomentumPulse";
         private const string EchoReturnThreatPulseResourcePath = "Map/ForestEchoReturnThreatPulse";
+        private const string EchoReturnThreatHintResourcePath = "Map/ForestEchoReturnThreatHint";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -49,6 +50,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string RiskCachePulseFileName = "ForestRiskCacheRewardPulse.png";
         private const string BreadcrumbMomentumPulseFileName = "ForestBreadcrumbMomentumPulse.png";
         private const string EchoReturnThreatPulseFileName = "ForestEchoReturnThreatPulse.png";
+        private const string EchoReturnThreatHintFileName = "ForestEchoReturnThreatHint.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -72,6 +74,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite riskCachePulseSprite;
         private static Sprite breadcrumbMomentumPulseSprite;
         private static Sprite echoReturnThreatPulseSprite;
+        private static Texture2D echoReturnThreatHintTexture;
 
         public static Sprite TryGetWallSprite()
         {
@@ -260,6 +263,43 @@ namespace LostBreadcrumbs.Runtime.Map
                 EchoReturnThreatPulseFileName,
                 "ForestEchoReturnThreatPulse");
             return echoReturnThreatPulseSprite;
+        }
+
+        public static Texture2D TryGetEchoReturnThreatHintTexture()
+        {
+            if (echoReturnThreatHintTexture != null)
+            {
+                return echoReturnThreatHintTexture;
+            }
+
+            Texture2D texture = Resources.Load<Texture2D>(EchoReturnThreatHintResourcePath);
+            if (texture == null)
+            {
+                texture = LoadTextureFromProjectFile(EchoReturnThreatHintFileName);
+            }
+
+            if (texture == null)
+            {
+                Sprite sprite = LoadSprite(
+                    EchoReturnThreatHintResourcePath,
+                    EchoReturnThreatHintFileName,
+                    "ForestEchoReturnThreatHint");
+                if (sprite != null)
+                {
+                    texture = sprite.texture;
+                }
+            }
+
+            if (texture == null)
+            {
+                return null;
+            }
+
+            // LineRenderer Tile mode needs U-repeat.
+            texture.wrapMode = TextureWrapMode.Repeat;
+            texture.filterMode = FilterMode.Bilinear;
+            echoReturnThreatHintTexture = texture;
+            return echoReturnThreatHintTexture;
         }
 
         public static Sprite TryGetExitChoiceCacheBeaconSprite()

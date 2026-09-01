@@ -623,7 +623,9 @@ namespace LostBreadcrumbs.Runtime.Player
             line.loop = false;
             line.positionCount = 3;
             line.alignment = LineAlignment.View;
-            line.textureMode = LineTextureMode.Stretch;
+            Texture2D hintTexture = MapReadableArt.TryGetEchoReturnThreatHintTexture();
+            // Tile painted trail when present; Stretch only for the untextured debug fallback.
+            line.textureMode = hintTexture != null ? LineTextureMode.Tile : LineTextureMode.Stretch;
             line.numCornerVertices = 2;
             line.numCapVertices = 2;
             line.widthMultiplier = Mathf.Max(0.01f, echoReturnHintWidth);
@@ -681,8 +683,20 @@ namespace LostBreadcrumbs.Runtime.Player
                     line.SetPosition(i, point);
                 }
 
-                Color color = echoReturnThreatColor;
-                color.a *= fade * Mathf.Clamp01(flicker) * Mathf.Lerp(0.75f, 1.15f, intensity);
+                float alphaScale = fade * Mathf.Clamp01(flicker) * Mathf.Lerp(0.75f, 1.15f, intensity);
+                Color color;
+                if (MapReadableArt.TryGetEchoReturnThreatHintTexture() != null)
+                {
+                    // Painted ember trail - white RGB so echoReturnThreatColor does not double-tint.
+                    color = Color.white;
+                    color.a = echoReturnThreatColor.a * alphaScale;
+                }
+                else
+                {
+                    color = echoReturnThreatColor;
+                    color.a *= alphaScale;
+                }
+
                 line.startColor = color;
                 line.endColor = color;
                 line.widthMultiplier = Mathf.Max(0.01f, echoReturnHintWidth) * Mathf.Lerp(1.2f, 0.22f, t);
@@ -773,6 +787,17 @@ namespace LostBreadcrumbs.Runtime.Player
                 name = "EchoReturnLineMaterial",
                 hideFlags = HideFlags.HideAndDontSave
             };
+
+            Texture2D hintTexture = MapReadableArt.TryGetEchoReturnThreatHintTexture();
+            if (hintTexture != null)
+            {
+                echoReturnLineMaterial.mainTexture = hintTexture;
+                if (echoReturnLineMaterial.HasProperty("_MainTex"))
+                {
+                    echoReturnLineMaterial.SetTexture("_MainTex", hintTexture);
+                }
+            }
+
             return echoReturnLineMaterial;
         }
 
