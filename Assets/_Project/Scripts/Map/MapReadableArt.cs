@@ -23,6 +23,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string ExitChoiceCacheBeaconResourcePath = "Map/ForestExitChoiceCacheBeacon";
         private const string ExitUnlockBeaconResourcePath = "Map/ForestExitUnlockBeacon";
         private const string DecoyResourcePath = "Map/ForestDecoyEchoLure";
+        private const string DecoyPulseResourcePath = "Map/ForestDecoyEchoPulse";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -41,6 +42,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string ExitChoiceCacheBeaconFileName = "ForestExitChoiceCacheBeacon.png";
         private const string ExitUnlockBeaconFileName = "ForestExitUnlockBeacon.png";
         private const string DecoyFileName = "ForestDecoyEchoLure.png";
+        private const string DecoyPulseFileName = "ForestDecoyEchoPulse.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -60,6 +62,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite exitChoiceCacheBeaconSprite;
         private static Sprite exitUnlockBeaconSprite;
         private static Sprite decoySprite;
+        private static Sprite decoyPulseSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -184,6 +187,22 @@ namespace LostBreadcrumbs.Runtime.Map
                 DecoyFileName,
                 "ForestDecoyEchoLure");
             return decoySprite;
+        }
+
+        public static Sprite TryGetDecoyPulseSprite()
+        {
+            if (decoyPulseSprite != null)
+            {
+                return decoyPulseSprite;
+            }
+
+            // Same LoadSprite PPU 100 pattern as smoke/echo/unlock beacon;
+            // EchoPulseVisualDummy recreates unit-world PPU when this sprite is passed as override.
+            decoyPulseSprite = LoadSprite(
+                DecoyPulseResourcePath,
+                DecoyPulseFileName,
+                "ForestDecoyEchoPulse");
+            return decoyPulseSprite;
         }
 
         public static Sprite TryGetExitChoiceCacheBeaconSprite()
