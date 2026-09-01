@@ -26,6 +26,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string DecoyPulseResourcePath = "Map/ForestDecoyEchoPulse";
         private const string RiskCachePulseResourcePath = "Map/ForestRiskCacheRewardPulse";
         private const string BreadcrumbMomentumPulseResourcePath = "Map/ForestBreadcrumbMomentumPulse";
+        private const string EchoReturnThreatPulseResourcePath = "Map/ForestEchoReturnThreatPulse";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -47,6 +48,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string DecoyPulseFileName = "ForestDecoyEchoPulse.png";
         private const string RiskCachePulseFileName = "ForestRiskCacheRewardPulse.png";
         private const string BreadcrumbMomentumPulseFileName = "ForestBreadcrumbMomentumPulse.png";
+        private const string EchoReturnThreatPulseFileName = "ForestEchoReturnThreatPulse.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -69,6 +71,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite decoyPulseSprite;
         private static Sprite riskCachePulseSprite;
         private static Sprite breadcrumbMomentumPulseSprite;
+        private static Sprite echoReturnThreatPulseSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -241,6 +244,22 @@ namespace LostBreadcrumbs.Runtime.Map
                 BreadcrumbMomentumPulseFileName,
                 "ForestBreadcrumbMomentumPulse");
             return breadcrumbMomentumPulseSprite;
+        }
+
+        public static Sprite TryGetEchoReturnThreatPulseSprite()
+        {
+            if (echoReturnThreatPulseSprite != null)
+            {
+                return echoReturnThreatPulseSprite;
+            }
+
+            // Same LoadSprite PPU 100 pattern as decoy/risk/unlock pulses;
+            // EchoPulseVisualDummy recreates unit-world PPU when this sprite is passed as override.
+            echoReturnThreatPulseSprite = LoadSprite(
+                EchoReturnThreatPulseResourcePath,
+                EchoReturnThreatPulseFileName,
+                "ForestEchoReturnThreatPulse");
+            return echoReturnThreatPulseSprite;
         }
 
         public static Sprite TryGetExitChoiceCacheBeaconSprite()

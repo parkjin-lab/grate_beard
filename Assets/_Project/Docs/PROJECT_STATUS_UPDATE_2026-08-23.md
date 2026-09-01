@@ -42,6 +42,7 @@ Updated: 2026-08-27
 - E 미끼 디코이: `ForestDecoyEchoLure` PNG를 Art와 Resources/Map에 두고, `TryGetDecoySprite` → `PlayerDecoyAbility` 배치. 마젠타 디버그 네모 대신 이끼 그루터기+분홍 휘슬벨. scale 0.4·콜라이더 0.28·쿨다운/수명/소음 그대로. 본체 픽업 아트; 펄스 링은- E 미끼 펄스 링: `ForestDecoyEchoPulse` PNG를 Art와 Resources/Map에 두고, `TryGetDecoyPulseSprite` → `DecoyEmitterDummy.SpawnSuccessFeedback` Configure 오버라이드. 마젠타 휘슬벨 플레어. Q/해금/선택캐시 비콘과 분리. 없으면 기존 tint 공유 링. 쿨다운·수명·소음 숫자 그대로.
 - 위험 보상 펄스: `ForestRiskCacheRewardPulse` PNG를 Art와 Resources/Map에 두고, `TryGetRiskCachePulseSprite` → `SpawnRiskCacheRewardPulse` Configure 오버라이드. 수집·애프터쇼크 공통. 엠버/녹슨주황 빵단지 플레어. Q/해금/선택캐시/디코이 링과 분리. 없으면 기존 tint 공유 링. 반경 1.45·수명 1.1·링수 2·정렬 그대로. LandmarkTrailCache 본체는 그대로.
 - 빵가루 모멘텀 펄스: `ForestBreadcrumbMomentumPulse` PNG를 Art와 Resources/Map에 두고, `TryGetBreadcrumbMomentumPulseSprite` → `SpawnBreadcrumbMomentumPulse` Configure 오버라이드. 허니골드 가루 플레어. Q/위험보상/해금/선택캐시/디코이 링과 분리. 없으면 기존 tint 공유 링. 반경 1.25·수명 1.05·정렬 35·링수 2..4 그대로.
+- 에코 리턴 위협 펄스: `ForestEchoReturnThreatPulse` PNG를 Art와 Resources/Map에 두고, `TryGetEchoReturnThreatPulseSprite` → `PlayerEchoPulseAbility.SpawnEchoReturnHintPulse` Configure 오버라이드. 경고 빨강 엠버 플레어. Q/해금/선택캐시/디코이/위험보상/모멘텀 링과 분리. 힌트 라인은 그대로. 없으면 기존 tint 공유 링. duration·정렬·경고 초 그대로.
  `ForestDecoyEchoPulse` 별도.
 
 ## 아직 열린 것
@@ -51,7 +52,7 @@ Updated: 2026-08-27
 
 ## 다음 에이전트
 1. Unity 콘솔에서 컴파일만 확인한다.
-2. Play Mode에서 빵가루 모멘텀 펄스가 `ForestBreadcrumbMomentumPulse`인지, 위험보상/Q/해금/선택캐시/디코이 링이 각자인지 확인한다. 숫자를 바꾸지 않는다.
+2. Play Mode에서 에코 리턴 팁 펄스가 `ForestEchoReturnThreatPulse`인지(라인 힌트는 그대로), Q/모멘텀/위험보상/해금/선택캐시/디코이 링이 각자인지 확인한다. 숫자를 바꾸지 않는다.
 
 ## 한 줄 판정
 출구 선택 캐시가 주황 네모 대신 호박 등불 PNG로 읽힌다.

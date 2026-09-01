@@ -712,15 +712,37 @@ namespace LostBreadcrumbs.Runtime.Player
 
             pulseObject.transform.position = new Vector3(position.x, position.y, 0f);
             EchoPulseVisualDummy visual = pulseObject.AddComponent<EchoPulseVisualDummy>();
-            Color color = echoReturnThreatColor;
-            color.a *= Mathf.Lerp(0.74f, 1.12f, Mathf.Clamp01(intensity));
-            visual.Configure(
-                Mathf.Lerp(0.72f, 1.18f, Mathf.Clamp01(intensity)),
-                color,
-                Mathf.Max(0.1f, echoReturnHintDuration * 0.9f),
-                1,
-                0f,
-                echoReturnHintSortingOrder);
+            float alphaScale = Mathf.Lerp(0.74f, 1.12f, Mathf.Clamp01(intensity));
+            float radius = Mathf.Lerp(0.72f, 1.18f, Mathf.Clamp01(intensity));
+            float duration = Mathf.Max(0.1f, echoReturnHintDuration * 0.9f);
+            Sprite threatPulseSprite = MapReadableArt.TryGetEchoReturnThreatPulseSprite();
+            Color color;
+            if (threatPulseSprite != null)
+            {
+                // Painted warning-red ember flare - white RGB so echoReturnThreatColor does not double-tint.
+                color = Color.white;
+                color.a = echoReturnThreatColor.a * alphaScale;
+                visual.Configure(
+                    radius,
+                    color,
+                    duration,
+                    1,
+                    0f,
+                    echoReturnHintSortingOrder,
+                    threatPulseSprite);
+            }
+            else
+            {
+                color = echoReturnThreatColor;
+                color.a *= alphaScale;
+                visual.Configure(
+                    radius,
+                    color,
+                    duration,
+                    1,
+                    0f,
+                    echoReturnHintSortingOrder);
+            }
         }
 
         private Material GetEchoReturnLineMaterial()
