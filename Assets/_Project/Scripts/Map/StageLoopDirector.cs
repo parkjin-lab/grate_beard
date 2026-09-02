@@ -188,6 +188,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private Sprite debugSprite;
         private Material chainEchoMaterial;
         private Material breadcrumbChainEchoPaintedMaterial;
+        private Material corruptedBreadcrumbEchoPaintedMaterial;
         private Coroutine exitUnlockPressureRoutine;
         private float nextCorruptedBreadcrumbEchoTime;
         private PlayerDummyController momentumPlayer;
@@ -1527,11 +1528,13 @@ namespace LostBreadcrumbs.Runtime.Map
             line.loop = false;
             line.positionCount = 4;
             line.alignment = LineAlignment.View;
-            line.textureMode = LineTextureMode.Stretch;
+            Texture2D corruptedTexture = MapReadableArt.TryGetCorruptedBreadcrumbEchoTexture();
+            // Tile painted false-trail when present; Stretch only for the untextured debug fallback.
+            line.textureMode = corruptedTexture != null ? LineTextureMode.Tile : LineTextureMode.Stretch;
             line.numCornerVertices = 2;
             line.numCapVertices = 2;
             line.widthMultiplier = Mathf.Max(0.01f, corruptedBreadcrumbEchoWidth);
-            line.sharedMaterial = GetChainEchoMaterial();
+            line.sharedMaterial = GetCorruptedBreadcrumbEchoMaterial();
             line.sortingOrder = corruptedBreadcrumbSortingOrder;
 
             Vector3[] basePoints = BuildCorruptedBreadcrumbPath(origin, target, pressure);
@@ -1673,8 +1676,20 @@ namespace LostBreadcrumbs.Runtime.Map
                     line.SetPosition(i, point);
                 }
 
-                Color color = corruptedBreadcrumbEchoColor;
-                color.a *= fade * Mathf.Lerp(0.48f, 1f, flicker);
+                float alphaScale = fade * Mathf.Lerp(0.48f, 1f, flicker);
+                Color color;
+                if (MapReadableArt.TryGetCorruptedBreadcrumbEchoTexture() != null)
+                {
+                    // Painted sick purple/ash false trail - white RGB so cyan debug tint does not muddy art.
+                    color = Color.white;
+                    color.a = corruptedBreadcrumbEchoColor.a * alphaScale;
+                }
+                else
+                {
+                    color = corruptedBreadcrumbEchoColor;
+                    color.a *= alphaScale;
+                }
+
                 line.startColor = color;
                 line.endColor = color;
                 float hold01 = 0f;
@@ -1780,6 +1795,44 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             return breadcrumbChainEchoPaintedMaterial;
+        }
+
+        private Material GetCorruptedBreadcrumbEchoMaterial()
+        {
+            Texture2D corruptedTexture = MapReadableArt.TryGetCorruptedBreadcrumbEchoTexture();
+            if (corruptedTexture == null)
+            {
+                return GetChainEchoMaterial();
+            }
+
+            if (corruptedBreadcrumbEchoPaintedMaterial != null)
+            {
+                return corruptedBreadcrumbEchoPaintedMaterial;
+            }
+
+            Shader shader = Shader.Find("Sprites/Default");
+            if (shader == null)
+            {
+                shader = Shader.Find("Default-Line");
+            }
+
+            if (shader == null)
+            {
+                return GetChainEchoMaterial();
+            }
+
+            corruptedBreadcrumbEchoPaintedMaterial = new Material(shader)
+            {
+                name = "CorruptedBreadcrumbEchoPaintedMaterial",
+                hideFlags = HideFlags.HideAndDontSave,
+                mainTexture = corruptedTexture
+            };
+            if (corruptedBreadcrumbEchoPaintedMaterial.HasProperty("_MainTex"))
+            {
+                corruptedBreadcrumbEchoPaintedMaterial.SetTexture("_MainTex", corruptedTexture);
+            }
+
+            return corruptedBreadcrumbEchoPaintedMaterial;
         }
 
         private void HandleStaminaPickupCollected(StaminaPickup pickup)

@@ -29,6 +29,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string EchoReturnThreatPulseResourcePath = "Map/ForestEchoReturnThreatPulse";
         private const string EchoReturnThreatHintResourcePath = "Map/ForestEchoReturnThreatHint";
         private const string BreadcrumbChainEchoResourcePath = "Map/ForestBreadcrumbChainEcho";
+        private const string CorruptedBreadcrumbEchoResourcePath = "Map/ForestCorruptedBreadcrumbEcho";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -53,6 +54,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string EchoReturnThreatPulseFileName = "ForestEchoReturnThreatPulse.png";
         private const string EchoReturnThreatHintFileName = "ForestEchoReturnThreatHint.png";
         private const string BreadcrumbChainEchoFileName = "ForestBreadcrumbChainEcho.png";
+        private const string CorruptedBreadcrumbEchoFileName = "ForestCorruptedBreadcrumbEcho.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -78,6 +80,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Sprite echoReturnThreatPulseSprite;
         private static Texture2D echoReturnThreatHintTexture;
         private static Texture2D breadcrumbChainEchoTexture;
+        private static Texture2D corruptedBreadcrumbEchoTexture;
 
         public static Sprite TryGetWallSprite()
         {
@@ -340,6 +343,43 @@ namespace LostBreadcrumbs.Runtime.Map
             texture.filterMode = FilterMode.Bilinear;
             breadcrumbChainEchoTexture = texture;
             return breadcrumbChainEchoTexture;
+        }
+
+        public static Texture2D TryGetCorruptedBreadcrumbEchoTexture()
+        {
+            if (corruptedBreadcrumbEchoTexture != null)
+            {
+                return corruptedBreadcrumbEchoTexture;
+            }
+
+            Texture2D texture = Resources.Load<Texture2D>(CorruptedBreadcrumbEchoResourcePath);
+            if (texture == null)
+            {
+                texture = LoadTextureFromProjectFile(CorruptedBreadcrumbEchoFileName);
+            }
+
+            if (texture == null)
+            {
+                Sprite sprite = LoadSprite(
+                    CorruptedBreadcrumbEchoResourcePath,
+                    CorruptedBreadcrumbEchoFileName,
+                    "ForestCorruptedBreadcrumbEcho");
+                if (sprite != null)
+                {
+                    texture = sprite.texture;
+                }
+            }
+
+            if (texture == null)
+            {
+                return null;
+            }
+
+            // LineRenderer Tile mode needs U-repeat.
+            texture.wrapMode = TextureWrapMode.Repeat;
+            texture.filterMode = FilterMode.Bilinear;
+            corruptedBreadcrumbEchoTexture = texture;
+            return corruptedBreadcrumbEchoTexture;
         }
 
         public static Sprite TryGetExitChoiceCacheBeaconSprite()
