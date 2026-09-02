@@ -154,6 +154,8 @@ namespace LostBreadcrumbs.Runtime.Systems
         private int lastFallbackVisibleColliderCount;
         private bool lastPlayerSpawnAdjusted;
         private bool lastPlayerSpawnUsedBlockedFallback;
+        private bool lastCheckpointRecovered;
+        private bool lastCheckpointWasInvalid;
         private Vector3 lastPlayerSpawnPosition;
         private bool loggedRiskFloorVisibilityGuard;
         private bool loggedPlayerSpawnBlockerScopeGuard;
@@ -188,6 +190,8 @@ namespace LostBreadcrumbs.Runtime.Systems
         public int LastFallbackVisibleColliderCount => lastFallbackVisibleColliderCount;
         public bool LastPlayerSpawnAdjusted => lastPlayerSpawnAdjusted;
         public bool LastPlayerSpawnUsedBlockedFallback => lastPlayerSpawnUsedBlockedFallback;
+        public bool LastCheckpointRecovered => lastCheckpointRecovered;
+        public bool LastCheckpointWasInvalid => lastCheckpointWasInvalid;
         public Vector3 LastPlayerSpawnPosition => lastPlayerSpawnPosition;
         public float LastHookStagePressure01 => lastHookStagePressure01;
         public float LastHookChanceMultiplier => lastHookChanceMultiplier;
@@ -304,6 +308,64 @@ namespace LostBreadcrumbs.Runtime.Systems
             float z = playerTransform != null ? playerTransform.position.z : preferredPosition.z;
             preferredPosition.z = z;
             return TryResolveSafePlayerPosition(lastGeneratedCells, preferredPosition, playerTransform, out position);
+        }
+
+        public bool TryValidateAndRecoverCheckpointPosition(Vector3 preferredPosition, Transform playerTransform, out Vector3 position, out bool recovered)
+        {
+            recovered = false;
+            lastCheckpointRecovered = false;
+            lastCheckpointWasInvalid = false;
+            position = preferredPosition;
+
+            if (!IsFiniteWorldPosition(preferredPosition))
+            {
+                lastCheckpointWasInvalid = true;
+                if (TryGetSafePlayerStartPosition(playerTransform, out position))
+                {
+                    recovered = true;
+                    lastCheckpointRecovered = true;
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (lastGeneratedCells.Count == 0 || config == null)
+            {
+                lastCheckpointWasInvalid = true;
+                return false;
+            }
+
+            HashSet<Vector2Int> occupied = BuildOccupiedCellSet(lastGeneratedCells);
+            float clearanceRadius = ResolvePlayerSpawnClearanceRadius(playerTransform);
+            bool insideCell = IsInsideGeneratedWalkableCell(preferredPosition, occupied, clearanceRadius);
+            bool blocked = IsPlayerSpawnBlocked(preferredPosition, playerTransform);
+            if (insideCell && !blocked)
+            {
+                position = preferredPosition;
+                if (playerTransform != null)
+                {
+                    position.z = playerTransform.position.z;
+                }
+
+                lastPlayerSpawnPosition = position;
+                return true;
+            }
+
+            lastCheckpointWasInvalid = !insideCell || blocked;
+            if (!TryResolveSafePlayerPosition(preferredPosition, playerTransform, out position))
+            {
+                return false;
+            }
+
+            recovered = ((Vector2)position - (Vector2)preferredPosition).sqrMagnitude > 0.0001f || lastPlayerSpawnUsedBlockedFallback;
+            lastCheckpointRecovered = recovered;
+            return true;
+        }
+
+        private static bool IsFiniteWorldPosition(Vector3 position)
+        {
+            return float.IsFinite(position.x) && float.IsFinite(position.y) && float.IsFinite(position.z);
         }
 
         [ContextMenu("Generate Current Stage")]
@@ -625,8 +687,7 @@ namespace LostBreadcrumbs.Runtime.Systems
                     if (renderWallGeometry)
                     {
                         SpriteRenderer renderer = wall.AddComponent<SpriteRenderer>();
-                        renderer.sprite = GetDebugSprite();
-                        renderer.color = wallColor;
+                        ApplyWallSprite(renderer);
                         renderer.sortingOrder = wallSortingOrder;
                         if (fallbackWallVisual)
                         {
@@ -1914,14 +1975,13 @@ namespace LostBreadcrumbs.Runtime.Systems
 
         private static GameObject TryFindPlayerByTag()
         {
-            try
+            PlayerDummyController activePlayer = PlayerDummyController.ActiveInstance;
+            if (activePlayer != null)
             {
-                return GameObject.FindGameObjectWithTag("Player");
+                return activePlayer.gameObject;
             }
-            catch (UnityException)
-            {
-                return null;
-            }
+
+            return null;
         }
 
         private Vector3 ToWorld(Vector2Int cellPosition)
@@ -1985,6 +2045,20 @@ namespace LostBreadcrumbs.Runtime.Systems
             Vector2 center = (minEdge + maxEdge) * 0.5f;
             Vector2 size = Vector2.Max(Vector2.one * Mathf.Max(1f, config.cellSize), maxEdge - minEdge);
             follow.SetFollowBoundsForEditor(center, size, cameraFollowBoundsPadding);
+        }
+
+        private void ApplyWallSprite(SpriteRenderer renderer)
+        {
+            Sprite wallSprite = MapReadableArt.TryGetWallSprite();
+            if (wallSprite != null)
+            {
+                renderer.sprite = wallSprite;
+                renderer.color = Color.white;
+                return;
+            }
+
+            renderer.sprite = GetDebugSprite();
+            renderer.color = wallColor;
         }
 
         private Sprite GetDebugSprite()

@@ -187,6 +187,8 @@ namespace LostBreadcrumbs.Runtime.Map
         private bool lastExitUnlockedState;
         private Sprite debugSprite;
         private Material chainEchoMaterial;
+        private Material breadcrumbChainEchoPaintedMaterial;
+        private Material corruptedBreadcrumbEchoPaintedMaterial;
         private Coroutine exitUnlockPressureRoutine;
         private float nextCorruptedBreadcrumbEchoTime;
         private PlayerDummyController momentumPlayer;
@@ -198,6 +200,8 @@ namespace LostBreadcrumbs.Runtime.Map
         private bool pendingExitChoiceCarryover;
         private Coroutine exitChoiceCarryoverRoutine;
         private Coroutine riskCacheAftershockRoutine;
+        private float lateHouseMood01;
+        private bool lateHouseMoodApplied;
 
         public int CurrentStage { get; private set; } = 1;
         public int RequiredBreadcrumbs { get; private set; }
@@ -360,6 +364,17 @@ namespace LostBreadcrumbs.Runtime.Map
             UnsubscribeMapEvents();
         }
 
+        private void Update()
+        {
+            if (Time.timeScale <= 0.0001f || RegressionChecklistRunner.IsRegressionRunActive)
+            {
+                return;
+            }
+
+            BreadcrumbPickup.TickForestLick();
+            TickLateHouseMood();
+        }
+
         private void Start()
         {
             ResolveReferences();
@@ -504,6 +519,8 @@ namespace LostBreadcrumbs.Runtime.Map
                 breadcrumbPositions.Add(breadcrumbCells[i].position);
             }
 
+            SpawnCorruptedTrailDecoys(candidates, breadcrumbPositions);
+
             if (spawnStaminaPickups && breadcrumbCells.Count < candidates.Count)
             {
                 int interval = Mathf.Max(1, staminaCountIncreaseStageInterval);
@@ -541,6 +558,7 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             SpawnRiskCaches(riskCacheCandidates, CurrentStage * 509 + cells.Count * 71, latePressure01);
+            TryEnsureLandmarkCacheForLateTrail();
 
             if (hasExit)
             {
@@ -599,8 +617,18 @@ namespace LostBreadcrumbs.Runtime.Map
             pickupObject.transform.localScale = Vector3.one * 0.45f;
 
             SpriteRenderer renderer = pickupObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = new Color(1f, 0.85f, 0.3f, 0.95f);
+            Sprite breadSprite = MapReadableArt.TryGetBreadcrumbSprite();
+            if (breadSprite != null)
+            {
+                renderer.sprite = breadSprite;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = new Color(1f, 0.85f, 0.3f, 0.95f);
+            }
+
             renderer.sortingOrder = 25;
 
             CircleCollider2D trigger = pickupObject.AddComponent<CircleCollider2D>();
@@ -609,6 +637,7 @@ namespace LostBreadcrumbs.Runtime.Map
 
             BreadcrumbPickup pickup = pickupObject.AddComponent<BreadcrumbPickup>();
             pickup.Collected += HandlePickupCollected;
+            pickup.ErasedByForest += HandleFaintTrailErased;
 
             activePickups.Add(pickup);
         }
@@ -629,8 +658,21 @@ namespace LostBreadcrumbs.Runtime.Map
             exitObject.transform.localScale = Vector3.one * exitScale;
 
             SpriteRenderer renderer = exitObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = new Color(1f, 0.25f, 0.25f, 0.95f);
+            bool houseThreshold = CurrentStage >= Mathf.Max(1, latePressureStartStage);
+            Sprite exitSprite = houseThreshold
+                ? MapReadableArt.TryGetHouseThresholdExitSprite()
+                : MapReadableArt.TryGetStageExitPortalSprite();
+            if (exitSprite != null)
+            {
+                renderer.sprite = exitSprite;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = new Color(1f, 0.25f, 0.25f, 0.95f);
+            }
+
             renderer.sortingOrder = 120;
 
             GameObject beaconObject = new("ExitPortal_Beacon");
@@ -650,6 +692,7 @@ namespace LostBreadcrumbs.Runtime.Map
             exitPortal = exitObject.AddComponent<ExitPortalDummy>();
             exitPortal.PlayerEntered += HandleExitEntered;
             exitPortal.SetUnlocked(false);
+            exitPortal.SetHouseThresholdHint(houseThreshold);
         }
 
         private void SpawnStaminaPickups(
@@ -837,8 +880,18 @@ namespace LostBreadcrumbs.Runtime.Map
             pickupObject.transform.localScale = Vector3.one * 0.4f;
 
             SpriteRenderer renderer = pickupObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = staminaPickupColor;
+            Sprite staminaSprite = MapReadableArt.TryGetStaminaPickupSprite();
+            if (staminaSprite != null)
+            {
+                renderer.sprite = staminaSprite;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = staminaPickupColor;
+            }
+
             renderer.sortingOrder = 24;
 
             CircleCollider2D trigger = pickupObject.AddComponent<CircleCollider2D>();
@@ -952,8 +1005,18 @@ namespace LostBreadcrumbs.Runtime.Map
             cacheObject.transform.localScale = Vector3.one * Mathf.Max(0.1f, riskCacheScale);
 
             SpriteRenderer renderer = cacheObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = riskCacheColor;
+            Sprite cacheSprite = MapReadableArt.TryGetLandmarkCacheSprite();
+            if (cacheSprite != null)
+            {
+                renderer.sprite = cacheSprite;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = riskCacheColor;
+            }
+
             renderer.sortingOrder = riskCacheSortingOrder;
 
             CircleCollider2D trigger = cacheObject.AddComponent<CircleCollider2D>();
@@ -993,8 +1056,18 @@ namespace LostBreadcrumbs.Runtime.Map
             havenObject.transform.localScale = Vector3.one * 0.95f;
 
             SpriteRenderer renderer = havenObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = safeHavenColor;
+            Sprite havenSprite = MapReadableArt.TryGetSafeHavenSprite();
+            if (havenSprite != null)
+            {
+                renderer.sprite = havenSprite;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = safeHavenColor;
+            }
+
             renderer.sortingOrder = 23;
 
             CircleCollider2D trigger = havenObject.AddComponent<CircleCollider2D>();
@@ -1017,7 +1090,16 @@ namespace LostBreadcrumbs.Runtime.Map
             if (pickup != null)
             {
                 pickup.Collected -= HandlePickupCollected;
+                pickup.ErasedByForest -= HandleFaintTrailErased;
                 activePickups.Remove(pickup);
+                if (pickup.IsCorrupted)
+                {
+                    if (allowFeedback)
+                    {
+                        RuntimeEventBus.Raise(RuntimeEventType.Objective, "진해지지 않는 가루였다", this, CurrentStage);
+                    }
+                    return;
+                }
             }
 
             int momentumLevel = UpdateBreadcrumbMomentumLevel();
@@ -1241,7 +1323,7 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             float pressure = EvaluateLateStagePressure01(CurrentStage);
-            if (pressure < corruptedBreadcrumbPressureThreshold)
+            if (pressure < corruptedBreadcrumbPressureThreshold && CurrentStage > corruptedBreadcrumbStartStage)
             {
                 return;
             }
@@ -1420,11 +1502,13 @@ namespace LostBreadcrumbs.Runtime.Map
             line.SetPosition(0, origin);
             line.SetPosition(1, target);
             line.alignment = LineAlignment.View;
-            line.textureMode = LineTextureMode.Stretch;
+            Texture2D chainTexture = MapReadableArt.TryGetBreadcrumbChainEchoTexture();
+            // Tile painted crumb trail when present; Stretch only for the untextured debug fallback.
+            line.textureMode = chainTexture != null ? LineTextureMode.Tile : LineTextureMode.Stretch;
             line.numCornerVertices = 2;
             line.numCapVertices = 2;
             line.widthMultiplier = EvaluateBreadcrumbChainWidth(momentumLevel);
-            line.sharedMaterial = GetChainEchoMaterial();
+            line.sharedMaterial = GetBreadcrumbChainEchoMaterial();
             line.sortingOrder = breadcrumbChainEchoSortingOrder;
 
             StartCoroutine(BreadcrumbChainEchoRoutine(echoObject, line, targetIsExit, momentumLevel));
@@ -1444,11 +1528,13 @@ namespace LostBreadcrumbs.Runtime.Map
             line.loop = false;
             line.positionCount = 4;
             line.alignment = LineAlignment.View;
-            line.textureMode = LineTextureMode.Stretch;
+            Texture2D corruptedTexture = MapReadableArt.TryGetCorruptedBreadcrumbEchoTexture();
+            // Tile painted false-trail when present; Stretch only for the untextured debug fallback.
+            line.textureMode = corruptedTexture != null ? LineTextureMode.Tile : LineTextureMode.Stretch;
             line.numCornerVertices = 2;
             line.numCapVertices = 2;
             line.widthMultiplier = Mathf.Max(0.01f, corruptedBreadcrumbEchoWidth);
-            line.sharedMaterial = GetChainEchoMaterial();
+            line.sharedMaterial = GetCorruptedBreadcrumbEchoMaterial();
             line.sortingOrder = corruptedBreadcrumbSortingOrder;
 
             Vector3[] basePoints = BuildCorruptedBreadcrumbPath(origin, target, pressure);
@@ -1475,10 +1561,22 @@ namespace LostBreadcrumbs.Runtime.Map
             {
                 float t = Mathf.Clamp01((Time.time - startedAt) / duration);
                 float pulse = 0.5f + Mathf.Sin(t * Mathf.PI * 5f) * 0.5f;
-                Color color = baseColor;
-                color.a *= Mathf.Lerp(1f, 0f, t)
-                           * Mathf.Lerp(0.65f, 1f, pulse)
-                           * Mathf.Lerp(1f, 1.18f, Mathf.Clamp01((momentumLevel - 1f) / Mathf.Max(1f, BreadcrumbMomentumMaxLevel - 1f)));
+                float alphaScale = Mathf.Lerp(1f, 0f, t)
+                                   * Mathf.Lerp(0.65f, 1f, pulse)
+                                   * Mathf.Lerp(1f, 1.18f, Mathf.Clamp01((momentumLevel - 1f) / Mathf.Max(1f, BreadcrumbMomentumMaxLevel - 1f)));
+                Color color;
+                if (MapReadableArt.TryGetBreadcrumbChainEchoTexture() != null)
+                {
+                    // Painted honey-gold crumb trail - white RGB so chain tint colors do not double-tint.
+                    color = Color.white;
+                    color.a = baseColor.a * alphaScale;
+                }
+                else
+                {
+                    color = baseColor;
+                    color.a *= alphaScale;
+                }
+
                 line.startColor = color;
                 line.endColor = color;
                 line.widthMultiplier = baseWidth * Mathf.Lerp(1.2f, 0.35f, t);
@@ -1514,15 +1612,39 @@ namespace LostBreadcrumbs.Runtime.Map
             pulseObject.transform.position = new Vector3(position.x, position.y, 0f);
             EchoPulseVisualDummy visual = pulseObject.AddComponent<EchoPulseVisualDummy>();
             int steps = Mathf.Max(0, momentumLevel - 2);
-            Color color = breadcrumbMomentumPulseColor;
-            color.a *= Mathf.Lerp(0.86f, 1.18f, Mathf.Clamp01((momentumLevel - 2f) / Mathf.Max(1f, BreadcrumbMomentumMaxLevel - 2f)));
-            visual.Configure(
-                Mathf.Max(0.1f, breadcrumbMomentumPulseRadius) * (1f + steps * 0.18f) * EvaluateBreadcrumbBuildMultiplier(breadcrumbBuildPulseRadiusMultiplier),
-                color,
-                Mathf.Max(0.1f, breadcrumbMomentumPulseDuration) * (1f + steps * 0.12f),
-                Mathf.Clamp(2 + steps, 2, 4),
-                Mathf.Max(0.08f, breadcrumbMomentumPulseDuration * 0.18f),
-                breadcrumbMomentumPulseSortingOrder);
+            float alphaScale = Mathf.Lerp(0.86f, 1.18f, Mathf.Clamp01((momentumLevel - 2f) / Mathf.Max(1f, BreadcrumbMomentumMaxLevel - 2f)));
+            float radius = Mathf.Max(0.1f, breadcrumbMomentumPulseRadius) * (1f + steps * 0.18f) * EvaluateBreadcrumbBuildMultiplier(breadcrumbBuildPulseRadiusMultiplier);
+            float duration = Mathf.Max(0.1f, breadcrumbMomentumPulseDuration) * (1f + steps * 0.12f);
+            int ringCount = Mathf.Clamp(2 + steps, 2, 4);
+            float interval = Mathf.Max(0.08f, breadcrumbMomentumPulseDuration * 0.18f);
+            Sprite momentumPulseSprite = MapReadableArt.TryGetBreadcrumbMomentumPulseSprite();
+            Color color;
+            if (momentumPulseSprite != null)
+            {
+                // Painted honey-gold crumb flare - white RGB so breadcrumbMomentumPulseColor does not double-tint.
+                color = Color.white;
+                color.a = breadcrumbMomentumPulseColor.a * alphaScale;
+                visual.Configure(
+                    radius,
+                    color,
+                    duration,
+                    ringCount,
+                    interval,
+                    breadcrumbMomentumPulseSortingOrder,
+                    momentumPulseSprite);
+            }
+            else
+            {
+                color = breadcrumbMomentumPulseColor;
+                color.a *= alphaScale;
+                visual.Configure(
+                    radius,
+                    color,
+                    duration,
+                    ringCount,
+                    interval,
+                    breadcrumbMomentumPulseSortingOrder);
+            }
         }
 
         private IEnumerator CorruptedBreadcrumbEchoRoutine(GameObject echoObject, LineRenderer line, Vector3[] basePoints, float pressure)
@@ -1554,11 +1676,33 @@ namespace LostBreadcrumbs.Runtime.Map
                     line.SetPosition(i, point);
                 }
 
-                Color color = corruptedBreadcrumbEchoColor;
-                color.a *= fade * Mathf.Lerp(0.48f, 1f, flicker);
+                float alphaScale = fade * Mathf.Lerp(0.48f, 1f, flicker);
+                Color color;
+                if (MapReadableArt.TryGetCorruptedBreadcrumbEchoTexture() != null)
+                {
+                    // Painted sick purple/ash false trail - white RGB so cyan debug tint does not muddy art.
+                    color = Color.white;
+                    color.a = corruptedBreadcrumbEchoColor.a * alphaScale;
+                }
+                else
+                {
+                    color = corruptedBreadcrumbEchoColor;
+                    color.a *= alphaScale;
+                }
+
                 line.startColor = color;
                 line.endColor = color;
-                line.widthMultiplier = Mathf.Max(0.01f, corruptedBreadcrumbEchoWidth) * Mathf.Lerp(1.35f, 0.18f, t);
+                float hold01 = 0f;
+                if (momentumPlayer != null)
+                {
+                    PlayerEchoPulseAbility holdPulse = momentumPlayer.GetComponent<PlayerEchoPulseAbility>();
+                    if (holdPulse != null)
+                    {
+                        hold01 = holdPulse.Charge01;
+                    }
+                }
+                float widthScale = Mathf.Lerp(1.35f, 0.18f, t) * Mathf.Lerp(1f, 0.62f, hold01);
+                line.widthMultiplier = Mathf.Max(0.01f, corruptedBreadcrumbEchoWidth) * widthScale;
                 yield return null;
             }
 
@@ -1613,6 +1757,82 @@ namespace LostBreadcrumbs.Runtime.Map
                 hideFlags = HideFlags.HideAndDontSave
             };
             return chainEchoMaterial;
+        }
+
+        private Material GetBreadcrumbChainEchoMaterial()
+        {
+            Texture2D chainTexture = MapReadableArt.TryGetBreadcrumbChainEchoTexture();
+            if (chainTexture == null)
+            {
+                return GetChainEchoMaterial();
+            }
+
+            if (breadcrumbChainEchoPaintedMaterial != null)
+            {
+                return breadcrumbChainEchoPaintedMaterial;
+            }
+
+            Shader shader = Shader.Find("Sprites/Default");
+            if (shader == null)
+            {
+                shader = Shader.Find("Default-Line");
+            }
+
+            if (shader == null)
+            {
+                return GetChainEchoMaterial();
+            }
+
+            breadcrumbChainEchoPaintedMaterial = new Material(shader)
+            {
+                name = "BreadcrumbChainEchoPaintedMaterial",
+                hideFlags = HideFlags.HideAndDontSave,
+                mainTexture = chainTexture
+            };
+            if (breadcrumbChainEchoPaintedMaterial.HasProperty("_MainTex"))
+            {
+                breadcrumbChainEchoPaintedMaterial.SetTexture("_MainTex", chainTexture);
+            }
+
+            return breadcrumbChainEchoPaintedMaterial;
+        }
+
+        private Material GetCorruptedBreadcrumbEchoMaterial()
+        {
+            Texture2D corruptedTexture = MapReadableArt.TryGetCorruptedBreadcrumbEchoTexture();
+            if (corruptedTexture == null)
+            {
+                return GetChainEchoMaterial();
+            }
+
+            if (corruptedBreadcrumbEchoPaintedMaterial != null)
+            {
+                return corruptedBreadcrumbEchoPaintedMaterial;
+            }
+
+            Shader shader = Shader.Find("Sprites/Default");
+            if (shader == null)
+            {
+                shader = Shader.Find("Default-Line");
+            }
+
+            if (shader == null)
+            {
+                return GetChainEchoMaterial();
+            }
+
+            corruptedBreadcrumbEchoPaintedMaterial = new Material(shader)
+            {
+                name = "CorruptedBreadcrumbEchoPaintedMaterial",
+                hideFlags = HideFlags.HideAndDontSave,
+                mainTexture = corruptedTexture
+            };
+            if (corruptedBreadcrumbEchoPaintedMaterial.HasProperty("_MainTex"))
+            {
+                corruptedBreadcrumbEchoPaintedMaterial.SetTexture("_MainTex", corruptedTexture);
+            }
+
+            return corruptedBreadcrumbEchoPaintedMaterial;
         }
 
         private void HandleStaminaPickupCollected(StaminaPickup pickup)
@@ -1672,15 +1892,34 @@ namespace LostBreadcrumbs.Runtime.Map
 
             pulseObject.transform.position = new Vector3(position.x, position.y, 0f);
             EchoPulseVisualDummy visual = pulseObject.AddComponent<EchoPulseVisualDummy>();
-            Color color = riskCacheColor;
-            color.a *= 0.68f;
-            visual.Configure(
-                1.45f,
-                color,
-                1.1f,
-                2,
-                0.2f,
-                riskCacheSortingOrder);
+            Sprite riskPulseSprite = MapReadableArt.TryGetRiskCachePulseSprite();
+            Color color;
+            if (riskPulseSprite != null)
+            {
+                // Painted ember flare - white RGB so riskCacheColor does not double-tint; keep same alpha scale.
+                color = Color.white;
+                color.a = riskCacheColor.a * 0.68f;
+                visual.Configure(
+                    1.45f,
+                    color,
+                    1.1f,
+                    2,
+                    0.2f,
+                    riskCacheSortingOrder,
+                    riskPulseSprite);
+            }
+            else
+            {
+                color = riskCacheColor;
+                color.a *= 0.68f;
+                visual.Configure(
+                    1.45f,
+                    color,
+                    1.1f,
+                    2,
+                    0.2f,
+                    riskCacheSortingOrder);
+            }
         }
 
         private static string BuildRiskCacheRewardMessage(
@@ -1940,8 +2179,18 @@ namespace LostBreadcrumbs.Runtime.Map
             cacheObject.transform.localScale = Vector3.one * Mathf.Max(0.1f, exitChoiceCacheScale);
 
             SpriteRenderer renderer = cacheObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = exitChoiceCacheColor;
+            Sprite cacheSprite = MapReadableArt.TryGetExitChoiceCacheSprite();
+            if (cacheSprite != null)
+            {
+                renderer.sprite = cacheSprite;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = exitChoiceCacheColor;
+            }
+
             renderer.sortingOrder = exitChoiceCacheSortingOrder;
 
             CircleCollider2D trigger = cacheObject.AddComponent<CircleCollider2D>();
@@ -2013,15 +2262,34 @@ namespace LostBreadcrumbs.Runtime.Map
 
             beaconObject.transform.position = new Vector3(position.x, position.y, 0f);
             EchoPulseVisualDummy visual = beaconObject.AddComponent<EchoPulseVisualDummy>();
-            Color color = exitChoiceCacheColor;
-            color.a *= Mathf.Clamp01(alphaScale);
-            visual.Configure(
-                Mathf.Max(0.1f, exitChoiceCacheBeaconRadius),
-                color,
-                Mathf.Max(0.1f, exitChoiceCacheBeaconDuration),
-                2,
-                Mathf.Max(0.08f, exitChoiceCacheBeaconDuration * 0.18f),
-                exitChoiceCacheSortingOrder);
+            Sprite choiceBeaconSprite = MapReadableArt.TryGetExitChoiceCacheBeaconSprite();
+            Color color;
+            if (choiceBeaconSprite != null)
+            {
+                // Painted amber/pumpkin flare - white RGB so exitChoiceCacheColor does not double-tint; keep base alpha * alphaScale.
+                color = Color.white;
+                color.a = exitChoiceCacheColor.a * Mathf.Clamp01(alphaScale);
+                visual.Configure(
+                    Mathf.Max(0.1f, exitChoiceCacheBeaconRadius),
+                    color,
+                    Mathf.Max(0.1f, exitChoiceCacheBeaconDuration),
+                    2,
+                    Mathf.Max(0.08f, exitChoiceCacheBeaconDuration * 0.18f),
+                    exitChoiceCacheSortingOrder,
+                    choiceBeaconSprite);
+            }
+            else
+            {
+                color = exitChoiceCacheColor;
+                color.a *= Mathf.Clamp01(alphaScale);
+                visual.Configure(
+                    Mathf.Max(0.1f, exitChoiceCacheBeaconRadius),
+                    color,
+                    Mathf.Max(0.1f, exitChoiceCacheBeaconDuration),
+                    2,
+                    Mathf.Max(0.08f, exitChoiceCacheBeaconDuration * 0.18f),
+                    exitChoiceCacheSortingOrder);
+            }
         }
 
         private void SpawnExitUnlockBeacon(Vector3 position, float alphaScale)
@@ -2035,15 +2303,34 @@ namespace LostBreadcrumbs.Runtime.Map
 
             beaconObject.transform.position = new Vector3(position.x, position.y, 0f);
             EchoPulseVisualDummy visual = beaconObject.AddComponent<EchoPulseVisualDummy>();
-            Color color = exitUnlockBeaconColor;
-            color.a *= Mathf.Clamp01(alphaScale);
-            visual.Configure(
-                Mathf.Max(0.2f, exitUnlockBeaconRadius),
-                color,
-                Mathf.Max(0.1f, exitUnlockBeaconDuration),
-                Mathf.Clamp(exitUnlockBeaconRingCount, 1, 4),
-                Mathf.Max(0.08f, exitUnlockBeaconDuration * 0.16f),
-                exitUnlockBeaconSortingOrder);
+            Sprite unlockBeaconSprite = MapReadableArt.TryGetExitUnlockBeaconSprite();
+            Color color;
+            if (unlockBeaconSprite != null)
+            {
+                // Painted mint/gold lantern flare - white RGB so exitUnlockBeaconColor does not double-tint; keep base alpha * alphaScale.
+                color = Color.white;
+                color.a = exitUnlockBeaconColor.a * Mathf.Clamp01(alphaScale);
+                visual.Configure(
+                    Mathf.Max(0.2f, exitUnlockBeaconRadius),
+                    color,
+                    Mathf.Max(0.1f, exitUnlockBeaconDuration),
+                    Mathf.Clamp(exitUnlockBeaconRingCount, 1, 4),
+                    Mathf.Max(0.08f, exitUnlockBeaconDuration * 0.16f),
+                    exitUnlockBeaconSortingOrder,
+                    unlockBeaconSprite);
+            }
+            else
+            {
+                color = exitUnlockBeaconColor;
+                color.a *= Mathf.Clamp01(alphaScale);
+                visual.Configure(
+                    Mathf.Max(0.2f, exitUnlockBeaconRadius),
+                    color,
+                    Mathf.Max(0.1f, exitUnlockBeaconDuration),
+                    Mathf.Clamp(exitUnlockBeaconRingCount, 1, 4),
+                    Mathf.Max(0.08f, exitUnlockBeaconDuration * 0.16f),
+                    exitUnlockBeaconSortingOrder);
+            }
         }
 
         private void TryStartExitChoiceCarryover()
@@ -2108,6 +2395,11 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             RaiseExitDecisionEvent();
+            if (StageManager.ActiveInstance != null && StageManager.ActiveInstance.TryHandleStageClear())
+            {
+                return;
+            }
+
             mapSystem.GenerateNextStage();
         }
 
@@ -2190,6 +2482,13 @@ namespace LostBreadcrumbs.Runtime.Map
             exitChoiceCacheTakenThisStage = false;
             exitChoiceCachePosition = Vector3.zero;
             nextCorruptedBreadcrumbEchoTime = 0f;
+            lateHouseMood01 = 0f;
+            if (lateHouseMoodApplied)
+            {
+                FogOfWarSystem.ActiveInstance?.ResetRuntimeStyleTuningForEditor();
+            }
+
+            lateHouseMoodApplied = false;
 
             for (int i = 0; i < activePickups.Count; i++)
             {
@@ -2197,6 +2496,7 @@ namespace LostBreadcrumbs.Runtime.Map
                 if (pickup != null)
                 {
                     pickup.Collected -= HandlePickupCollected;
+                    pickup.ErasedByForest -= HandleFaintTrailErased;
                     DestroySafe(pickup.gameObject);
                 }
             }
@@ -2315,6 +2615,110 @@ namespace LostBreadcrumbs.Runtime.Map
             }
         }
 
+
+        private void SpawnCorruptedTrailDecoys(IReadOnlyList<GeneratedMapCell> candidates, HashSet<Vector2Int> usedPositions)
+        {
+            if (RegressionChecklistRunner.IsRegressionRunActive
+                || candidates == null
+                || usedPositions == null
+                || CurrentStage < Mathf.Max(1, corruptedBreadcrumbStartStage))
+            {
+                return;
+            }
+
+            List<GeneratedMapCell> pool = new();
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                GeneratedMapCell cell = candidates[i];
+                if (!usedPositions.Contains(cell.position))
+                {
+                    pool.Add(cell);
+                }
+            }
+
+            int decoyCount = Mathf.Min(2, pool.Count);
+            System.Random random = new(CurrentStage * 811 + pool.Count * 17);
+            for (int i = 0; i < decoyCount && pool.Count > 0; i++)
+            {
+                int index = random.Next(0, pool.Count);
+                GeneratedMapCell selected = pool[index];
+                pool.RemoveAt(index);
+                usedPositions.Add(selected.position);
+                SpawnPickup(selected, 80 + i);
+                BreadcrumbPickup spawned = activePickups.Count > 0 ? activePickups[activePickups.Count - 1] : null;
+                spawned?.ConfigureCorrupted(true);
+            }
+        }
+
+        private void TryEnsureLandmarkCacheForLateTrail()
+        {
+            if (RegressionChecklistRunner.IsRegressionRunActive || CurrentStage < 4 || CountActiveRiskCaches() > 0)
+            {
+                return;
+            }
+
+            if (momentumPlayer == null)
+            {
+                momentumPlayer = FindFirstObjectByType<PlayerDummyController>();
+            }
+
+            Vector3 origin = momentumPlayer != null ? momentumPlayer.transform.position : Vector3.zero;
+            TryEnsureRiskCacheForRuntime(origin, out _, out _);
+        }
+
+        private void HandleFaintTrailErased(BreadcrumbPickup pickup)
+        {
+            if (pickup == null)
+            {
+                return;
+            }
+
+            pickup.Collected -= HandlePickupCollected;
+            pickup.ErasedByForest -= HandleFaintTrailErased;
+            activePickups.Remove(pickup);
+            if (!pickup.IsCorrupted)
+            {
+                RequiredBreadcrumbs = Mathf.Max(CollectedBreadcrumbs, RequiredBreadcrumbs - 1);
+            }
+
+            UpdateExitState();
+        }
+
+        private void TickLateHouseMood()
+        {
+            bool lateHouse = CurrentStage >= Mathf.Max(1, latePressureStartStage);
+            float previousMood = lateHouseMood01;
+            lateHouseMood01 = lateHouse
+                ? Mathf.MoveTowards(lateHouseMood01, 1f, Time.deltaTime / 36f)
+                : 0f;
+
+            FogOfWarSystem fog = FogOfWarSystem.ActiveInstance;
+            if (fog == null)
+            {
+                lateHouseMoodApplied = false;
+                return;
+            }
+
+            if (!lateHouse)
+            {
+                if (lateHouseMoodApplied)
+                {
+                    fog.ResetRuntimeStyleTuningForEditor();
+                    lateHouseMoodApplied = false;
+                }
+
+                return;
+            }
+
+            if (lateHouseMoodApplied && Mathf.Abs(lateHouseMood01 - previousMood) < 0.02f)
+            {
+                return;
+            }
+
+            Color woodTint = Color.Lerp(new Color(0.031f, 0.039f, 0.055f, 1f), new Color(0.055f, 0.028f, 0.016f, 1f), lateHouseMood01);
+            fog.ApplyRuntimeStyleTuningForEditor(woodTint, Mathf.Lerp(1f, 1.12f, lateHouseMood01), Mathf.Lerp(1f, 0.86f, lateHouseMood01));
+            lateHouseMoodApplied = true;
+        }
 
         private float EvaluateLateStagePressure01(int stage)
         {

@@ -374,17 +374,10 @@ namespace LostBreadcrumbs.Runtime.AI
         {
             if (player == null)
             {
-                try
+                PlayerDummyController activePlayer = PlayerDummyController.ActiveInstance;
+                if (activePlayer != null)
                 {
-                    GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-                    if (playerObject != null)
-                    {
-                        player = playerObject.transform;
-                    }
-                }
-                catch (UnityException)
-                {
-                    // Tag might not exist in project settings.
+                    player = activePlayer.transform;
                 }
 
                 if (player == null)

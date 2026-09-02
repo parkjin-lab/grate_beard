@@ -253,11 +253,12 @@ namespace LostBreadcrumbs.Runtime.Managers
             ResolveReferences();
             ApplySavedLoadoutToRuntime(saveData.meta.selectedLoadoutId, saveData.meta.unlockedLoadoutIds);
 
+            bool awaitingTitleChoice = StageManager.ActiveInstance != null && StageManager.ActiveInstance.IsAwaitingTitleChoice;
             if (autoLoadCheckpointOnStart && HasCheckpoint)
             {
                 TryLoadCheckpointToRuntime("StartupLoad");
             }
-            else if (startNewRunWhenNoCheckpoint)
+            else if (startNewRunWhenNoCheckpoint && !awaitingTitleChoice)
             {
                 BeginNewRun(incrementRunCounter: true, resetRuntimeStage: false, reason: "StartupNoCheckpoint");
             }
@@ -542,8 +543,16 @@ namespace LostBreadcrumbs.Runtime.Managers
                 Vector3 current = playerController.transform.position;
                 current.x = checkpoint.playerX;
                 current.y = checkpoint.playerY;
+                if (mapSystem != null
+                    && mapSystem.TryValidateAndRecoverCheckpointPosition(current, playerController.transform, out Vector3 recovered, out _))
+                {
+                    recovered.z = current.z;
+                    current = recovered;
+                }
+
                 playerController.transform.position = current;
                 playerController.ApplySavedStaminaNormalized(checkpoint.staminaNormalized);
+                playerController.TryRecoverUnsafePositionNowForRuntime();
             }
 
             if (playerVitals != null)

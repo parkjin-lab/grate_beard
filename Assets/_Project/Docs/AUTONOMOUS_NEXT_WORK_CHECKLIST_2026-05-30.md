@@ -5,6 +5,7 @@
 - Runtime pressure, threat readability, escape relief, risk rewards, exit choice carryover, semantic stingers, and Korean-first HUD copy are implemented.
 - Debug validation now shows rhythm phase observation and semantic stinger telemetry.
 - Large vendor packages are ignored until license, scope, and repository size are approved.
+- 2026-08-27: Stage 3 now densifies patrols/searchers and Stage3ForkLure beacons/reinforcements without touching phase seconds or pressure multipliers. Clearing stage 2 still shows the Stage 2 book, then hold unlocks with `멀리까지 들릴 수 있다` / HUD `Q 홀드`. Death still never opens the book. Rhythm numbers untouched.
 
 ## Latest Code Review Notes
 | Area | Finding | Action |
@@ -97,7 +98,14 @@
 6. Follow `AUTONOMOUS_OPERATIONS_PLAYBOOK_2026-06-10.md` when the creator is absent: choose one small task, verify with static evidence, and hand off the next action.
 
 ## Next Priority
-The next best autonomous task is Release relief tuning from telemetry:
+Rhythm capture is still treated as `NO_EVIDENCE`. Do not retune rhythm feel, phase timing, pressure, payoff, or overcharge charge seconds without Play Mode / snapshot evidence.
+
+The next best autonomous task after this 2026-08-23 slice is one of:
+- Confirm Unity compile / Play Mode tap-vs-hold feel without changing numbers.
+- Echo cast inside smoke: trade reveal range for lower noise. One ability interaction only.
+- Keep static guardrails, spawn/checkpoint fairness, docs, or telemetry if Play Mode is blocked.
+
+Older Release-relief guidance remains valid only after snapshots exist:
 - Use `ReleaseRelief` snapshot lines to verify whether at least two relief channels stay active through the early/mid Release window.
 - Prefer `Tools\Summarize-RhythmSnapshots.cmd` once snapshots exist; it should report `CalmEvidenceStatus: PASS`, `BuildEvidenceStatus: PASS`, `SpikeEvidenceStatus: PASS`, and `ReleaseEvidenceStatus: PASS` before claiming rhythm feel is proven.
 - For autonomous runs, call `Tools\Write-RhythmSnapshotSummary.cmd` and read the four phase status fields from `Logs\RhythmValidation\rhythm_snapshot_summary_last.json`.

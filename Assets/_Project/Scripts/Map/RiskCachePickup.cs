@@ -46,6 +46,13 @@ namespace LostBreadcrumbs.Runtime.Map
             spriteRenderer = GetComponent<SpriteRenderer>();
             if (spriteRenderer != null)
             {
+                Sprite cacheSprite = MapReadableArt.TryGetLandmarkCacheSprite();
+                if (cacheSprite != null)
+                {
+                    spriteRenderer.sprite = cacheSprite;
+                    spriteRenderer.color = Color.white;
+                }
+
                 initialColor = spriteRenderer.color;
             }
         }

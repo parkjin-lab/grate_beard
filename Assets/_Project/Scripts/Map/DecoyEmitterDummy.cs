@@ -46,6 +46,26 @@ namespace LostBreadcrumbs.Runtime.Map
             pulseRadius = Mathf.Max(0.1f, radius);
         }
 
+        /// <summary>
+        /// Keep painted body art readable: white RGB + existing alpha for idle/flash.
+        /// Call after Configure when a MapReadableArt body sprite is assigned.
+        /// </summary>
+        public void PreferPaintedBodyTint(float alpha)
+        {
+            float a = Mathf.Clamp01(alpha);
+            idleColor = new Color(1f, 1f, 1f, a);
+            flashColor = new Color(1f, 1f, 1f, Mathf.Min(1f, a + 0.16f));
+            if (spriteRenderer == null)
+            {
+                spriteRenderer = GetComponent<SpriteRenderer>();
+            }
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = idleColor;
+            }
+        }
+
         private void Awake()
         {
             spriteRenderer = GetComponent<SpriteRenderer>();
@@ -155,10 +175,22 @@ namespace LostBreadcrumbs.Runtime.Map
 
             visualObject.transform.position = new Vector3(transform.position.x, transform.position.y, 0f);
             EchoPulseVisualDummy visual = visualObject.AddComponent<EchoPulseVisualDummy>();
-            Color color = successFeedbackColor;
-            color.a *= Mathf.Clamp01(0.65f + responderCount * 0.1f);
+            float alphaScale = Mathf.Clamp01(0.65f + responderCount * 0.1f);
             float radius = Mathf.Clamp(pulseRadius * successFeedbackRadiusScale, 0.8f, 4.8f);
-            visual.Configure(radius, color, successFeedbackDuration, 1, 0f, successFeedbackSortingOrder);
+            Sprite decoyPulseSprite = MapReadableArt.TryGetDecoyPulseSprite();
+            if (decoyPulseSprite != null)
+            {
+                // Painted magenta lure flare - white RGB so successFeedbackColor/decoy tint does not muddy art.
+                Color color = Color.white;
+                color.a = successFeedbackColor.a * alphaScale;
+                visual.Configure(radius, color, successFeedbackDuration, 1, 0f, successFeedbackSortingOrder, decoyPulseSprite);
+            }
+            else
+            {
+                Color color = successFeedbackColor;
+                color.a *= alphaScale;
+                visual.Configure(radius, color, successFeedbackDuration, 1, 0f, successFeedbackSortingOrder);
+            }
         }
 
         private void TickVisual()

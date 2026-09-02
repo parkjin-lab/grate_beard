@@ -69,6 +69,17 @@ namespace LostBreadcrumbs.Runtime.Player
         [SerializeField] private Color scoutHazardColor = new(1f, 0.34f, 0.22f, 1f);
         [SerializeField] private Color scoutEnemyColor = new(0.42f, 0.92f, 1f, 1f);
 
+        [Header("Overcharge")]
+        [SerializeField] private bool enableOverchargeHold = true;
+        [SerializeField, Min(0.05f)] private float tapGraceSeconds = 0.16f;
+        [SerializeField, Min(0.15f)] private float chargeBuildSeconds = 0.85f;
+        [SerializeField, Range(1f, 2.5f)] private float overchargeRevealRadiusMultiplier = 1.65f;
+        [SerializeField, Range(1f, 2.5f)] private float overchargeNoiseMultiplier = 1.80f;
+        [SerializeField, Range(0, 4)] private int overchargeExtraResonancePulses = 2;
+        [SerializeField] private Color overchargeWarningColor = new(1f, 0.28f, 0.16f, 0.82f);
+        [SerializeField] private bool spawnChargePreviewRings = true;
+        [SerializeField, Range(0.2f, 1f)] private float smokeRevealRadiusMultiplier = 0.72f;
+
         [Header("Debug")]
         [SerializeField] private bool logPulseResult = false;
 
@@ -76,6 +87,16 @@ namespace LostBreadcrumbs.Runtime.Player
         private int lastStunnedCount;
         private int lastScoutRevealCount;
         private float lastNoiseScale = 1f;
+        private float lastCharge01;
+        private bool lastCastWasOvercharge;
+        private bool lastCastWasAutoFullCharge;
+        private bool lastCastWasInsideSmoke;
+        private float lastRevealRadiusMultiplier = 1f;
+        private bool isCharging;
+        private float chargeHoldStartedAt;
+        private float currentCharge01;
+        private Transform chargePreviewRoot;
+        private SpriteRenderer[] chargePreviewRings;
         private float runtimeCooldownMultiplier = 1f;
         private float runtimeStunRadiusMultiplier = 1f;
         private float runtimeNoiseMultiplier = 1f;
@@ -92,6 +113,9 @@ namespace LostBreadcrumbs.Runtime.Player
         private FogOfWarSystem fogSystem;
         private readonly List<EnemyController> cachedEnemies = new(16);
         private readonly List<GameObject> activeEchoVisuals = new(12);
+        private readonly List<BreadcrumbPickup> cachedBreadcrumbs = new(16);
+        private readonly List<ExitPortalDummy> cachedExits = new(4);
+        private readonly List<RoomArchetypeHookDummy> cachedHooks = new(16);
 
         public bool IsReady => Time.time >= nextReadyTime;
         public float CooldownRemaining => Mathf.Max(0f, nextReadyTime - Time.time);
@@ -114,6 +138,20 @@ namespace LostBreadcrumbs.Runtime.Player
         public float RuntimeCooldownMultiplier => runtimeCooldownMultiplier;
         public float RuntimeStunRadiusMultiplier => runtimeStunRadiusMultiplier;
         public float RuntimeNoiseMultiplier => runtimeNoiseMultiplier;
+        public bool IsCharging => isCharging;
+        public float Charge01 => Mathf.Clamp01(currentCharge01);
+        public int ChargePercent => Mathf.RoundToInt(Charge01 * 100f);
+        public float LastCharge01 => Mathf.Clamp01(lastCharge01);
+        public bool LastCastWasOvercharge => lastCastWasOvercharge;
+        public bool LastCastWasAutoFullCharge => lastCastWasAutoFullCharge;
+        public bool LastCastWasInsideSmoke => lastCastWasInsideSmoke;
+        public bool IsInsideSmoke => EvaluateInsideSmoke();
+        public float LastRevealRadiusMultiplier => Mathf.Max(0.1f, lastRevealRadiusMultiplier);
+        public float LastAppliedNoiseMultiplier => lastNoiseScale;
+        public float SmokeRevealRadiusMultiplier => Mathf.Clamp(smokeRevealRadiusMultiplier, 0.2f, 1f);
+        public float OverchargeRevealRadiusMultiplier => Mathf.Max(1f, overchargeRevealRadiusMultiplier);
+        public float OverchargeNoiseMultiplier => Mathf.Max(1f, overchargeNoiseMultiplier);
+        public int OverchargeExtraResonancePulses => Mathf.Max(0, overchargeExtraResonancePulses);
 
         private void Awake()
         {
@@ -145,6 +183,12 @@ namespace LostBreadcrumbs.Runtime.Player
             lastStunnedCount = 0;
             lastScoutRevealCount = 0;
             lastNoiseScale = 1f;
+            lastCharge01 = 0f;
+            lastCastWasOvercharge = false;
+            lastCastWasAutoFullCharge = false;
+            lastCastWasInsideSmoke = false;
+            lastRevealRadiusMultiplier = 1f;
+            CancelCharge(clearPreview: clearActiveVisuals);
             ClearEchoReturnState();
             StopEchoResonanceTail();
 
@@ -163,19 +207,31 @@ namespace LostBreadcrumbs.Runtime.Player
         {
             if (RegressionChecklistRunner.IsRegressionRunActive)
             {
+                CancelCharge(clearPreview: true);
                 return;
             }
 
-            if (!RuntimeInputAdapter.GetKeyDown(pulseKey))
+            if (Time.timeScale <= 0.0001f)
             {
                 return;
             }
 
-            TryCastPulse();
+            if (!enableOverchargeHold || !StageManager.IsOverchargeHoldUnlocked)
+            {
+                if (RuntimeInputAdapter.GetKeyDown(pulseKey))
+                {
+                    TryCastPulse();
+                }
+
+                return;
+            }
+
+            TickOverchargeInput();
         }
 
         private void OnDisable()
         {
+            CancelCharge(clearPreview: true);
             StopEchoResonanceTail();
             ClearEchoReturnState();
             DestroyActiveEchoVisuals();
@@ -183,11 +239,18 @@ namespace LostBreadcrumbs.Runtime.Player
 
         public bool TryCastPulse()
         {
+            return TryCastPulse(0f, autoFullCharge: false);
+        }
+
+        public bool TryCastPulse(float charge01, bool autoFullCharge)
+        {
             if (!IsReady)
             {
                 return false;
             }
 
+            bool insideSmoke = EvaluateInsideSmoke();
+            EchoOverchargePreview preview = EvaluateOverchargePreview(charge01, insideSmoke);
             nextReadyTime = Time.time + EffectiveCooldownSeconds;
             lastStunnedCount = 0;
             lastScoutRevealCount = 0;
@@ -195,15 +258,21 @@ namespace LostBreadcrumbs.Runtime.Player
             lastEchoReturnDistance = 0f;
             echoReturnWarningUntil = 0f;
             echoReturnRaisedThisCast = false;
+            lastCharge01 = preview.Charge01;
+            lastCastWasOvercharge = preview.Charge01 > 0.001f;
+            lastCastWasAutoFullCharge = autoFullCharge && preview.Charge01 >= 0.999f;
+            lastCastWasInsideSmoke = insideSmoke;
+            lastRevealRadiusMultiplier = preview.RevealRadiusMultiplier;
+            CancelCharge(clearPreview: true);
 
             Vector2 origin = transform.position;
-            float effectiveStunRadius = EffectiveStunRadius;
+            float effectiveStunRadius = preview.StunRadius;
 
-            SpawnPulseVisual(origin, effectiveStunRadius);
-            ApplyEchoFogReveal(origin, effectiveStunRadius);
-            lastScoutRevealCount = RevealNearbyScoutTargets(origin, effectiveStunRadius);
-            EmitRiskNoise();
-            StartEchoResonanceTail(origin, effectiveStunRadius, lastNoiseScale);
+            SpawnPulseVisual(origin, effectiveStunRadius, preview);
+            ApplyEchoFogReveal(origin, effectiveStunRadius, preview.RevealRadiusMultiplier);
+            lastScoutRevealCount = RevealNearbyScoutTargets(origin, effectiveStunRadius, preview.RevealRadiusMultiplier);
+            EmitRiskNoise(preview.NoiseMultiplier);
+            StartEchoResonanceTail(origin, effectiveStunRadius, lastNoiseScale, preview.ResonancePulseCount);
 
             EnemyController.CopyActiveControllers(cachedEnemies);
             for (int i = 0; i < cachedEnemies.Count; i++)
@@ -226,18 +295,23 @@ namespace LostBreadcrumbs.Runtime.Player
                 }
             }
 
-            behaviorTelemetry?.RegisterPulseCast();
-            RuntimeEventBus.Raise(RuntimeEventType.Ability, BuildEchoPulseUsedMessage(lastStunnedCount, lastScoutRevealCount), this);
+            behaviorTelemetry?.RegisterPulseCast(
+                preview.Charge01,
+                lastCastWasAutoFullCharge,
+                insideSmoke,
+                preview.RevealRadiusMultiplier,
+                lastNoiseScale);
+            RuntimeEventBus.Raise(RuntimeEventType.Ability, BuildEchoPulseUsedMessage(lastStunnedCount, lastScoutRevealCount, preview.Charge01, insideSmoke), this);
 
             if (logPulseResult)
             {
-                Debug.Log($"Echo Pulse cast. Stunned={lastStunnedCount}, Scout={lastScoutRevealCount}, NoiseScale={lastNoiseScale:0.00}", this);
+                Debug.Log($"Echo Pulse cast. Charge={preview.Charge01:0.00}, Stunned={lastStunnedCount}, Scout={lastScoutRevealCount}, NoiseScale={lastNoiseScale:0.00}", this);
             }
 
             return true;
         }
 
-        private void SpawnPulseVisual(Vector2 origin, float effectiveStunRadius)
+        private void SpawnPulseVisual(Vector2 origin, float effectiveStunRadius, EchoOverchargePreview preview)
         {
             if (!spawnPulseVisual)
             {
@@ -254,17 +328,17 @@ namespace LostBreadcrumbs.Runtime.Player
 
             visualObject.transform.position = new Vector3(origin.x, origin.y, 0f);
             EchoPulseVisualDummy visual = visualObject.AddComponent<EchoPulseVisualDummy>();
-            float visualRadius = Mathf.Max(0.45f, effectiveStunRadius * pulseVisualRadiusMultiplier);
+            float visualRadius = Mathf.Max(0.45f, effectiveStunRadius * pulseVisualRadiusMultiplier * preview.RevealRadiusMultiplier);
             visual.Configure(
                 visualRadius,
-                pulseVisualColor,
+                EvaluateOverchargeRingColor(preview.Charge01),
                 pulseVisualDuration,
                 pulseVisualRingCount,
                 pulseVisualRingInterval,
                 pulseVisualSortingOrder);
         }
 
-        private void StartEchoResonanceTail(Vector2 origin, float effectiveStunRadius, float baseNoiseScale)
+        private void StartEchoResonanceTail(Vector2 origin, float effectiveStunRadius, float baseNoiseScale, int pulseCount)
         {
             if (!enableResonanceTail)
             {
@@ -272,7 +346,7 @@ namespace LostBreadcrumbs.Runtime.Player
                 return;
             }
 
-            int pulseCount = Mathf.Clamp(resonanceTailPulseCount, 1, 5);
+            pulseCount = Mathf.Clamp(pulseCount, 1, 5);
             float interval = Mathf.Max(0.05f, resonanceTailInterval);
             StopEchoResonanceTail();
             echoResonanceUntil = Time.time + interval * pulseCount + Mathf.Max(0.1f, resonanceTailVisualDuration);
@@ -474,9 +548,16 @@ namespace LostBreadcrumbs.Runtime.Player
             }
         }
 
-        private static string BuildEchoPulseUsedMessage(int stunnedCount, int scoutRevealCount)
+        private static string BuildEchoPulseUsedMessage(int stunnedCount, int scoutRevealCount, float charge01, bool insideSmoke)
         {
-            return $"메아리 사용 (기절 {Mathf.Max(0, stunnedCount)}, 정찰 {Mathf.Max(0, scoutRevealCount)})";
+            int chargePercent = Mathf.RoundToInt(Mathf.Clamp01(charge01) * 100f);
+            string smokeCue = insideSmoke ? "연막: 짧게 보고 조용히, " : string.Empty;
+            if (chargePercent <= 0)
+            {
+                return $"메아리 사용 ({smokeCue}기절 {Mathf.Max(0, stunnedCount)}, 정찰 {Mathf.Max(0, scoutRevealCount)})";
+            }
+
+            return $"메아리 과충전 {chargePercent}% ({smokeCue}기절 {Mathf.Max(0, stunnedCount)}, 정찰 {Mathf.Max(0, scoutRevealCount)})";
         }
 
         private static string BuildEchoReturnThreatMessage(float distance)
@@ -542,7 +623,9 @@ namespace LostBreadcrumbs.Runtime.Player
             line.loop = false;
             line.positionCount = 3;
             line.alignment = LineAlignment.View;
-            line.textureMode = LineTextureMode.Stretch;
+            Texture2D hintTexture = MapReadableArt.TryGetEchoReturnThreatHintTexture();
+            // Tile painted trail when present; Stretch only for the untextured debug fallback.
+            line.textureMode = hintTexture != null ? LineTextureMode.Tile : LineTextureMode.Stretch;
             line.numCornerVertices = 2;
             line.numCapVertices = 2;
             line.widthMultiplier = Mathf.Max(0.01f, echoReturnHintWidth);
@@ -600,8 +683,20 @@ namespace LostBreadcrumbs.Runtime.Player
                     line.SetPosition(i, point);
                 }
 
-                Color color = echoReturnThreatColor;
-                color.a *= fade * Mathf.Clamp01(flicker) * Mathf.Lerp(0.75f, 1.15f, intensity);
+                float alphaScale = fade * Mathf.Clamp01(flicker) * Mathf.Lerp(0.75f, 1.15f, intensity);
+                Color color;
+                if (MapReadableArt.TryGetEchoReturnThreatHintTexture() != null)
+                {
+                    // Painted ember trail - white RGB so echoReturnThreatColor does not double-tint.
+                    color = Color.white;
+                    color.a = echoReturnThreatColor.a * alphaScale;
+                }
+                else
+                {
+                    color = echoReturnThreatColor;
+                    color.a *= alphaScale;
+                }
+
                 line.startColor = color;
                 line.endColor = color;
                 line.widthMultiplier = Mathf.Max(0.01f, echoReturnHintWidth) * Mathf.Lerp(1.2f, 0.22f, t);
@@ -631,15 +726,37 @@ namespace LostBreadcrumbs.Runtime.Player
 
             pulseObject.transform.position = new Vector3(position.x, position.y, 0f);
             EchoPulseVisualDummy visual = pulseObject.AddComponent<EchoPulseVisualDummy>();
-            Color color = echoReturnThreatColor;
-            color.a *= Mathf.Lerp(0.74f, 1.12f, Mathf.Clamp01(intensity));
-            visual.Configure(
-                Mathf.Lerp(0.72f, 1.18f, Mathf.Clamp01(intensity)),
-                color,
-                Mathf.Max(0.1f, echoReturnHintDuration * 0.9f),
-                1,
-                0f,
-                echoReturnHintSortingOrder);
+            float alphaScale = Mathf.Lerp(0.74f, 1.12f, Mathf.Clamp01(intensity));
+            float radius = Mathf.Lerp(0.72f, 1.18f, Mathf.Clamp01(intensity));
+            float duration = Mathf.Max(0.1f, echoReturnHintDuration * 0.9f);
+            Sprite threatPulseSprite = MapReadableArt.TryGetEchoReturnThreatPulseSprite();
+            Color color;
+            if (threatPulseSprite != null)
+            {
+                // Painted warning-red ember flare - white RGB so echoReturnThreatColor does not double-tint.
+                color = Color.white;
+                color.a = echoReturnThreatColor.a * alphaScale;
+                visual.Configure(
+                    radius,
+                    color,
+                    duration,
+                    1,
+                    0f,
+                    echoReturnHintSortingOrder,
+                    threatPulseSprite);
+            }
+            else
+            {
+                color = echoReturnThreatColor;
+                color.a *= alphaScale;
+                visual.Configure(
+                    radius,
+                    color,
+                    duration,
+                    1,
+                    0f,
+                    echoReturnHintSortingOrder);
+            }
         }
 
         private Material GetEchoReturnLineMaterial()
@@ -670,10 +787,21 @@ namespace LostBreadcrumbs.Runtime.Player
                 name = "EchoReturnLineMaterial",
                 hideFlags = HideFlags.HideAndDontSave
             };
+
+            Texture2D hintTexture = MapReadableArt.TryGetEchoReturnThreatHintTexture();
+            if (hintTexture != null)
+            {
+                echoReturnLineMaterial.mainTexture = hintTexture;
+                if (echoReturnLineMaterial.HasProperty("_MainTex"))
+                {
+                    echoReturnLineMaterial.SetTexture("_MainTex", hintTexture);
+                }
+            }
+
             return echoReturnLineMaterial;
         }
 
-        private void ApplyEchoFogReveal(Vector2 origin, float effectiveStunRadius)
+        private void ApplyEchoFogReveal(Vector2 origin, float effectiveStunRadius, float revealRadiusMultiplier)
         {
             if (!revealFogWithPulse)
             {
@@ -690,34 +818,37 @@ namespace LostBreadcrumbs.Runtime.Player
                 return;
             }
 
-            float revealRadius = Mathf.Max(0.1f, effectiveStunRadius * fogRevealRadiusMultiplier);
+            float revealRadius = Mathf.Max(0.1f, effectiveStunRadius * fogRevealRadiusMultiplier * Mathf.Max(0.1f, revealRadiusMultiplier));
             fogSystem.ApplyEchoRevealPulse(origin, revealRadius, fogRevealSoftnessBoost);
         }
 
-        private int RevealNearbyScoutTargets(Vector2 origin, float effectiveStunRadius)
+        private int RevealNearbyScoutTargets(Vector2 origin, float effectiveStunRadius, float revealRadiusMultiplier)
         {
             if (!revealNearbyTargetsWithPulse)
             {
                 return 0;
             }
 
-            float radius = Mathf.Max(0.1f, effectiveStunRadius * scoutRadiusMultiplier);
+            float radius = Mathf.Max(0.1f, effectiveStunRadius * scoutRadiusMultiplier * Mathf.Max(0.1f, revealRadiusMultiplier));
             int maxTargets = Mathf.Clamp(maxScoutRevealTargets, 1, 32);
             int revealedCount = 0;
 
-            revealedCount += RevealScoutTargetsOfType<BreadcrumbPickup>(origin, radius, maxTargets - revealedCount, scoutBreadcrumbColor);
+            BreadcrumbPickup.CopyActivePickups(cachedBreadcrumbs);
+            revealedCount += RevealScoutTargets(cachedBreadcrumbs, origin, radius, maxTargets - revealedCount, scoutBreadcrumbColor);
             if (revealedCount >= maxTargets)
             {
                 return revealedCount;
             }
 
-            revealedCount += RevealScoutTargetsOfType<ExitPortalDummy>(origin, radius, maxTargets - revealedCount, scoutExitColor);
+            ExitPortalDummy.CopyActivePortals(cachedExits);
+            revealedCount += RevealScoutTargets(cachedExits, origin, radius, maxTargets - revealedCount, scoutExitColor);
             if (revealedCount >= maxTargets)
             {
                 return revealedCount;
             }
 
-            revealedCount += RevealScoutTargetsOfType<RoomArchetypeHookDummy>(origin, radius, maxTargets - revealedCount, scoutHazardColor);
+            RoomArchetypeHookDummy.CopyActiveHooks(cachedHooks);
+            revealedCount += RevealScoutTargets(cachedHooks, origin, radius, maxTargets - revealedCount, scoutHazardColor);
             if (revealedCount >= maxTargets)
             {
                 return revealedCount;
@@ -741,17 +872,16 @@ namespace LostBreadcrumbs.Runtime.Player
             return revealedCount;
         }
 
-        private int RevealScoutTargetsOfType<T>(Vector2 origin, float radius, int remainingBudget, Color color)
+        private int RevealScoutTargets<T>(List<T> targets, Vector2 origin, float radius, int remainingBudget, Color color)
             where T : Component
         {
-            if (remainingBudget <= 0)
+            if (remainingBudget <= 0 || targets == null)
             {
                 return 0;
             }
 
-            T[] targets = FindObjectsByType<T>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             int revealed = 0;
-            for (int i = 0; i < targets.Length && revealed < remainingBudget; i++)
+            for (int i = 0; i < targets.Count && revealed < remainingBudget; i++)
             {
                 T target = targets[i];
                 if (target == null)
@@ -867,7 +997,7 @@ namespace LostBreadcrumbs.Runtime.Player
             }
         }
 
-        private void EmitRiskNoise()
+        private void EmitRiskNoise(float overchargeNoiseMultiplier)
         {
             if (NoiseManager.Instance == null)
             {
@@ -876,7 +1006,7 @@ namespace LostBreadcrumbs.Runtime.Player
 
             float concealNoiseScale = concealmentState != null ? concealmentState.CurrentNoiseMultiplier : 1f;
             float smokeNoiseScale = SmokeScreenFieldDummy.EvaluateNoiseMultiplierAt(transform.position);
-            float noiseScale = concealNoiseScale * smokeNoiseScale * runtimeNoiseMultiplier;
+            float noiseScale = concealNoiseScale * smokeNoiseScale * runtimeNoiseMultiplier * Mathf.Max(1f, overchargeNoiseMultiplier);
 
             lastNoiseScale = noiseScale;
 
@@ -922,10 +1052,222 @@ namespace LostBreadcrumbs.Runtime.Player
             return current;
         }
 
+        public EchoOverchargePreview EvaluateOverchargePreview(float charge01)
+        {
+            return EvaluateOverchargePreview(charge01, insideSmoke: false);
+        }
+
+        public EchoOverchargePreview EvaluateOverchargePreview(float charge01, bool insideSmoke)
+        {
+            float safeCharge = Mathf.Clamp01(charge01);
+            int extraPulses = Mathf.RoundToInt(overchargeExtraResonancePulses * safeCharge);
+            int pulseCount = Mathf.Clamp(resonanceTailPulseCount + extraPulses, 1, 5);
+            float revealMultiplier = Mathf.Lerp(1f, OverchargeRevealRadiusMultiplier, safeCharge);
+            if (insideSmoke)
+            {
+                revealMultiplier *= SmokeRevealRadiusMultiplier;
+            }
+
+            return new EchoOverchargePreview(
+                safeCharge,
+                revealMultiplier,
+                Mathf.Lerp(1f, OverchargeNoiseMultiplier, safeCharge),
+                pulseCount,
+                EffectiveStunRadius,
+                stunDurationSeconds);
+        }
+
+        public bool EvaluateInsideSmoke()
+        {
+            return SmokeScreenFieldDummy.EvaluateNoiseDampenAt(transform.position) > 0.001f;
+        }
+
+        private void TickOverchargeInput()
+        {
+            if (!isCharging)
+            {
+                if (!IsReady || !RuntimeInputAdapter.GetKeyDown(pulseKey))
+                {
+                    return;
+                }
+
+                BeginCharge();
+            }
+
+            if (!isCharging)
+            {
+                return;
+            }
+
+            if (!IsReady)
+            {
+                CancelCharge(clearPreview: true);
+                return;
+            }
+
+            float heldSeconds = Mathf.Max(0f, Time.time - chargeHoldStartedAt);
+            currentCharge01 = heldSeconds <= tapGraceSeconds
+                ? 0f
+                : Mathf.Clamp01((heldSeconds - tapGraceSeconds) / Mathf.Max(0.15f, chargeBuildSeconds));
+            UpdateChargePreviewRings();
+            TryDensifyHeldTrail();
+
+            if (currentCharge01 >= 0.999f)
+            {
+                TryCastPulse(1f, autoFullCharge: true);
+                return;
+            }
+
+            if (RuntimeInputAdapter.GetKeyUp(pulseKey) || !RuntimeInputAdapter.GetKey(pulseKey))
+            {
+                TryCastPulse(currentCharge01, autoFullCharge: false);
+            }
+        }
+
+        private void BeginCharge()
+        {
+            isCharging = true;
+            chargeHoldStartedAt = Time.time;
+            currentCharge01 = 0f;
+            UpdateChargePreviewRings();
+        }
+
+        private void CancelCharge(bool clearPreview)
+        {
+            isCharging = false;
+            currentCharge01 = 0f;
+            chargeHoldStartedAt = 0f;
+            if (clearPreview)
+            {
+                DestroyChargePreviewRings();
+            }
+        }
+
+        private void TryDensifyHeldTrail()
+        {
+            if (currentCharge01 <= 0.001f)
+            {
+                return;
+            }
+
+            EchoOverchargePreview preview = EvaluateOverchargePreview(currentCharge01, EvaluateInsideSmoke());
+            float radius = Mathf.Max(0.45f, EffectiveStunRadius * scoutRadiusMultiplier * preview.RevealRadiusMultiplier);
+            BreadcrumbPickup.TryDensifyNear(transform.position, radius);
+        }
+
+        private void UpdateChargePreviewRings()
+        {
+            if (!spawnChargePreviewRings || !isCharging)
+            {
+                DestroyChargePreviewRings();
+                return;
+            }
+
+            EnsureChargePreviewRings();
+            if (chargePreviewRoot == null || chargePreviewRings == null)
+            {
+                return;
+            }
+
+            chargePreviewRoot.position = new Vector3(transform.position.x, transform.position.y, 0f);
+            Color color = EvaluateOverchargeRingColor(currentCharge01);
+            float revealScale = EvaluateOverchargePreview(currentCharge01, EvaluateInsideSmoke()).RevealRadiusMultiplier;
+            float previewRadius = Mathf.Max(0.45f, EffectiveStunRadius * pulseVisualRadiusMultiplier * revealScale);
+            float pulse = 0.86f + Mathf.Sin(Time.unscaledTime * 7.4f) * 0.08f;
+            for (int i = 0; i < chargePreviewRings.Length; i++)
+            {
+                SpriteRenderer ring = chargePreviewRings[i];
+                if (ring == null)
+                {
+                    continue;
+                }
+
+                float ringScale = previewRadius * Mathf.Lerp(0.42f, 1f, (i + 1f) / chargePreviewRings.Length) * pulse;
+                ring.transform.localScale = new Vector3(ringScale * 2f, ringScale * 2f, 1f);
+                Color ringColor = color;
+                ringColor.a *= Mathf.Lerp(0.42f, 0.92f, currentCharge01) * (1f - i * 0.18f);
+                ring.color = ringColor;
+                ring.enabled = true;
+            }
+        }
+
+        private void EnsureChargePreviewRings()
+        {
+            if (chargePreviewRoot != null && chargePreviewRings != null && chargePreviewRings.Length >= 2)
+            {
+                return;
+            }
+
+            DestroyChargePreviewRings();
+            GameObject previewObject = new("EchoOverchargePreview");
+            Transform vfxRoot = EnsureScenePath("Scene_Root/GameRoot/Runtime/VFX");
+            if (vfxRoot != null)
+            {
+                previewObject.transform.SetParent(vfxRoot, false);
+            }
+
+            previewObject.transform.position = new Vector3(transform.position.x, transform.position.y, 0f);
+            chargePreviewRoot = previewObject.transform;
+            chargePreviewRings = new SpriteRenderer[2];
+            Sprite ringSprite = EchoPulseVisualDummy.SharedRingSprite;
+            for (int i = 0; i < chargePreviewRings.Length; i++)
+            {
+                GameObject ringObject = new($"ChargeRing_{i:00}");
+                ringObject.transform.SetParent(chargePreviewRoot, false);
+                SpriteRenderer renderer = ringObject.AddComponent<SpriteRenderer>();
+                renderer.sprite = ringSprite;
+                renderer.sortingOrder = pulseVisualSortingOrder + 1 - i;
+                renderer.enabled = false;
+                chargePreviewRings[i] = renderer;
+            }
+        }
+
+        private void DestroyChargePreviewRings()
+        {
+            if (chargePreviewRoot != null)
+            {
+                Destroy(chargePreviewRoot.gameObject);
+            }
+
+            chargePreviewRoot = null;
+            chargePreviewRings = null;
+        }
+
+        private Color EvaluateOverchargeRingColor(float charge01)
+        {
+            return Color.Lerp(pulseVisualColor, overchargeWarningColor, Mathf.Clamp01(charge01));
+        }
+
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = new Color(0.4f, 0.95f, 1f, 0.7f);
             Gizmos.DrawWireSphere(transform.position, EffectiveStunRadius);
         }
+    }
+
+    public readonly struct EchoOverchargePreview
+    {
+        public EchoOverchargePreview(
+            float charge01,
+            float revealRadiusMultiplier,
+            float noiseMultiplier,
+            int resonancePulseCount,
+            float stunRadius,
+            float stunDurationSeconds)
+        {
+            Charge01 = Mathf.Clamp01(charge01);
+            RevealRadiusMultiplier = Mathf.Max(0.1f, revealRadiusMultiplier);
+            NoiseMultiplier = Mathf.Max(1f, noiseMultiplier);
+            ResonancePulseCount = Mathf.Clamp(resonancePulseCount, 1, 5);
+            StunRadius = Mathf.Max(0.1f, stunRadius);
+            StunDurationSeconds = Mathf.Max(0.1f, stunDurationSeconds);
+        }
+
+        public float Charge01 { get; }
+        public float RevealRadiusMultiplier { get; }
+        public float NoiseMultiplier { get; }
+        public int ResonancePulseCount { get; }
+        public float StunRadius { get; }
+        public float StunDurationSeconds { get; }
     }
 }

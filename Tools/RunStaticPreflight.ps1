@@ -79,6 +79,43 @@ function Add-LogArtifactResult {
     return Add-Result $Name $status "exists=True lastWrite=$lastWrite ageDays=$ageDays stale=$isStale freshnessDays=$FreshnessDays refreshRequired=$isStale"
 }
 
+function Invoke-ToolCmdOrScript {
+    param(
+        [string]$CmdPath,
+        [string]$ScriptPath
+    )
+
+    if (Get-Command cmd -ErrorAction SilentlyContinue) {
+        $output = & cmd /c "`"$CmdPath`"" 2>&1
+        return [pscustomobject]@{
+            Output = $output
+            ExitCode = $LASTEXITCODE
+        }
+    }
+
+    $pwsh = Get-Command pwsh -ErrorAction SilentlyContinue
+    $powershell = Get-Command powershell -ErrorAction SilentlyContinue
+    $runner = $null
+    if ($pwsh) {
+        $runner = $pwsh.Source
+    } elseif ($powershell) {
+        $runner = $powershell.Source
+    }
+
+    if (-not $runner -or -not (Test-Path $ScriptPath)) {
+        return [pscustomobject]@{
+            Output = @("cmd unavailable and no PowerShell fallback for $ScriptPath")
+            ExitCode = 1
+        }
+    }
+
+    $output = & $runner -NoProfile -ExecutionPolicy Bypass -File $ScriptPath 2>&1
+    return [pscustomobject]@{
+        Output = $output
+        ExitCode = $LASTEXITCODE
+    }
+}
+
 function Get-KeyCodeDefault {
     param(
         [string]$Text,
@@ -111,6 +148,7 @@ $dreadOverlayPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/DreadScre
 $eventFeedbackPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/EventFeedbackRuntime.cs'
 $gameplayHudPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/GameplayHudRuntime.cs'
 $audioManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioManager.cs'
+$audioDummyLoopPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/AudioDummyLoopRuntime.cs'
 $debugManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/DebugManager.cs'
 $saveManagerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Managers/SaveManager.cs'
 $playerControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDummyController.cs'
@@ -118,6 +156,8 @@ $playerEchoPulsePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/Pl
 $playerDecoyPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDecoyAbility.cs'
 $playerSmokePath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerSmokeAbility.cs'
 $playerVitalPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerVitalSystem.cs'
+$playerTelemetryPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerBehaviorTelemetry.cs'
+$inputAdapterPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Core/Input/RuntimeInputAdapter.cs'
 $mapSystemPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/MapSystem.cs'
 $mapTuningPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Map/MapTuningDebugController.cs'
 $enemyControllerPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/AI/EnemyController.cs'
@@ -921,8 +961,9 @@ if (Test-Path $autonomousSafeTaskTestCmdPath) {
 $results.Add((Add-Result 'tools.rhythmSnapshotSummaryHooks' ($(if ($rhythmSnapshotToolMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($rhythmSnapshotToolMissing -join ', ')"))
 
 if (Test-Path $rhythmNextActionTestCmdPath) {
-    $nextActionTestOutput = & cmd /c "`"$rhythmNextActionTestCmdPath`"" 2>&1
-    $nextActionTestExit = $LASTEXITCODE
+    $nextActionTest = Invoke-ToolCmdOrScript $rhythmNextActionTestCmdPath $rhythmNextActionTestScriptPath
+    $nextActionTestOutput = $nextActionTest.Output
+    $nextActionTestExit = $nextActionTest.ExitCode
     $nextActionTestPassed = $nextActionTestExit -eq 0 -and (($nextActionTestOutput -join "`n").Contains('Rhythm next-action tests passed.'))
     $nextActionTestTail = (@($nextActionTestOutput) | Select-Object -Last 1) -join ' '
     $results.Add((Add-Result 'tools.rhythmNextActionBranchTests' ($(if ($nextActionTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$nextActionTestExit last='$nextActionTestTail'"))
@@ -931,8 +972,9 @@ if (Test-Path $rhythmNextActionTestCmdPath) {
 }
 
 if (Test-Path $autonomousHeartbeatReadStatusTestCmdPath) {
-    $heartbeatStatusTestOutput = & cmd /c "`"$autonomousHeartbeatReadStatusTestCmdPath`"" 2>&1
-    $heartbeatStatusTestExit = $LASTEXITCODE
+    $heartbeatStatusTest = Invoke-ToolCmdOrScript $autonomousHeartbeatReadStatusTestCmdPath $autonomousHeartbeatReadStatusTestScriptPath
+    $heartbeatStatusTestOutput = $heartbeatStatusTest.Output
+    $heartbeatStatusTestExit = $heartbeatStatusTest.ExitCode
     $heartbeatStatusTestPassed = $heartbeatStatusTestExit -eq 0 -and (($heartbeatStatusTestOutput -join "`n").Contains('Autonomous heartbeat status tests passed.'))
     $heartbeatStatusTestTail = (@($heartbeatStatusTestOutput) | Select-Object -Last 1) -join ' '
     $results.Add((Add-Result 'tools.autonomousHeartbeatStatusTests' ($(if ($heartbeatStatusTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$heartbeatStatusTestExit last='$heartbeatStatusTestTail'"))
@@ -941,8 +983,9 @@ if (Test-Path $autonomousHeartbeatReadStatusTestCmdPath) {
 }
 
 if (Test-Path $autonomousHeartbeatWriterTestCmdPath) {
-    $heartbeatWriterTestOutput = & cmd /c "`"$autonomousHeartbeatWriterTestCmdPath`"" 2>&1
-    $heartbeatWriterTestExit = $LASTEXITCODE
+    $heartbeatWriterTest = Invoke-ToolCmdOrScript $autonomousHeartbeatWriterTestCmdPath $autonomousHeartbeatWriterTestScriptPath
+    $heartbeatWriterTestOutput = $heartbeatWriterTest.Output
+    $heartbeatWriterTestExit = $heartbeatWriterTest.ExitCode
     $heartbeatWriterTestPassed = $heartbeatWriterTestExit -eq 0 -and (($heartbeatWriterTestOutput -join "`n").Contains('Autonomous heartbeat writer tests passed.'))
     $heartbeatWriterTestTail = (@($heartbeatWriterTestOutput) | Select-Object -Last 1) -join ' '
     $results.Add((Add-Result 'tools.autonomousHeartbeatWriterTests' ($(if ($heartbeatWriterTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$heartbeatWriterTestExit last='$heartbeatWriterTestTail'"))
@@ -951,8 +994,9 @@ if (Test-Path $autonomousHeartbeatWriterTestCmdPath) {
 }
 
 if (Test-Path $autonomousSafeTaskTestCmdPath) {
-    $safeTaskTestOutput = & cmd /c "`"$autonomousSafeTaskTestCmdPath`"" 2>&1
-    $safeTaskTestExit = $LASTEXITCODE
+    $safeTaskTest = Invoke-ToolCmdOrScript $autonomousSafeTaskTestCmdPath $autonomousSafeTaskTestScriptPath
+    $safeTaskTestOutput = $safeTaskTest.Output
+    $safeTaskTestExit = $safeTaskTest.ExitCode
     $safeTaskTestPassed = $safeTaskTestExit -eq 0 -and (($safeTaskTestOutput -join "`n").Contains('Autonomous safe-task tests passed.'))
     $safeTaskTestTail = (@($safeTaskTestOutput) | Select-Object -Last 1) -join ' '
     $results.Add((Add-Result 'tools.autonomousSafeTaskTests' ($(if ($safeTaskTestPassed) { 'PASS' } else { 'FAIL' })) "exitCode=$safeTaskTestExit last='$safeTaskTestTail'"))
@@ -1025,7 +1069,11 @@ if (Test-Path $mapSystemPath) {
         'ResolvePlayerSpawnClearanceRadius',
         'ResolveColliderSpawnRadius',
         'loggedPlayerSpawnBlockerScopeGuard',
-        'widened player spawn blocker checks to all blocking colliders'
+        'widened player spawn blocker checks to all blocking colliders',
+        'TryValidateAndRecoverCheckpointPosition',
+        'LastCheckpointRecovered',
+        'LastCheckpointWasInvalid',
+        'IsFiniteWorldPosition'
     )
     foreach ($hook in $playerSpawnSafetyHooks) {
         if (-not $mapSystemText.Contains($hook)) {
@@ -1044,7 +1092,12 @@ if (Test-Path $enemySpawnDirectorPath) {
         'CountSpawnCandidateSafety',
         'LastSelectedNarrowSpawnCount',
         'LastNarrowSpawnsWereFallbackOnly',
-        'spawnStabilizationSeconds'
+        'spawnStabilizationSeconds',
+        'resolveSafeEnemySpawn',
+        'TryResolveSafeEnemySpawnPosition',
+        'IsEnemySpawnBlocked',
+        'ResolveEnemySpawnClearanceRadius',
+        'LastEnemySpawnUsedBlockedFallback'
     )
     foreach ($hook in $enemySpawnSafetyHooks) {
         if (-not $enemySpawnText.Contains($hook)) {
@@ -1074,7 +1127,10 @@ if (Test-Path $gameplayRhythmPath) {
         'TryAdvanceSpikeTowardRelease',
         'spikeClutchMinimumRemainingSeconds',
         'TryGrantRhythmReleaseRelief',
-        'RegressionChecklistRunner.IsRegressionRunActive'
+        'RegressionChecklistRunner.IsRegressionRunActive',
+        'IsGameplayPaused',
+        'Time.timeScale <= 0.0001f',
+        'phaseStartedAt = Time.time'
     )
     foreach ($hook in $rhythmHooks) {
         if (-not $gameplayRhythmText.Contains($hook)) {
@@ -1261,6 +1317,153 @@ if (Test-Path $playerSmokePath) {
     $abilityKoreanWordingMissing.Add('PlayerSmokeAbility.cs missing')
 }
 $results.Add((Add-Result 'code.abilityKoreanWordingHooks' ($(if ($abilityKoreanWordingMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($abilityKoreanWordingMissing -join ', ')"))
+
+$echoOverchargeMissing = New-Object System.Collections.Generic.List[string]
+if (Test-Path $playerEchoPulsePath) {
+    if (-not $playerEchoPulseText) {
+        $playerEchoPulseText = Get-Content $playerEchoPulsePath -Raw
+    }
+    $echoOverchargeHooks = @(
+        'enableOverchargeHold',
+        'tapGraceSeconds',
+        'chargeBuildSeconds',
+        'overchargeRevealRadiusMultiplier = 1.65f',
+        'overchargeNoiseMultiplier = 1.80f',
+        'overchargeExtraResonancePulses = 2',
+        'GetKeyUp',
+        'EvaluateOverchargePreview',
+        'ChargePercent',
+        'LastCastWasAutoFullCharge',
+        'EvaluateOverchargeRingColor',
+        'autoFullCharge: true',
+        'stunDurationSeconds',
+        'smokeRevealRadiusMultiplier = 0.72f',
+        'LastCastWasInsideSmoke',
+        'EvaluateInsideSmoke',
+        '연막: 짧게 보고 조용히'
+    )
+    foreach ($hook in $echoOverchargeHooks) {
+        if (-not $playerEchoPulseText.Contains($hook)) {
+            $echoOverchargeMissing.Add("PlayerEchoPulseAbility:$hook")
+        }
+    }
+} else {
+    $echoOverchargeMissing.Add('PlayerEchoPulseAbility.cs missing')
+}
+
+if (Test-Path $gameplayHudPath) {
+    $gameplayHudOverchargeText = Get-Content $gameplayHudPath -Raw
+    if (-not $gameplayHudOverchargeText.Contains('Q 과충전')) {
+        $echoOverchargeMissing.Add('GameplayHudRuntime:Q 과충전')
+    }
+    if (-not $gameplayHudOverchargeText.Contains('ChargePercent')) {
+        $echoOverchargeMissing.Add('GameplayHudRuntime:ChargePercent')
+    }
+    if (-not $gameplayHudOverchargeText.Contains('Q 과충전 {pulseAbility.ChargePercent}% 연막')) {
+        $echoOverchargeMissing.Add('GameplayHudRuntime:Q 과충전 연막')
+    }
+} else {
+    $echoOverchargeMissing.Add('GameplayHudRuntime.cs missing')
+}
+
+if (Test-Path $playerTelemetryPath) {
+    $playerTelemetryText = Get-Content $playerTelemetryPath -Raw
+    foreach ($hook in @('OverchargeCastCount', 'FullChargeAutoCastCount', 'LastPulseCharge01', 'RegisterPulseCast(float charge01, bool autoFullCharge)', 'LastPulseWasInsideSmoke', 'LastPulseRevealMultiplier', 'LastPulseNoiseMultiplier')) {
+        if (-not $playerTelemetryText.Contains($hook)) {
+            $echoOverchargeMissing.Add("PlayerBehaviorTelemetry:$hook")
+        }
+    }
+} else {
+    $echoOverchargeMissing.Add('PlayerBehaviorTelemetry.cs missing')
+}
+
+if (Test-Path $regressionPath) {
+    $regressionText = Get-Content $regressionPath -Raw
+    foreach ($hook in @('RunEchoOverchargeContractCheck', 'Echo.OverchargeContract', 'EvaluateOverchargePreview', 'EvaluateOverchargePreview(0f, true)', 'smokeRevealCut')) {
+        if (-not $regressionText.Contains($hook)) {
+            $echoOverchargeMissing.Add("RegressionChecklistRunner:$hook")
+        }
+    }
+} else {
+    $echoOverchargeMissing.Add('RegressionChecklistRunner.cs missing')
+}
+
+if (Test-Path $playerVitalPath) {
+    $playerVitalOverchargeText = Get-Content $playerVitalPath -Raw
+    if (-not $playerVitalOverchargeText.Contains('TryValidateAndRecoverCheckpointPosition')) {
+        $echoOverchargeMissing.Add('PlayerVitalSystem:TryValidateAndRecoverCheckpointPosition')
+    }
+} else {
+    $echoOverchargeMissing.Add('PlayerVitalSystem.cs missing')
+}
+
+if (Test-Path $saveManagerPath) {
+    $saveManagerText = Get-Content $saveManagerPath -Raw
+    if (-not $saveManagerText.Contains('TryValidateAndRecoverCheckpointPosition')) {
+        $echoOverchargeMissing.Add('SaveManager:TryValidateAndRecoverCheckpointPosition')
+    }
+} else {
+    $echoOverchargeMissing.Add('SaveManager.cs missing')
+}
+
+if (Test-Path $inputAdapterPath) {
+    $inputAdapterText = Get-Content $inputAdapterPath -Raw
+    if (-not $inputAdapterText.Contains('public static bool GetKeyUp')) {
+        $echoOverchargeMissing.Add('RuntimeInputAdapter:GetKeyUp')
+    }
+} else {
+    $echoOverchargeMissing.Add('RuntimeInputAdapter.cs missing')
+}
+
+if (Test-Path $playerControllerPath) {
+    if (-not $playerControllerText) {
+        $playerControllerText = Get-Content $playerControllerPath -Raw
+    }
+    foreach ($hook in @('FacingDirection', 'FacingSignX', 'ActiveInstance')) {
+        if (-not $playerControllerText.Contains($hook)) {
+            $echoOverchargeMissing.Add("PlayerDummyController:$hook")
+        }
+    }
+    if ($playerControllerText.Contains('transform.right = moveInput')) {
+        $echoOverchargeMissing.Add('PlayerDummyController:transform.right = moveInput')
+    }
+} else {
+    $echoOverchargeMissing.Add('PlayerDummyController.cs missing')
+}
+
+$playerDummyVisualPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/Player/PlayerDummyVisual.cs'
+if (Test-Path $playerDummyVisualPath) {
+    $playerDummyVisualText = Get-Content $playerDummyVisualPath -Raw
+    foreach ($hook in @('flipByMovementX = true', 'ApplyFacing', 'FacingSignX')) {
+        if (-not $playerDummyVisualText.Contains($hook)) {
+            $echoOverchargeMissing.Add("PlayerDummyVisual:$hook")
+        }
+    }
+} else {
+    $echoOverchargeMissing.Add('PlayerDummyVisual.cs missing')
+}
+
+if (Test-Path $playerEchoPulsePath) {
+    if (-not $playerEchoPulseText) {
+        $playerEchoPulseText = Get-Content $playerEchoPulsePath -Raw
+    }
+    foreach ($hook in @('CopyActivePickups', 'CopyActivePortals', 'CopyActiveHooks')) {
+        if (-not $playerEchoPulseText.Contains($hook)) {
+            $echoOverchargeMissing.Add("PlayerEchoPulseAbility:$hook")
+        }
+    }
+}
+
+if (Test-Path $debugOverlayPath) {
+    $debugOverlayFacingText = Get-Content $debugOverlayPath -Raw
+    foreach ($hook in @('HasAllOverlayRefs', 'CopyActiveHooks')) {
+        if (-not $debugOverlayFacingText.Contains($hook)) {
+            $echoOverchargeMissing.Add("DebugOverlay:$hook")
+        }
+    }
+}
+
+$results.Add((Add-Result 'code.echoOverchargeHooks' ($(if ($echoOverchargeMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($echoOverchargeMissing -join ', ')"))
 
 $playerEventKoreanWordingMissing = New-Object System.Collections.Generic.List[string]
 if (Test-Path $playerVitalPath) {
@@ -1538,7 +1741,11 @@ if (Test-Path $threatReadabilityPath) {
         'LastRhythmReleaseStaminaRecovered',
         'BuildEscapeReliefRewardMessage',
         'BuildRhythmReleaseReliefMessage',
-        'RuntimeEventSemantic.EscapeRelief'
+        'RuntimeEventSemantic.EscapeRelief',
+        '숨이 트인다',
+        'PulseReleaseBreadcrumbTrail',
+        'PulseActiveTrail',
+        'BeginReleaseAmbientSettle'
     )
     foreach ($hook in $releaseReliefHooks) {
         if (-not $threatReadabilityText.Contains($hook)) {
@@ -1547,6 +1754,34 @@ if (Test-Path $threatReadabilityPath) {
     }
 } else {
     $releaseReliefMissing.Add('ThreatReadabilityDirector.cs missing')
+}
+
+if (Test-Path $gameplayHudPath) {
+    $releaseHudText = Get-Content $gameplayHudPath -Raw
+    if (-not $releaseHudText.Contains('숨이 트인다')) {
+        $releaseReliefMissing.Add('GameplayHudRuntime:숨이 트인다')
+    }
+} else {
+    $releaseReliefMissing.Add('GameplayHudRuntime.cs missing')
+}
+
+$eventFeedbackPath = Join-Path $ProjectRoot 'Assets/_Project/Scripts/UI/EventFeedbackRuntime.cs'
+if (Test-Path $eventFeedbackPath) {
+    $eventFeedbackText = Get-Content $eventFeedbackPath -Raw
+    if (-not $eventFeedbackText.Contains('숨이 트인다')) {
+        $releaseReliefMissing.Add('EventFeedbackRuntime:숨이 트인다')
+    }
+} else {
+    $releaseReliefMissing.Add('EventFeedbackRuntime.cs missing')
+}
+
+if (Test-Path $audioDummyLoopPath) {
+    $audioDummyLoopText = Get-Content $audioDummyLoopPath -Raw
+    if (-not $audioDummyLoopText.Contains('BeginReleaseAmbientSettle')) {
+        $releaseReliefMissing.Add('AudioDummyLoopRuntime:BeginReleaseAmbientSettle')
+    }
+} else {
+    $releaseReliefMissing.Add('AudioDummyLoopRuntime.cs missing')
 }
 $results.Add((Add-Result 'code.releaseReliefContractHooks' ($(if ($releaseReliefMissing.Count -eq 0) { 'PASS' } else { 'FAIL' })) "missing=$($releaseReliefMissing -join ', ')"))
 

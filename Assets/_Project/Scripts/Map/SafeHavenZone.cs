@@ -411,13 +411,10 @@ namespace LostBreadcrumbs.Runtime.Map
             }
 
             GameObject playerObject = null;
-            try
+            PlayerDummyController activePlayer = PlayerDummyController.ActiveInstance;
+            if (activePlayer != null)
             {
-                playerObject = GameObject.FindGameObjectWithTag("Player");
-            }
-            catch (UnityException)
-            {
-                // Tag setup may not be complete in edit-time context.
+                playerObject = activePlayer.gameObject;
             }
 
             if (playerObject == null)

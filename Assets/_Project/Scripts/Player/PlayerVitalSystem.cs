@@ -301,7 +301,12 @@ namespace LostBreadcrumbs.Runtime.Player
 
             float cellSize = mapSystem.CellSize;
             checkpointWorldPosition = new Vector3(startCell.x * cellSize, startCell.y * cellSize, transform.position.z);
-            if (mapSystem.TryGetSafePlayerStartPosition(transform, out Vector3 safeStartPosition))
+            if (mapSystem.TryValidateAndRecoverCheckpointPosition(checkpointWorldPosition, transform, out Vector3 recoveredPosition, out _))
+            {
+                checkpointWorldPosition = recoveredPosition;
+                checkpointWorldPosition.z = transform.position.z;
+            }
+            else if (mapSystem.TryGetSafePlayerStartPosition(transform, out Vector3 safeStartPosition))
             {
                 checkpointWorldPosition = safeStartPosition;
                 checkpointWorldPosition.z = transform.position.z;
@@ -400,12 +405,19 @@ namespace LostBreadcrumbs.Runtime.Player
 
                 if (fogSystem == null)
                 {
-                    fogSystem = FindFirstObjectByType<FogOfWarSystem>();
+                    fogSystem = FogOfWarSystem.ActiveInstance;
+                    if (fogSystem == null)
+                    {
+                        fogSystem = FindFirstObjectByType<FogOfWarSystem>();
+                    }
                 }
 
                 if (fogSystem != null)
                 {
                     fogSystem.ResetFogToHidden();
+                    Transform bindTarget = playerController != null ? playerController.transform : transform;
+                    fogSystem.BindPlayerVisibilityTarget(bindTarget, visibilitySource);
+                    fogSystem.RevealAroundBoundTargetNow();
                 }
             }
 
@@ -497,7 +509,17 @@ namespace LostBreadcrumbs.Runtime.Player
             }
 
             Vector3 respawnPosition = checkpointWorldPosition;
-            if (mapSystem != null && mapSystem.TryResolveSafePlayerPosition(respawnPosition, transform, out Vector3 safeRespawnPosition))
+            if (mapSystem != null
+                && mapSystem.TryValidateAndRecoverCheckpointPosition(respawnPosition, transform, out Vector3 recoveredRespawnPosition, out bool recovered))
+            {
+                recoveredRespawnPosition.z = transform.position.z;
+                respawnPosition = recoveredRespawnPosition;
+                if (recovered)
+                {
+                    checkpointWorldPosition = respawnPosition;
+                }
+            }
+            else if (mapSystem != null && mapSystem.TryResolveSafePlayerPosition(respawnPosition, transform, out Vector3 safeRespawnPosition))
             {
                 safeRespawnPosition.z = checkpointWorldPosition.z;
                 respawnPosition = safeRespawnPosition;

@@ -137,6 +137,11 @@ namespace LostBreadcrumbs.Runtime.Map
 
         private void Update()
         {
+            if (Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
             elapsed += Time.deltaTime;
             if (elapsed < updateInterval)
             {
@@ -152,35 +157,61 @@ namespace LostBreadcrumbs.Runtime.Map
 
             Refog(dt, effectiveRefogPerSecond);
 
-            if (target != null)
-            {
-                RevealCircle((Vector2)target.position, effectiveRevealRadius, effectiveRevealSoftness);
+            ApplyCurrentVisionReveal();
+            ApplyTexture();
+        }
 
-                if (includeFlashlightCone && visibilitySource != null && visibilitySource.FlashlightEnabled)
-                {
-                    float range = visibilitySource.FlashlightRange + effectiveFlashlightExtraRange;
-                    RevealCone((Vector2)target.position, visibilitySource.CurrentForward, range, visibilitySource.FlashlightAngle, flashlightConeSoftness);
-                }
+        public void BindPlayerVisibilityTarget(Transform playerTarget, PlayerVisibilitySource playerVisibility)
+        {
+            if (playerTarget != null)
+            {
+                target = playerTarget;
             }
 
+            if (playerVisibility != null)
+            {
+                visibilitySource = playerVisibility;
+            }
+
+            if (visibilitySource == null && target != null)
+            {
+                visibilitySource = target.GetComponent<PlayerVisibilitySource>();
+            }
+        }
+
+        public void RevealAroundBoundTargetNow()
+        {
+            EnsureInitialized();
+            EvaluateAdaptiveTuning();
+            TryFindTarget();
+            ApplyCurrentVisionReveal();
             ApplyTexture();
+        }
+
+        private void ApplyCurrentVisionReveal()
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            RevealCircle((Vector2)target.position, effectiveRevealRadius, effectiveRevealSoftness);
+
+            if (includeFlashlightCone && visibilitySource != null && visibilitySource.FlashlightEnabled)
+            {
+                float range = visibilitySource.FlashlightRange + effectiveFlashlightExtraRange;
+                RevealCone((Vector2)target.position, visibilitySource.CurrentForward, range, visibilitySource.FlashlightAngle, flashlightConeSoftness);
+            }
         }
 
         private void TryFindTarget()
         {
             if (target == null)
             {
-                try
+                PlayerDummyController playerController = PlayerDummyController.ActiveInstance;
+                if (playerController != null)
                 {
-                    GameObject player = GameObject.FindGameObjectWithTag("Player");
-                    if (player != null)
-                    {
-                        target = player.transform;
-                    }
-                }
-                catch (UnityException)
-                {
-                    // Ignore when tag list is not initialized in current scene.
+                    target = playerController.transform;
                 }
             }
 

@@ -19,10 +19,26 @@ namespace LostBreadcrumbs.Runtime.Map
         private readonly List<SpriteRenderer> rings = new();
         private float spawnTime;
         private float despawnTime;
+        private Sprite ringSpriteOverride;
+        private Sprite resolvedOverrideSprite;
 
         private static Sprite ringSprite;
 
+        public static Sprite SharedRingSprite => GetRingSprite();
+
         public void Configure(float targetRadius, Color color, float duration, int count, float interval, int order)
+        {
+            Configure(targetRadius, color, duration, count, interval, order, null);
+        }
+
+        public void Configure(
+            float targetRadius,
+            Color color,
+            float duration,
+            int count,
+            float interval,
+            int order,
+            Sprite ringSpriteOverride)
         {
             radius = Mathf.Max(0.3f, targetRadius);
             ringColor = color;
@@ -30,6 +46,8 @@ namespace LostBreadcrumbs.Runtime.Map
             ringCount = Mathf.Clamp(count, 1, 4);
             ringInterval = Mathf.Clamp(interval, 0f, ringDuration * 0.8f);
             sortingOrder = order;
+            this.ringSpriteOverride = ringSpriteOverride;
+            resolvedOverrideSprite = null;
 
             BuildRings();
             if (isActiveAndEnabled)
@@ -112,6 +130,8 @@ namespace LostBreadcrumbs.Runtime.Map
 
         private void BuildRings()
         {
+            Sprite activeSprite = ResolveInstanceRingSprite();
+
             while (rings.Count < ringCount)
             {
                 int index = rings.Count;
@@ -119,7 +139,7 @@ namespace LostBreadcrumbs.Runtime.Map
                 ringObject.transform.SetParent(transform, false);
 
                 SpriteRenderer renderer = ringObject.AddComponent<SpriteRenderer>();
-                renderer.sprite = GetRingSprite();
+                renderer.sprite = activeSprite;
                 renderer.sortingOrder = sortingOrder - index;
                 renderer.color = ringColor;
                 renderer.enabled = false;
@@ -133,16 +153,81 @@ namespace LostBreadcrumbs.Runtime.Map
                     continue;
                 }
 
+                // Reassign so a Configure override updates rings Awake already built.
+                rings[i].sprite = activeSprite;
                 rings[i].sortingOrder = sortingOrder - i;
                 rings[i].color = ringColor;
                 rings[i].enabled = false;
             }
         }
 
+        private Sprite ResolveInstanceRingSprite()
+        {
+            if (ringSpriteOverride == null)
+            {
+                return GetRingSprite();
+            }
+
+            if (resolvedOverrideSprite != null)
+            {
+                return resolvedOverrideSprite;
+            }
+
+            resolvedOverrideSprite = EnsureUnitWorldRingSprite(ringSpriteOverride);
+            return resolvedOverrideSprite;
+        }
+
+        private static Sprite EnsureUnitWorldRingSprite(Sprite artSprite)
+        {
+            if (artSprite == null)
+            {
+                return GetRingSprite();
+            }
+
+            // Match GetRingSprite art path: PPU == texture width so localScale diameter == world diameter.
+            float unitPixels = Mathf.Max(1f, artSprite.rect.width);
+            if (Mathf.Approximately(artSprite.pixelsPerUnit, unitPixels))
+            {
+                return artSprite;
+            }
+
+            Sprite unitSprite = Sprite.Create(
+                artSprite.texture,
+                artSprite.rect,
+                new Vector2(0.5f, 0.5f),
+                unitPixels);
+            unitSprite.name = artSprite.name;
+            unitSprite.hideFlags = HideFlags.HideAndDontSave;
+            return unitSprite;
+        }
+
         private static Sprite GetRingSprite()
         {
             if (ringSprite != null)
             {
+                return ringSprite;
+            }
+
+            Sprite artSprite = MapReadableArt.TryGetEchoPulseSprite();
+            if (artSprite != null)
+            {
+                // Procedural fallback uses PPU == texture size so localScale diameter == world diameter.
+                float unitPixels = Mathf.Max(1f, artSprite.rect.width);
+                if (!Mathf.Approximately(artSprite.pixelsPerUnit, unitPixels))
+                {
+                    ringSprite = Sprite.Create(
+                        artSprite.texture,
+                        artSprite.rect,
+                        new Vector2(0.5f, 0.5f),
+                        unitPixels);
+                    ringSprite.name = artSprite.name;
+                    ringSprite.hideFlags = HideFlags.HideAndDontSave;
+                }
+                else
+                {
+                    ringSprite = artSprite;
+                }
+
                 return ringSprite;
             }
 

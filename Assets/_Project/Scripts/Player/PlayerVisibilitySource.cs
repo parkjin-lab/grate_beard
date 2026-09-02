@@ -9,6 +9,7 @@ namespace LostBreadcrumbs.Runtime.Player
         [SerializeField, Range(10f, 180f)] private float flashlightAngle = 45f;
         [SerializeField] private Transform flashlightForward;
 
+        private PlayerDummyController movementSource;
         private float runtimeFlashlightRangeMultiplier = 1f;
         private float runtimeFlashlightAngleMultiplier = 1f;
         private float runtimeDreadFlashlightRangeMultiplier = 1f;
@@ -26,9 +27,22 @@ namespace LostBreadcrumbs.Runtime.Player
         {
             get
             {
-                Vector2 forward = flashlightForward != null
-                    ? (Vector2)flashlightForward.right
-                    : (Vector2)transform.right;
+                Vector2 forward;
+                if (flashlightForward != null)
+                {
+                    forward = flashlightForward.right;
+                }
+                else
+                {
+                    if (movementSource == null)
+                    {
+                        movementSource = GetComponent<PlayerDummyController>();
+                    }
+
+                    forward = movementSource != null
+                        ? movementSource.FacingDirection
+                        : (Vector2)transform.right;
+                }
 
                 if (forward.sqrMagnitude < 0.001f)
                 {

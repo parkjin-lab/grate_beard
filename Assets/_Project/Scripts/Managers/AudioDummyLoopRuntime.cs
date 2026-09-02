@@ -49,14 +49,21 @@ namespace LostBreadcrumbs.Runtime.Managers
         [SerializeField, Min(0.1f)] private float dreadLayerFadeOutSpeed = 2.2f;
 
         private const string DreadLayerSourceName = "DreadDrone_Runtime";
+        private const string PageTurnSourceName = "PageTurn_Runtime";
 
         private AudioClip generatedBgmClip;
         private AudioClip generatedAmbienceClip;
         private AudioClip generatedDreadLayerClip;
+        private AudioClip generatedPageTurnClip;
         private AudioSource dreadLayerSource;
+        private AudioSource pageTurnSource;
+        private float nextPageTurnTime;
         private float nextReferenceResolveTime;
         private float nextDreadLayerResolveTime;
         private float currentDreadLayerTension;
+        private float releaseSettleUntil;
+        private float releaseSettleDuration = 1.25f;
+        private float cachedAmbienceVolume = -1f;
 
         public bool HasGeneratedBgmClip => generatedBgmClip != null;
         public bool HasGeneratedAmbienceClip => generatedAmbienceClip != null;
@@ -69,6 +76,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         public float CurrentDreadLayerTension => currentDreadLayerTension;
         public float CurrentRhythmTempo => gameplayRhythmDirector != null ? gameplayRhythmDirector.CurrentTempo01 : 0f;
         public bool ForceDisableDummyLoops => forceDisableDummyLoops;
+        public float CurrentReleaseAmbientSettle => EvaluateReleaseAmbientSettle01();
 
         private void Awake()
         {
@@ -149,7 +157,41 @@ namespace LostBreadcrumbs.Runtime.Managers
                 }
             }
 
+            ApplyReleaseAmbientSettleMix();
             UpdateDreadLayer();
+        }
+
+        public void BeginReleaseAmbientSettle(float durationSeconds)
+        {
+            releaseSettleDuration = Mathf.Clamp(durationSeconds, 1f, 1.5f);
+            releaseSettleUntil = Time.unscaledTime + releaseSettleDuration;
+            if (ambienceSource != null && cachedAmbienceVolume < 0f)
+            {
+                cachedAmbienceVolume = ambienceSource.volume;
+            }
+        }
+
+        public static void TryPlayPageTurnRustle()
+        {
+            AudioDummyLoopRuntime runtime = FindFirstObjectByType<AudioDummyLoopRuntime>();
+            runtime?.PlayPageTurnRustle();
+        }
+
+        public void PlayPageTurnRustle()
+        {
+            if (!Application.isPlaying || Time.unscaledTime < nextPageTurnTime)
+            {
+                return;
+            }
+
+            EnsurePageTurnSource();
+            if (pageTurnSource == null || generatedPageTurnClip == null)
+            {
+                return;
+            }
+
+            nextPageTurnTime = Time.unscaledTime + 0.12f;
+            pageTurnSource.PlayOneShot(generatedPageTurnClip, 0.34f);
         }
 
         public void SetSourcesForEditor(
@@ -268,7 +310,8 @@ namespace LostBreadcrumbs.Runtime.Managers
                 Mathf.Max(0.1f, fadeSpeed) * deltaTime);
 
             float audibility = EvaluateDreadLayerAudibility(currentDreadLayerTension);
-            dreadLayerSource.volume = Mathf.Clamp01(dreadLayerMaxVolume) * audibility;
+            float settle = EvaluateReleaseAmbientSettle01();
+            dreadLayerSource.volume = Mathf.Clamp01(dreadLayerMaxVolume) * audibility * Mathf.Lerp(1f, 0.18f, settle);
             dreadLayerSource.pitch = Mathf.Lerp(
                 Mathf.Min(dreadLayerLowPitch, dreadLayerHighPitch),
                 Mathf.Max(dreadLayerLowPitch, dreadLayerHighPitch),
@@ -373,6 +416,47 @@ namespace LostBreadcrumbs.Runtime.Managers
                 / totalWeight);
         }
 
+        private void ApplyReleaseAmbientSettleMix()
+        {
+            if (ambienceSource == null)
+            {
+                return;
+            }
+
+            float settle = EvaluateReleaseAmbientSettle01();
+            if (cachedAmbienceVolume < 0f)
+            {
+                return;
+            }
+
+            ambienceSource.volume = cachedAmbienceVolume * Mathf.Lerp(1f, 0.52f, settle);
+            if (settle <= 0f)
+            {
+                cachedAmbienceVolume = -1f;
+            }
+        }
+
+        private float EvaluateReleaseAmbientSettle01()
+        {
+            if (releaseSettleUntil <= 0f)
+            {
+                return 0f;
+            }
+
+            float remaining = releaseSettleUntil - Time.unscaledTime;
+            if (remaining <= 0f)
+            {
+                releaseSettleUntil = 0f;
+                return 0f;
+            }
+
+            float duration = Mathf.Max(0.1f, releaseSettleDuration);
+            float elapsed = duration - remaining;
+            float rise = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / 0.2f));
+            float fall = 1f - Mathf.SmoothStep(0.62f, 1f, Mathf.Clamp01(elapsed / duration));
+            return Mathf.Clamp01(rise * fall);
+        }
+
         private float EvaluateDreadLayerAudibility(float tension)
         {
             if (dreadLayerTensionFloor >= 0.999f)
@@ -460,6 +544,58 @@ namespace LostBreadcrumbs.Runtime.Managers
             }
 
             AudioClip clip = AudioClip.Create(clipName, sampleCount, 1, sampleRate, false);
+            clip.SetData(data, 0);
+            return clip;
+        }
+
+        private void EnsurePageTurnSource()
+        {
+            generatedPageTurnClip ??= CreatePageTurnRustleClip();
+            if (pageTurnSource == null)
+            {
+                Transform existingSource = transform.Find(PageTurnSourceName);
+                if (existingSource != null)
+                {
+                    pageTurnSource = existingSource.GetComponent<AudioSource>();
+                }
+
+                if (pageTurnSource == null)
+                {
+                    GameObject sourceObject = new(PageTurnSourceName);
+                    sourceObject.transform.SetParent(transform, false);
+                    pageTurnSource = sourceObject.AddComponent<AudioSource>();
+                }
+            }
+
+            pageTurnSource.playOnAwake = false;
+            pageTurnSource.loop = false;
+            pageTurnSource.spatialBlend = 0f;
+            pageTurnSource.dopplerLevel = 0f;
+            pageTurnSource.priority = 80;
+        }
+
+        private static AudioClip CreatePageTurnRustleClip()
+        {
+            const int sampleRate = 44100;
+            int sampleCount = Mathf.Max(2, Mathf.CeilToInt(0.18f * sampleRate));
+            float[] data = new float[sampleCount];
+            System.Random rustleRandom = new(4181);
+            float filtered = 0f;
+            float previous = 0f;
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float n = sampleCount <= 1 ? 1f : i / (float)(sampleCount - 1);
+                float envelope = Mathf.Clamp01(n / 0.07f) * Mathf.Clamp01((1f - n) / 0.42f);
+                float noise = ((float)rustleRandom.NextDouble() * 2f) - 1f;
+                filtered = Mathf.Lerp(filtered, noise, 0.32f);
+                float high = noise - previous;
+                previous = noise;
+                float flap = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(320f, 130f, n) * (i / (float)sampleRate)) * 0.16f;
+                data[i] = Mathf.Clamp((filtered * 0.4f + high * 0.3f + flap) * envelope, -0.95f, 0.95f);
+            }
+
+            AudioClip clip = AudioClip.Create("DummyPageTurnRustle", sampleCount, 1, sampleRate, false);
             clip.SetData(data, 0);
             return clip;
         }

@@ -102,7 +102,16 @@ namespace LostBreadcrumbs.Runtime.UI
 
         private void Update()
         {
-            TryResolveReferences();
+            if (Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
+            if (visible)
+            {
+                TryResolveReferences();
+            }
+
             ObserveRhythmValidation();
 
             if (RuntimeInputAdapter.GetKeyDown(cycleEnemyKey))
@@ -476,6 +485,7 @@ namespace LostBreadcrumbs.Runtime.UI
                 GUILayout.Label($"Learn W/P: {snapshot.LearningWeight:0.00}/{snapshot.PredictionWeight:0.00}");
                 GUILayout.Label($"Telemetry SprintSec: {telemetry.SprintSeconds:0.0}");
                 GUILayout.Label($"Telemetry Pulse/Decoy/Smoke: {telemetry.PulseCastCount}/{telemetry.DecoyDeployCount}/{telemetry.SmokeDeployCount}");
+                GUILayout.Label($"Telemetry Overcharge/Auto: {telemetry.OverchargeCastCount}/{telemetry.FullChargeAutoCastCount} last={telemetry.LastPulseCharge01:0.00}");
                 GUILayout.Label($"Telemetry Deaths/Stage+: {telemetry.DeathCount}/{telemetry.StageAdvanceCount}");
             }
 
@@ -499,6 +509,7 @@ namespace LostBreadcrumbs.Runtime.UI
                 GUILayout.Label($"Pulse Last Stun Count: {pulseAbility.LastStunnedCount}");
                 GUILayout.Label($"Pulse Last Return: {pulseAbility.LastEchoReturnThreatCount} / {pulseAbility.LastEchoReturnDistance:0.00}m warn={pulseAbility.EchoReturnWarningRemaining:0.00}s");
                 GUILayout.Label($"Pulse Last Noise Scale: {pulseAbility.LastNoiseScale:0.00}");
+                GUILayout.Label($"Pulse Overcharge: {(pulseAbility.IsCharging ? "Hold" : "Idle")} {pulseAbility.ChargePercent}% last={pulseAbility.LastCharge01:0.00} auto={(pulseAbility.LastCastWasAutoFullCharge ? "Y" : "N")}");
             }
 
             if (decoyAbility != null)
@@ -1030,10 +1041,40 @@ namespace LostBreadcrumbs.Runtime.UI
             return observed ? "Y" : "-";
         }
 
+        private bool HasAllOverlayRefs()
+        {
+            return mapSystem != null
+                   && cameraFollow != null
+                   && fogOfWar != null
+                   && mapTuning != null
+                   && regressionChecklist != null
+                   && dummyLoop != null
+                   && spawnDirector != null
+                   && setPieceDirector != null
+                   && pressureDirector != null
+                   && rhythmDirector != null
+                   && readabilityDirector != null
+                   && playerVitals != null
+                   && visibilitySource != null
+                   && playerController != null
+                   && runLoadout != null
+                   && telemetry != null
+                   && concealmentState != null
+                   && pulseAbility != null
+                   && decoyAbility != null
+                   && smokeAbility != null;
+        }
+
         private void TryResolveReferences(bool force = false)
         {
             if (!force && lastReferenceResolveFrame == Time.frameCount)
             {
+                return;
+            }
+
+            if (!force && HasAllOverlayRefs())
+            {
+                lastReferenceResolveFrame = Time.frameCount;
                 return;
             }
 
@@ -1162,18 +1203,7 @@ namespace LostBreadcrumbs.Runtime.UI
                 nextHookCacheRefreshTime = Time.unscaledTime + Mathf.Max(0.1f, hookCacheRefreshInterval);
             }
 
-            RoomArchetypeHookDummy[] hooks = FindObjectsByType<RoomArchetypeHookDummy>(FindObjectsSortMode.None);
-            cachedHooks.Clear();
-            for (int i = 0; i < hooks.Length; i++)
-            {
-                RoomArchetypeHookDummy hook = hooks[i];
-                if (hook == null)
-                {
-                    continue;
-                }
-
-                cachedHooks.Add(hook);
-            }
+            RoomArchetypeHookDummy.CopyActiveHooks(cachedHooks);
         }
 
         private void CycleRegressionResultFilter()

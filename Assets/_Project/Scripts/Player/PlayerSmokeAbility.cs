@@ -64,6 +64,11 @@ namespace LostBreadcrumbs.Runtime.Player
                 return;
             }
 
+            if (Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
             if (!RuntimeInputAdapter.GetKeyDown(deployKey))
             {
                 return;
@@ -94,6 +99,11 @@ namespace LostBreadcrumbs.Runtime.Player
                 behaviorTelemetry = GetComponent<PlayerBehaviorTelemetry>();
             }
 
+            if (!RegressionChecklistRunner.IsRegressionRunActive && !StageManager.IsSmokeUnlocked)
+            {
+                return false;
+            }
+
             if (!IsReady)
             {
                 return false;
@@ -104,7 +114,8 @@ namespace LostBreadcrumbs.Runtime.Player
                 return false;
             }
 
-            Vector2 forward = transform.right;
+            PlayerDummyController movement = GetComponent<PlayerDummyController>();
+            Vector2 forward = movement != null ? movement.FacingDirection : (Vector2)transform.right;
             if (forward.sqrMagnitude < 0.001f)
             {
                 forward = Vector2.right;
@@ -123,8 +134,19 @@ namespace LostBreadcrumbs.Runtime.Player
             smokeObject.transform.localScale = Vector3.one;
 
             SpriteRenderer renderer = smokeObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = smokeColor;
+            Sprite puffSprite = MapReadableArt.TryGetSmokeSprite();
+            if (puffSprite != null)
+            {
+                renderer.sprite = puffSprite;
+                // Keep soft mist alpha from smokeColor; leave RGB white so the PNG is not muddied.
+                renderer.color = new Color(1f, 1f, 1f, smokeColor.a);
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = smokeColor;
+            }
+
             renderer.sortingOrder = 24;
 
             float effectiveRadius = smokeRadius * runtimeRadiusMultiplier;

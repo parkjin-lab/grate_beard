@@ -1,3 +1,4 @@
+using LostBreadcrumbs.Runtime.Player;
 using UnityEngine;
 
 namespace LostBreadcrumbs.Runtime.Core
@@ -236,19 +237,12 @@ namespace LostBreadcrumbs.Runtime.Core
                 nextTargetResolveTime = Time.unscaledTime + Mathf.Max(0.1f, missingTargetResolveInterval);
             }
 
-            try
+            PlayerDummyController playerController = PlayerDummyController.ActiveInstance;
+            if (playerController != null)
             {
-                GameObject player = GameObject.FindGameObjectWithTag("Player");
-                if (player != null)
-                {
-                    target = player.transform;
-                    previousTargetPosition = target.position;
-                    hasPreviousTargetPosition = true;
-                }
-            }
-            catch (UnityException)
-            {
-                // Ignore when project tag settings are not ready yet.
+                target = playerController.transform;
+                previousTargetPosition = target.position;
+                hasPreviousTargetPosition = true;
             }
         }
     }

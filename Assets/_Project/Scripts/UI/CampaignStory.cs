@@ -1,0 +1,226 @@
+using System.IO;
+using LostBreadcrumbs.Runtime.Core.Input;
+using UnityEngine;
+
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+
+namespace LostBreadcrumbs.Runtime.UI
+{
+    public static class CampaignStoryCopy
+    {
+        public const string PrologueAndStage1 =
+            "숲은 깊고 집은 멀었다. 헨젤이 주머니를 열어 빵가루를 뿌리며 말했다. \"이 길을 따라가면 돌아갈 수 있어.\"";
+
+        public const string Stage2 =
+            "숲이 속삭였다. 달콤한 냄새는 길을 잃게 만드는 함정이었다. 그레텔이 연기를 피워 그림자를 가렸다.";
+
+        public const string Stage3 =
+            "심장이 빠르게 뛰었다. 고요한 순간이 올 때까지 숨을 죽이고, 멀리까지 귀를 기울여야 했다.";
+
+        public const string Stage4 =
+            "아이들은 옅은 가루로 길을 남겼다.\n밤이 오자 숲이 그 길을 혀로 닦았다.\n숨겨 둔 짙은 묶음만 땅에 남았다.\n그 이정표를 밟고 다음 장이 열렸다.";
+
+        public const string Stage5 =
+            "숲이 같은 가루로 거짓 길을 심었다.\n늦게 갈수록 집의 불이 가루를 물들였다.\n진해지지 않는 것은 길이 아니었다.\n아이들은 문을 보고 장을 넘겼다.";
+
+        public const string Ending =
+            "그 집 문턱에서 이야기는 덮였다.";
+
+        public const string ThresholdPictureLabel = "집";
+        public const string ContinueHint = "스페이스로 계속";
+        public const string EndingContinueHint = "시작으로";
+        public const string TitleLogo = "헨젤과 그레텔";
+        public const string StartLabel = "시작";
+        public const string ContinueRunLabel = "이어하기";
+        public const string HoldUnlockCue = "멀리까지 들릴 수 있다";
+    }
+
+    public static class CampaignArt
+    {
+        private const string FrameResourcePath = "Story/StorybookOpenParchmentFrame";
+        private const string Stage1ResourcePath = "Story/StorybookHanselGretelForestPath";
+        private const string Stage2ResourcePath = "Story/StorybookSmokeAndCache";
+        private const string Stage3ResourcePath = "Story/StorybookHoldAndListen";
+        private const string Stage4ResourcePath = "Story/StorybookLickedTrailCache";
+        private const string WitchHouseResourcePath = "Story/StorybookWitchHouse";
+        private const string FrameFileName = "StorybookOpenParchmentFrame.png";
+        private const string Stage1FileName = "StorybookHanselGretelForestPath.png";
+        private const string Stage2FileName = "StorybookSmokeAndCache.png";
+        private const string Stage3FileName = "StorybookHoldAndListen.png";
+        private const string Stage4FileName = "StorybookLickedTrailCache.png";
+        private const string WitchHouseFileName = "StorybookWitchHouse.png";
+
+        private static Sprite bookFrame;
+        private static Sprite stage1Illustration;
+        private static Sprite stage2Illustration;
+        private static Sprite stage3Illustration;
+        private static Sprite stage4Illustration;
+        private static Sprite witchHouseIllustration;
+
+        public static Sprite TryGetBookFrame()
+        {
+            if (bookFrame != null)
+            {
+                return bookFrame;
+            }
+
+            bookFrame = LoadSprite(FrameResourcePath, FrameFileName, "StorybookOpenParchmentFrame");
+            return bookFrame;
+        }
+
+        public static Sprite TryGetStage1Illustration()
+        {
+            if (stage1Illustration != null)
+            {
+                return stage1Illustration;
+            }
+
+            stage1Illustration = LoadSprite(Stage1ResourcePath, Stage1FileName, "StorybookHanselGretelForestPath");
+            return stage1Illustration;
+        }
+
+        public static Sprite TryGetStage2Illustration()
+        {
+            if (stage2Illustration != null)
+            {
+                return stage2Illustration;
+            }
+
+            stage2Illustration = LoadSprite(Stage2ResourcePath, Stage2FileName, "StorybookSmokeAndCache");
+            return stage2Illustration;
+        }
+
+        public static Sprite TryGetStage3Illustration()
+        {
+            if (stage3Illustration != null)
+            {
+                return stage3Illustration;
+            }
+
+            stage3Illustration = LoadSprite(Stage3ResourcePath, Stage3FileName, "StorybookHoldAndListen");
+            return stage3Illustration;
+        }
+
+        public static Sprite TryGetStage4Illustration()
+        {
+            if (stage4Illustration != null)
+            {
+                return stage4Illustration;
+            }
+
+            stage4Illustration = LoadSprite(Stage4ResourcePath, Stage4FileName, "StorybookLickedTrailCache");
+            return stage4Illustration;
+        }
+
+        public static Sprite TryGetWitchHouseIllustration()
+        {
+            if (witchHouseIllustration != null)
+            {
+                return witchHouseIllustration;
+            }
+
+            witchHouseIllustration = LoadSprite(WitchHouseResourcePath, WitchHouseFileName, "StorybookWitchHouse");
+            return witchHouseIllustration;
+        }
+
+        private static Sprite LoadSprite(string resourcePath, string fileName, string spriteName)
+        {
+            Sprite resourceSprite = Resources.Load<Sprite>(resourcePath);
+            if (resourceSprite != null)
+            {
+                return resourceSprite;
+            }
+
+            Texture2D texture = LoadTextureFromProjectFile(fileName);
+            if (texture == null)
+            {
+                texture = Resources.Load<Texture2D>(resourcePath);
+            }
+
+            if (texture == null)
+            {
+                return null;
+            }
+
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            Sprite sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                100f);
+            sprite.name = spriteName;
+            sprite.hideFlags = HideFlags.HideAndDontSave;
+            return sprite;
+        }
+
+        private static Texture2D LoadTextureFromProjectFile(string fileName)
+        {
+            string[] candidates =
+            {
+                Path.Combine(Application.dataPath, "_Project/Resources/Story", fileName),
+                Path.Combine(Application.dataPath, "_Project/Art", fileName)
+            };
+
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                string path = candidates[i];
+                if (!File.Exists(path))
+                {
+                    continue;
+                }
+
+                byte[] bytes = File.ReadAllBytes(path);
+                Texture2D texture = new Texture2D(2, 2, TextureFormat.RGBA32, false)
+                {
+                    name = Path.GetFileNameWithoutExtension(fileName),
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+
+                if (texture.LoadImage(bytes, markNonReadable: false))
+                {
+                    return texture;
+                }
+
+                Object.Destroy(texture);
+            }
+
+            return null;
+        }
+    }
+
+    public static class CampaignUiInput
+    {
+        public static bool ConfirmPressed()
+        {
+            return RuntimeInputAdapter.GetKeyDown(KeyCode.Space) || PrimaryClickDown();
+        }
+
+        public static bool SkipPressed()
+        {
+            return RuntimeInputAdapter.GetKeyDown(KeyCode.Escape);
+        }
+
+        public static bool PrimaryClickDown()
+        {
+#if ENABLE_INPUT_SYSTEM
+            Mouse mouse = Mouse.current;
+            return mouse != null && mouse.leftButton.wasPressedThisFrame;
+#else
+            return Input.GetMouseButtonDown(0);
+#endif
+        }
+
+        public static Vector2 PointerScreenPosition()
+        {
+#if ENABLE_INPUT_SYSTEM
+            Mouse mouse = Mouse.current;
+            return mouse != null ? mouse.position.ReadValue() : Vector2.zero;
+#else
+            return Input.mousePosition;
+#endif
+        }
+    }
+}

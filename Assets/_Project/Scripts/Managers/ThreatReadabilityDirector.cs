@@ -335,6 +335,7 @@ namespace LostBreadcrumbs.Runtime.Managers
         private float escapeReliefBreathSnapClipFrequency;
         private Material escapeReliefTrailMaterial;
         private PlayerDummyController playerController;
+        private AudioDummyLoopRuntime audioDummyLoop;
         private float currentFlashlightDread;
         private float currentCloseThreatDistance = float.PositiveInfinity;
         private int activeChaseEventCount;
@@ -1395,12 +1396,14 @@ namespace LostBreadcrumbs.Runtime.Managers
             StartEscapeReliefCalmWindow(intensity);
             ApplyRhythmReleaseQuietBreath(controller, intensity);
             StartRhythmReleaseCameraExhale(intensity);
+            PulseReleaseBreadcrumbTrail();
+            BeginReleaseAmbientSettle();
 
             nextRhythmReleaseReliefRealtime = now + Mathf.Max(0.5f, rhythmReleaseReliefCooldownSeconds);
 
             RuntimeEventBus.Raise(
                 RuntimeEventType.Ability,
-                BuildRhythmReleaseReliefMessage(recovered),
+                BuildRhythmReleaseReliefMessage(recovered, whispered),
                 this,
                 Mathf.Max(0, stage),
                 semantic: RuntimeEventSemantic.EscapeRelief);
@@ -1415,7 +1418,33 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         private static string BuildRhythmReleaseReliefMessage(float recovered)
         {
-            return $"안도 회복 (+{Mathf.Max(0f, recovered):0.0} 스태미나)";
+            return BuildRhythmReleaseReliefMessage(recovered, whispered: false);
+        }
+
+        private static string BuildRhythmReleaseReliefMessage(float recovered, bool whispered)
+        {
+            _ = recovered;
+            if (whispered)
+            {
+                return "숨이 트인다 · 길이 열린다";
+            }
+
+            return "숨이 트인다 · 발자국이 옅어진다 · 숲이 잠시 잠잠하다";
+        }
+
+        private void PulseReleaseBreadcrumbTrail()
+        {
+            BreadcrumbPickup.PulseActiveTrail(1.25f);
+        }
+
+        private void BeginReleaseAmbientSettle()
+        {
+            if (audioDummyLoop == null)
+            {
+                audioDummyLoop = FindFirstObjectByType<AudioDummyLoopRuntime>();
+            }
+
+            audioDummyLoop?.BeginReleaseAmbientSettle(1.25f);
         }
 
         private void StartRhythmReleaseCameraExhale(float intensity)
@@ -2603,6 +2632,18 @@ namespace LostBreadcrumbs.Runtime.Managers
 
         private void ResolveReferences(bool force = false)
         {
+            if (!force
+                && mapSystem != null
+                && player != null
+                && visibilitySource != null
+                && playerController != null
+                && targetCamera != null
+                && fogOfWar != null
+                && stagePressureDirector != null)
+            {
+                return;
+            }
+
             if (!force)
             {
                 if (Time.unscaledTime < nextReferenceResolveTime)
@@ -2626,19 +2667,10 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             if (player == null)
             {
-                GameObject playerObject = null;
-                try
+                PlayerDummyController activePlayer = PlayerDummyController.ActiveInstance;
+                if (activePlayer != null)
                 {
-                    playerObject = GameObject.FindGameObjectWithTag("Player");
-                }
-                catch (UnityException)
-                {
-                    playerObject = null;
-                }
-
-                if (playerObject != null)
-                {
-                    player = playerObject.transform;
+                    player = activePlayer.transform;
                 }
             }
 

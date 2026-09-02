@@ -721,6 +721,7 @@ namespace LostBreadcrumbs.Runtime.Managers
                 RunFeedbackFeatureWiringCheck(hooksAcrossRegressionStages);
                 yield return RunPressureScalingCheck();
                 RunRhythmDesignContractCheck();
+                RunEchoOverchargeContractCheck();
                 yield return RunPresetStageMatrixCheck();
                 yield return RunChaseReadabilityRegressionCheck();
                 yield return RunDeathResetCheck();
@@ -2107,6 +2108,52 @@ namespace LostBreadcrumbs.Runtime.Managers
             AddResult("Rhythm.Telemetry", telemetryPass, $"phase={rhythmDirector.CurrentPhaseLabel}, beat={rhythmDirector.LastBeatLabel}, duration={rhythmDirector.CurrentPhaseDuration:0.0}s");
             AddResult("Rhythm.SpikeFairnessTelemetry", spikeFairnessTelemetryPass, rhythmDirector.SpikeFairnessSummary);
             AddResult("Rhythm.ReleaseReliefTelemetry", releaseReliefTelemetryPass, readabilityDirector != null ? readabilityDirector.ReleaseReliefSummary : "missing readability director");
+        }
+
+        private void RunEchoOverchargeContractCheck()
+        {
+            ResolveReferences();
+            if (pulseAbility == null)
+            {
+                AddResult("Echo.OverchargeContract", false, "pulse ability missing");
+                return;
+            }
+
+            EchoOverchargePreview tap = pulseAbility.EvaluateOverchargePreview(0f);
+            EchoOverchargePreview full = pulseAbility.EvaluateOverchargePreview(1f);
+            EchoOverchargePreview tapSmoke = pulseAbility.EvaluateOverchargePreview(0f, true);
+            EchoOverchargePreview fullSmoke = pulseAbility.EvaluateOverchargePreview(1f, true);
+            bool stunUnchanged = Mathf.Abs(tap.StunRadius - full.StunRadius) <= 0.001f
+                                 && Mathf.Abs(tap.StunDurationSeconds - full.StunDurationSeconds) <= 0.001f
+                                 && Mathf.Abs(full.StunRadius - pulseAbility.EffectiveStunRadius) <= 0.001f;
+            bool revealScaled = tap.RevealRadiusMultiplier <= 1.001f
+                                && Mathf.Abs(full.RevealRadiusMultiplier - pulseAbility.OverchargeRevealRadiusMultiplier) <= 0.01f
+                                && pulseAbility.OverchargeRevealRadiusMultiplier >= 1.64f
+                                && pulseAbility.OverchargeRevealRadiusMultiplier <= 1.66f;
+            bool noiseScaled = tap.NoiseMultiplier <= 1.001f
+                               && Mathf.Abs(full.NoiseMultiplier - pulseAbility.OverchargeNoiseMultiplier) <= 0.01f
+                               && pulseAbility.OverchargeNoiseMultiplier >= 1.79f
+                               && pulseAbility.OverchargeNoiseMultiplier <= 1.81f;
+            bool tailScaled = full.ResonancePulseCount >= tap.ResonancePulseCount
+                              && full.ResonancePulseCount <= 5
+                              && full.ResonancePulseCount <= tap.ResonancePulseCount + pulseAbility.OverchargeExtraResonancePulses;
+            bool chargeIdle = !pulseAbility.IsCharging && pulseAbility.ChargePercent == 0;
+            bool smokeRevealCut = tapSmoke.RevealRadiusMultiplier < tap.RevealRadiusMultiplier - 0.01f
+                                  && fullSmoke.RevealRadiusMultiplier < full.RevealRadiusMultiplier - 0.01f
+                                  && Mathf.Abs(tapSmoke.RevealRadiusMultiplier - pulseAbility.SmokeRevealRadiusMultiplier) <= 0.01f
+                                  && Mathf.Abs(fullSmoke.RevealRadiusMultiplier - pulseAbility.OverchargeRevealRadiusMultiplier * pulseAbility.SmokeRevealRadiusMultiplier) <= 0.02f;
+            bool smokeStunUnchanged = Mathf.Abs(tapSmoke.StunRadius - tap.StunRadius) <= 0.001f
+                                      && Mathf.Abs(fullSmoke.StunRadius - full.StunRadius) <= 0.001f
+                                      && Mathf.Abs(tapSmoke.StunDurationSeconds - tap.StunDurationSeconds) <= 0.001f
+                                      && Mathf.Abs(fullSmoke.StunDurationSeconds - full.StunDurationSeconds) <= 0.001f;
+            bool smokeNoiseUnchanged = Mathf.Abs(tapSmoke.NoiseMultiplier - tap.NoiseMultiplier) <= 0.001f
+                                       && Mathf.Abs(fullSmoke.NoiseMultiplier - full.NoiseMultiplier) <= 0.001f;
+            bool pass = stunUnchanged && revealScaled && noiseScaled && tailScaled && chargeIdle
+                        && smokeRevealCut && smokeStunUnchanged && smokeNoiseUnchanged;
+            AddResult(
+                "Echo.OverchargeContract",
+                pass,
+                $"stun={(stunUnchanged ? "Y" : "N")} {tap.StunRadius:0.00}/{full.StunRadius:0.00}, reveal={tap.RevealRadiusMultiplier:0.00}->{full.RevealRadiusMultiplier:0.00}, noise={tap.NoiseMultiplier:0.00}->{full.NoiseMultiplier:0.00}, tail={tap.ResonancePulseCount}->{full.ResonancePulseCount}, idle={(chargeIdle ? "Y" : "N")}, smokeReveal={tapSmoke.RevealRadiusMultiplier:0.00}->{fullSmoke.RevealRadiusMultiplier:0.00}, smokeStun={(smokeStunUnchanged ? "Y" : "N")}, smokeNoiseMul={(smokeNoiseUnchanged ? "Y" : "N")}");
         }
 
         private List<int> BuildMatrixStages()

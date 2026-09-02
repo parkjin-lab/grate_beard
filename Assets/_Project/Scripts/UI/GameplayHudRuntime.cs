@@ -95,6 +95,11 @@ namespace LostBreadcrumbs.Runtime.UI
         }
         private void Update()
         {
+            if (Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
             TryResolveGameplayRefs();
             RefreshEnemyCache();
             UpdateHud();
@@ -132,34 +137,39 @@ namespace LostBreadcrumbs.Runtime.UI
 
         private void ResolveGameplayRefs()
         {
-            if (playerVitals == null)
+            if (playerController == null)
             {
-                playerVitals = FindFirstObjectByType<PlayerVitalSystem>();
+                playerController = PlayerDummyController.ActiveInstance;
             }
 
             if (playerController == null)
             {
-                playerController = FindFirstObjectByType<PlayerDummyController>();
+                return;
+            }
+
+            if (playerVitals == null)
+            {
+                playerVitals = playerController.GetComponent<PlayerVitalSystem>();
             }
 
             if (pulseAbility == null)
             {
-                pulseAbility = FindFirstObjectByType<PlayerEchoPulseAbility>();
+                pulseAbility = playerController.GetComponent<PlayerEchoPulseAbility>();
             }
 
             if (decoyAbility == null)
             {
-                decoyAbility = FindFirstObjectByType<PlayerDecoyAbility>();
+                decoyAbility = playerController.GetComponent<PlayerDecoyAbility>();
             }
 
             if (smokeAbility == null)
             {
-                smokeAbility = FindFirstObjectByType<PlayerSmokeAbility>();
+                smokeAbility = playerController.GetComponent<PlayerSmokeAbility>();
             }
 
             if (telemetry == null)
             {
-                telemetry = FindFirstObjectByType<PlayerBehaviorTelemetry>();
+                telemetry = playerController.GetComponent<PlayerBehaviorTelemetry>();
             }
         }
 
@@ -345,7 +355,13 @@ namespace LostBreadcrumbs.Runtime.UI
         private void UpdateAbilityLine()
         {
             string pulse;
-            if (pulseAbility != null && pulseAbility.IsEchoReturnWarningActive)
+            if (pulseAbility != null && pulseAbility.IsCharging)
+            {
+                pulse = pulseAbility.IsInsideSmoke
+                    ? $"Q 과충전 {pulseAbility.ChargePercent}% 연막"
+                    : $"Q 과충전 {pulseAbility.ChargePercent}%";
+            }
+            else if (pulseAbility != null && pulseAbility.IsEchoReturnWarningActive)
             {
                 string count = pulseAbility.LastEchoReturnThreatCount > 1 ? $" x{pulseAbility.LastEchoReturnThreatCount}" : string.Empty;
                 pulse = $"Q 응답{count} {pulseAbility.LastEchoReturnDistance:0.0}m";
@@ -356,16 +372,20 @@ namespace LostBreadcrumbs.Runtime.UI
             }
             else
             {
-                pulse = FormatAbility("Q 펄스", pulseAbility != null && pulseAbility.IsReady, pulseAbility != null ? pulseAbility.CooldownRemaining : 0f);
+                string pulseLabel = StageManager.IsOverchargeHoldUnlocked ? "Q 홀드" : "Q 펄스";
+                pulse = FormatAbility(pulseLabel, pulseAbility != null && pulseAbility.IsReady, pulseAbility != null ? pulseAbility.CooldownRemaining : 0f);
             }
 
             string decoy = FormatAbility("E 디코이", decoyAbility != null && decoyAbility.IsReady, decoyAbility != null ? decoyAbility.CooldownRemaining : 0f);
-            string smoke = FormatAbility("R 스모크", smokeAbility != null && smokeAbility.IsReady, smokeAbility != null ? smokeAbility.CooldownRemaining : 0f);
+            string smoke = StageManager.IsSmokeUnlocked
+                ? FormatAbility("R 스모크", smokeAbility != null && smokeAbility.IsReady, smokeAbility != null ? smokeAbility.CooldownRemaining : 0f)
+                : null;
 
             string scanStatus = BuildEchoObjectiveScanStatus();
+            string abilities = string.IsNullOrEmpty(smoke) ? $"{pulse}   |   {decoy}" : $"{pulse}   |   {decoy}   |   {smoke}";
             abilityText.text = string.IsNullOrEmpty(scanStatus)
-                ? $"{pulse}   |   {decoy}   |   {smoke}"
-                : $"{pulse}   |   {decoy}   |   {smoke}\n{scanStatus}";
+                ? abilities
+                : abilities + "\n" + scanStatus;
         }
 
         private string BuildEchoObjectiveScanStatus()
@@ -710,6 +730,12 @@ namespace LostBreadcrumbs.Runtime.UI
             if (record.Semantic == RuntimeEventSemantic.RhythmShift && IsBuildReturnCue(source))
             {
                 message = "다시 빨라진다";
+                return true;
+            }
+
+            if (record.Semantic == RuntimeEventSemantic.EscapeRelief && ContainsKeyword(source, "숨이 트인다"))
+            {
+                message = "숨이 트인다";
                 return true;
             }
 

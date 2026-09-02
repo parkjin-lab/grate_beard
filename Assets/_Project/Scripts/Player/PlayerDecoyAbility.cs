@@ -60,6 +60,11 @@ namespace LostBreadcrumbs.Runtime.Player
                 return;
             }
 
+            if (Time.timeScale <= 0.0001f)
+            {
+                return;
+            }
+
             if (!RuntimeInputAdapter.GetKeyDown(deployKey))
             {
                 return;
@@ -99,7 +104,8 @@ namespace LostBreadcrumbs.Runtime.Player
                 return false;
             }
 
-            Vector2 forward = transform.right;
+            PlayerDummyController movement = GetComponent<PlayerDummyController>();
+            Vector2 forward = movement != null ? movement.FacingDirection : (Vector2)transform.right;
             if (forward.sqrMagnitude < 0.001f)
             {
                 forward = Vector2.right;
@@ -118,8 +124,18 @@ namespace LostBreadcrumbs.Runtime.Player
             decoyObject.transform.localScale = Vector3.one * 0.4f;
 
             SpriteRenderer renderer = decoyObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetDebugSprite();
-            renderer.color = decoyColor;
+            Sprite decoyArt = MapReadableArt.TryGetDecoySprite();
+            if (decoyArt != null)
+            {
+                renderer.sprite = decoyArt;
+                renderer.color = Color.white;
+            }
+            else
+            {
+                renderer.sprite = GetDebugSprite();
+                renderer.color = decoyColor;
+            }
+
             renderer.sortingOrder = 26;
 
             CircleCollider2D trigger = decoyObject.AddComponent<CircleCollider2D>();

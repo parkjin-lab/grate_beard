@@ -371,8 +371,22 @@ namespace LostBreadcrumbs.Runtime.Managers
                 beacon.transform.localScale = Vector3.one * beaconScale;
 
                 SpriteRenderer renderer = beacon.AddComponent<SpriteRenderer>();
-                renderer.sprite = GetDebugSprite();
-                renderer.color = beaconColor;
+                Sprite setPieceSprite = MapReadableArt.TryGetSetPieceBeaconSprite();
+                bool paintedBeacon = setPieceSprite != null;
+                if (paintedBeacon)
+                {
+                    // Painted copper fork-totem - white RGB so tier beaconColor does not muddy art.
+                    renderer.sprite = setPieceSprite;
+                    Color painted = Color.white;
+                    painted.a = beaconColor.a;
+                    renderer.color = painted;
+                }
+                else
+                {
+                    renderer.sprite = GetDebugSprite();
+                    renderer.color = beaconColor;
+                }
+
                 renderer.sortingOrder = 30 + i;
 
                 CircleCollider2D trigger = beacon.AddComponent<CircleCollider2D>();
@@ -385,6 +399,11 @@ namespace LostBreadcrumbs.Runtime.Managers
                     pulseInterval * Mathf.Lerp(1f, 0.86f, i),
                     pulseLoudness,
                     pulseRadius);
+                if (paintedBeacon)
+                {
+                    // DecoyEmitterDummy Awake/TickVisual would otherwise force magenta idle tint.
+                    emitter.PreferPaintedBodyTint(beaconColor.a);
+                }
 
                 activeBeaconCount++;
             }
@@ -607,7 +626,13 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             float intensityBias = Mathf.Lerp(0.92f, 1.12f, Mathf.Clamp01(Mathf.InverseLerp(0.85f, 1.2f, runtimeIntensity)));
             float multiplier = Mathf.Lerp(minBeaconCountMultiplier, maxBeaconCountMultiplier, tension01) * intensityBias;
-            return ScaleCount(baseCount, multiplier, 1, maxExtraBeacons);
+            int count = ScaleCount(baseCount, multiplier, 1, maxExtraBeacons);
+            if (tier == StageSetPieceTier.Stage3ForkLure)
+            {
+                count += 1;
+            }
+
+            return count;
         }
 
         private int EvaluateReinforcementCount(StageSetPieceTier tier, float tension01, float runtimeIntensity)
@@ -620,7 +645,13 @@ namespace LostBreadcrumbs.Runtime.Managers
 
             float intensityBias = Mathf.Lerp(0.9f, 1.2f, Mathf.Clamp01(Mathf.InverseLerp(0.85f, 1.2f, runtimeIntensity)));
             float multiplier = Mathf.Lerp(minReinforcementCountMultiplier, maxReinforcementCountMultiplier, tension01) * intensityBias;
-            return ScaleCount(baseCount, multiplier, 0, maxExtraReinforcements);
+            int count = ScaleCount(baseCount, multiplier, 0, maxExtraReinforcements);
+            if (tier == StageSetPieceTier.Stage3ForkLure)
+            {
+                count += 1;
+            }
+
+            return count;
         }
 
         private float EvaluateBeaconLifetime(StageSetPieceTier tier, float tension01)
