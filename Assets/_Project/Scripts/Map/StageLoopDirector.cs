@@ -187,6 +187,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private bool lastExitUnlockedState;
         private Sprite debugSprite;
         private Material chainEchoMaterial;
+        private Material breadcrumbChainEchoPaintedMaterial;
         private Coroutine exitUnlockPressureRoutine;
         private float nextCorruptedBreadcrumbEchoTime;
         private PlayerDummyController momentumPlayer;
@@ -1500,11 +1501,13 @@ namespace LostBreadcrumbs.Runtime.Map
             line.SetPosition(0, origin);
             line.SetPosition(1, target);
             line.alignment = LineAlignment.View;
-            line.textureMode = LineTextureMode.Stretch;
+            Texture2D chainTexture = MapReadableArt.TryGetBreadcrumbChainEchoTexture();
+            // Tile painted crumb trail when present; Stretch only for the untextured debug fallback.
+            line.textureMode = chainTexture != null ? LineTextureMode.Tile : LineTextureMode.Stretch;
             line.numCornerVertices = 2;
             line.numCapVertices = 2;
             line.widthMultiplier = EvaluateBreadcrumbChainWidth(momentumLevel);
-            line.sharedMaterial = GetChainEchoMaterial();
+            line.sharedMaterial = GetBreadcrumbChainEchoMaterial();
             line.sortingOrder = breadcrumbChainEchoSortingOrder;
 
             StartCoroutine(BreadcrumbChainEchoRoutine(echoObject, line, targetIsExit, momentumLevel));
@@ -1555,10 +1558,22 @@ namespace LostBreadcrumbs.Runtime.Map
             {
                 float t = Mathf.Clamp01((Time.time - startedAt) / duration);
                 float pulse = 0.5f + Mathf.Sin(t * Mathf.PI * 5f) * 0.5f;
-                Color color = baseColor;
-                color.a *= Mathf.Lerp(1f, 0f, t)
-                           * Mathf.Lerp(0.65f, 1f, pulse)
-                           * Mathf.Lerp(1f, 1.18f, Mathf.Clamp01((momentumLevel - 1f) / Mathf.Max(1f, BreadcrumbMomentumMaxLevel - 1f)));
+                float alphaScale = Mathf.Lerp(1f, 0f, t)
+                                   * Mathf.Lerp(0.65f, 1f, pulse)
+                                   * Mathf.Lerp(1f, 1.18f, Mathf.Clamp01((momentumLevel - 1f) / Mathf.Max(1f, BreadcrumbMomentumMaxLevel - 1f)));
+                Color color;
+                if (MapReadableArt.TryGetBreadcrumbChainEchoTexture() != null)
+                {
+                    // Painted honey-gold crumb trail - white RGB so chain tint colors do not double-tint.
+                    color = Color.white;
+                    color.a = baseColor.a * alphaScale;
+                }
+                else
+                {
+                    color = baseColor;
+                    color.a *= alphaScale;
+                }
+
                 line.startColor = color;
                 line.endColor = color;
                 line.widthMultiplier = baseWidth * Mathf.Lerp(1.2f, 0.35f, t);
@@ -1727,6 +1742,44 @@ namespace LostBreadcrumbs.Runtime.Map
                 hideFlags = HideFlags.HideAndDontSave
             };
             return chainEchoMaterial;
+        }
+
+        private Material GetBreadcrumbChainEchoMaterial()
+        {
+            Texture2D chainTexture = MapReadableArt.TryGetBreadcrumbChainEchoTexture();
+            if (chainTexture == null)
+            {
+                return GetChainEchoMaterial();
+            }
+
+            if (breadcrumbChainEchoPaintedMaterial != null)
+            {
+                return breadcrumbChainEchoPaintedMaterial;
+            }
+
+            Shader shader = Shader.Find("Sprites/Default");
+            if (shader == null)
+            {
+                shader = Shader.Find("Default-Line");
+            }
+
+            if (shader == null)
+            {
+                return GetChainEchoMaterial();
+            }
+
+            breadcrumbChainEchoPaintedMaterial = new Material(shader)
+            {
+                name = "BreadcrumbChainEchoPaintedMaterial",
+                hideFlags = HideFlags.HideAndDontSave,
+                mainTexture = chainTexture
+            };
+            if (breadcrumbChainEchoPaintedMaterial.HasProperty("_MainTex"))
+            {
+                breadcrumbChainEchoPaintedMaterial.SetTexture("_MainTex", chainTexture);
+            }
+
+            return breadcrumbChainEchoPaintedMaterial;
         }
 
         private void HandleStaminaPickupCollected(StaminaPickup pickup)

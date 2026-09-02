@@ -43,6 +43,7 @@ Updated: 2026-08-27
 - E 미끼 펄스 링: `ForestDecoyEchoPulse` PNG를 Art와 Resources/Map에 두고, `TryGetDecoyPulseSprite` → `DecoyEmitterDummy.SpawnSuccessFeedback` Configure 오버라이드. 마젠타 휘슬벨 플레어. Q/해금/선택캐시 비콘과 분리. 없으면 기존 tint 공유 링. 쿨다운·수명·소음 숫자 그대로.
 - 위험 보상 펄스: `ForestRiskCacheRewardPulse` PNG를 Art와 Resources/Map에 두고, `TryGetRiskCachePulseSprite` → `SpawnRiskCacheRewardPulse` Configure 오버라이드. 수집·애프터쇼크 공통. 엠버/녹슨주황 빵단지 플레어. Q/해금/선택캐시/디코이 링과 분리. 없으면 기존 tint 공유 링. 반경 1.45·수명 1.1·링수 2·정렬 그대로. LandmarkTrailCache 본체는 그대로.
 - 빵가루 모멘텀 펄스: `ForestBreadcrumbMomentumPulse` PNG를 Art와 Resources/Map에 두고, `TryGetBreadcrumbMomentumPulseSprite` → `SpawnBreadcrumbMomentumPulse` Configure 오버라이드. 허니골드 가루 플레어. Q/위험보상/해금/선택캐시/디코이 링과 분리. 없으면 기존 tint 공유 링. 반경 1.25·수명 1.05·정렬 35·링수 2..4 그대로.
+- 빵가루 체인 에코 라인: `ForestBreadcrumbChainEcho` PNG를 Art와 Resources/Map에 두고, `TryGetBreadcrumbChainEchoTexture` → `SpawnBreadcrumbChainEcho` Tile. 허니골드 가루 대시 트레일. 모멘텀 펄스와 한 언어. 거짓 가루 에코·숫자 그대로. 없으면 기존 무텍스처 금색 라인.
 - 에코 리턴 위협 펄스: `ForestEchoReturnThreatPulse` PNG를 Art와 Resources/Map에 두고, `TryGetEchoReturnThreatPulseSprite` → `PlayerEchoPulseAbility.SpawnEchoReturnHintPulse` Configure 오버라이드. 경고 빨강 엠버 플레어. Q/해금/선택캐시/디코이/위험보상/모멘텀 링과 분리. 라인은 `ForestEchoReturnThreatHint` 별도. 없으면 기존 tint 공유 링. duration·정렬·경고 초 그대로.
 - 에코 리턴 위협 라인: `ForestEchoReturnThreatHint` PNG를 Art와 Resources/Map에 두고, `TryGetEchoReturnThreatHintTexture` → `GetEchoReturnLineMaterial` / `SpawnEchoReturnHintLine` Tile. 경고 빨강 엠버 대시 트레일. 팁 펄스(`ForestEchoReturnThreatPulse`)는 그대로. 없으면 기존 무텍스처 빨간 라인. width·waver·duration·정렬 그대로.
 
@@ -53,7 +54,7 @@ Updated: 2026-08-27
 
 ## 다음 에이전트
 1. Unity 콘솔에서 컴파일만 확인한다.
-2. Play Mode에서 에코 리턴 라인=`ForestEchoReturnThreatHint` + 팁 펄스=`ForestEchoReturnThreatPulse`인지, Q/기타 링이 각자인지 확인한다. 숫자를 바꾸지 않는다.
+2. Play Mode에서 빵가루 체인 에코 라인이 `ForestBreadcrumbChainEcho`인지(거짓 가루 에코는 그대로), 모멘텀 펄스/에코리턴/Q가 각자인지 확인한다. 숫자를 바꾸지 않는다.
 
 ## 한 줄 판정
 출구 선택 캐시가 주황 네모 대신 호박 등불 PNG로 읽힌다.
