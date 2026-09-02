@@ -30,6 +30,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string EchoReturnThreatHintResourcePath = "Map/ForestEchoReturnThreatHint";
         private const string BreadcrumbChainEchoResourcePath = "Map/ForestBreadcrumbChainEcho";
         private const string CorruptedBreadcrumbEchoResourcePath = "Map/ForestCorruptedBreadcrumbEcho";
+        private const string SetPieceBeaconResourcePath = "Map/ForestSetPieceBeacon";
         private const string WallFileName = "ForestMossyStoneWall.png";
         private const string BreadFileName = "GoldenGlowBreadcrumb.png";
         private const string FaintBreadFileName = "FaintLickedBreadcrumb.png";
@@ -55,6 +56,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private const string EchoReturnThreatHintFileName = "ForestEchoReturnThreatHint.png";
         private const string BreadcrumbChainEchoFileName = "ForestBreadcrumbChainEcho.png";
         private const string CorruptedBreadcrumbEchoFileName = "ForestCorruptedBreadcrumbEcho.png";
+        private const string SetPieceBeaconFileName = "ForestSetPieceBeacon.png";
 
         private static Sprite wallSprite;
         private static Sprite breadSprite;
@@ -81,6 +83,7 @@ namespace LostBreadcrumbs.Runtime.Map
         private static Texture2D echoReturnThreatHintTexture;
         private static Texture2D breadcrumbChainEchoTexture;
         private static Texture2D corruptedBreadcrumbEchoTexture;
+        private static Sprite setPieceBeaconSprite;
 
         public static Sprite TryGetWallSprite()
         {
@@ -396,6 +399,21 @@ namespace LostBreadcrumbs.Runtime.Map
                 ExitChoiceCacheBeaconFileName,
                 "ForestExitChoiceCacheBeacon");
             return exitChoiceCacheBeaconSprite;
+        }
+
+        public static Sprite TryGetSetPieceBeaconSprite()
+        {
+            if (setPieceBeaconSprite != null)
+            {
+                return setPieceBeaconSprite;
+            }
+
+            // Same LoadSprite PPU 100 pattern as decoy body; StageSetPieceDirector keeps beaconScaleRatio.
+            setPieceBeaconSprite = LoadSprite(
+                SetPieceBeaconResourcePath,
+                SetPieceBeaconFileName,
+                "ForestSetPieceBeacon");
+            return setPieceBeaconSprite;
         }
 
         public static Sprite TryGetEchoPulseSprite()

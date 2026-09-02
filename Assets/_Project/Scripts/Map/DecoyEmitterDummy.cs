@@ -46,6 +46,26 @@ namespace LostBreadcrumbs.Runtime.Map
             pulseRadius = Mathf.Max(0.1f, radius);
         }
 
+        /// <summary>
+        /// Keep painted body art readable: white RGB + existing alpha for idle/flash.
+        /// Call after Configure when a MapReadableArt body sprite is assigned.
+        /// </summary>
+        public void PreferPaintedBodyTint(float alpha)
+        {
+            float a = Mathf.Clamp01(alpha);
+            idleColor = new Color(1f, 1f, 1f, a);
+            flashColor = new Color(1f, 1f, 1f, Mathf.Min(1f, a + 0.16f));
+            if (spriteRenderer == null)
+            {
+                spriteRenderer = GetComponent<SpriteRenderer>();
+            }
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = idleColor;
+            }
+        }
+
         private void Awake()
         {
             spriteRenderer = GetComponent<SpriteRenderer>();

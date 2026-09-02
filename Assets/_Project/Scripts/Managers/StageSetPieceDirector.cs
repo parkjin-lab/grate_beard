@@ -371,8 +371,22 @@ namespace LostBreadcrumbs.Runtime.Managers
                 beacon.transform.localScale = Vector3.one * beaconScale;
 
                 SpriteRenderer renderer = beacon.AddComponent<SpriteRenderer>();
-                renderer.sprite = GetDebugSprite();
-                renderer.color = beaconColor;
+                Sprite setPieceSprite = MapReadableArt.TryGetSetPieceBeaconSprite();
+                bool paintedBeacon = setPieceSprite != null;
+                if (paintedBeacon)
+                {
+                    // Painted copper fork-totem - white RGB so tier beaconColor does not muddy art.
+                    renderer.sprite = setPieceSprite;
+                    Color painted = Color.white;
+                    painted.a = beaconColor.a;
+                    renderer.color = painted;
+                }
+                else
+                {
+                    renderer.sprite = GetDebugSprite();
+                    renderer.color = beaconColor;
+                }
+
                 renderer.sortingOrder = 30 + i;
 
                 CircleCollider2D trigger = beacon.AddComponent<CircleCollider2D>();
@@ -385,6 +399,11 @@ namespace LostBreadcrumbs.Runtime.Managers
                     pulseInterval * Mathf.Lerp(1f, 0.86f, i),
                     pulseLoudness,
                     pulseRadius);
+                if (paintedBeacon)
+                {
+                    // DecoyEmitterDummy Awake/TickVisual would otherwise force magenta idle tint.
+                    emitter.PreferPaintedBodyTint(beaconColor.a);
+                }
 
                 activeBeaconCount++;
             }

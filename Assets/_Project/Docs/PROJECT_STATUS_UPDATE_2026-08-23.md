@@ -45,6 +45,7 @@ Updated: 2026-08-27
 - 빵가루 모멘텀 펄스: `ForestBreadcrumbMomentumPulse` PNG를 Art와 Resources/Map에 두고, `TryGetBreadcrumbMomentumPulseSprite` → `SpawnBreadcrumbMomentumPulse` Configure 오버라이드. 허니골드 가루 플레어. Q/위험보상/해금/선택캐시/디코이 링과 분리. 없으면 기존 tint 공유 링. 반경 1.25·수명 1.05·정렬 35·링수 2..4 그대로.
 - 빵가루 체인 에코 라인: `ForestBreadcrumbChainEcho` PNG를 Art와 Resources/Map에 두고, `TryGetBreadcrumbChainEchoTexture` → `SpawnBreadcrumbChainEcho` Tile. 허니골드 가루 대시 트레일. 모멘텀 펄스와 한 언어. 거짓 가루 에코·숫자 그대로. 없으면 기존 무텍스처 금색 라인.
 - 거짓 가루 에코 라인: `ForestCorruptedBreadcrumbEcho` PNG를 Art와 Resources/Map에 두고, `TryGetCorruptedBreadcrumbEchoTexture` → `SpawnCorruptedBreadcrumbEcho` Tile. 잿빛·썩은 보라 대시. 실체인 허니골드와 분리. width·duration·쿨다운·노이즈 그대로.
+- 세트피스 비콘: `ForestSetPieceBeacon` PNG를 Art와 Resources/Map에 두고, `TryGetSetPieceBeaconSprite` → `StageSetPieceDirector.BuildSetPiece`. 구리 엠버 갈림길 토템. 출구/선택 비콘·디코이와 분리. 없으면 기존 tint 디버그 네모. lifetime·pulse·반경 숫자 그대로.
 - 에코 리턴 위협 펄스: `ForestEchoReturnThreatPulse` PNG를 Art와 Resources/Map에 두고, `TryGetEchoReturnThreatPulseSprite` → `PlayerEchoPulseAbility.SpawnEchoReturnHintPulse` Configure 오버라이드. 경고 빨강 엠버 플레어. Q/해금/선택캐시/디코이/위험보상/모멘텀 링과 분리. 라인은 `ForestEchoReturnThreatHint` 별도. 없으면 기존 tint 공유 링. duration·정렬·경고 초 그대로.
 - 에코 리턴 위협 라인: `ForestEchoReturnThreatHint` PNG를 Art와 Resources/Map에 두고, `TryGetEchoReturnThreatHintTexture` → `GetEchoReturnLineMaterial` / `SpawnEchoReturnHintLine` Tile. 경고 빨강 엠버 대시 트레일. 팁 펄스(`ForestEchoReturnThreatPulse`)는 그대로. 없으면 기존 무텍스처 빨간 라인. width·waver·duration·정렬 그대로.
 
@@ -55,7 +56,7 @@ Updated: 2026-08-27
 
 ## 다음 에이전트
 1. Unity 콘솔에서 컴파일만 확인한다.
-2. Play Mode에서 거짓 가루 에코=`ForestCorruptedBreadcrumbEcho`(허니골드 실체인과 구분)인지 확인한다. 숫자를 바꾸지 않는다.
+2. Play Mode에서 세트피스 비콘=`ForestSetPieceBeacon`(출구/선택 비콘·디코이와 구분)인지 확인한다. 숫자를 바꾸지 않는다.
 
 ## 한 줄 판정
 출구 선택 캐시가 주황 네모 대신 호박 등불 PNG로 읽힌다.
